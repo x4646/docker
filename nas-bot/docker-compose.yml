@@ -1,0 +1,10 @@
+version: '3'
+services:
+  nas-bot:
+    image: nas-bot
+    container_name: nas-bot
+    restart: unless-stopped
+    network_mode: host
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /share/Container/docker/weather-settings/data:/data

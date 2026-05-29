@@ -1,0 +1,13 @@
+version: '3'
+services:
+  nas-dashboard:
+    image: nas-dashboard
+    container_name: nas-dashboard
+    restart: unless-stopped
+    network_mode: host
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /share/Container/docker/nas-dashboard/data:/data
+      - /share/Container/docker/nas-dashboard/public:/app/public
+      - /share/Container/docker/nas-dashboard/modules:/app/modules
+      - /share/Container/docker/weather-settings/data:/data/weather

@@ -1,0 +1,24 @@
+{
+  "name": "nas-bot",
+  "version": "1.0.0",
+  "main": "bot.js",
+  "dependencies": {
+    "@types/jest": "^30.0.0",
+    "@types/node": "^25.9.1",
+    "jest": "^30.4.2",
+    "node-telegram-bot-api": "^0.64.0",
+    "reflect-metadata": "^0.2.2",
+    "ts-jest": "^29.4.11",
+    "ts-node": "^10.9.2",
+    "tsyringe": "^4.10.0",
+    "typescript": "^6.0.3",
+    "winston": "^3.19.0"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": ""
+}

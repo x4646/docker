@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>天気提醒設定</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<h1>🌤 天気提醒設定</h1>
+
+<div class="card">
+  <div class="card-title">📍 監控地区（複数選択可）</div>
+  <div class="city-actions">
+    <button class="btn-sm" onclick="selectAll()">全選択</button>
+    <button class="btn-sm" onclick="selectNone()">全解除</button>
+  </div>
+  <div class="city-checkboxes" id="cityCheckboxes"></div>
+  <div class="city-preview" id="cityPreview">未選択</div>
+</div>
+
+<div class="card">
+  <div class="card-title">⏰ 監控時間段</div>
+  <div class="form-row">
+    <div class="form-group">
+      <label class="form-label">開始時間（時）</label>
+      <input class="form-input" id="startHour" type="number" min="0" max="23">
+    </div>
+    <div class="form-group">
+      <label class="form-label">終了時間（時）</label>
+      <input class="form-input" id="endHour" type="number" min="0" max="23">
+    </div>
+  </div>
+  <div class="hint">毎時00分に検測、変化があれば通知</div>
+</div>
+
+<div class="card">
+  <div class="card-title">🌡 温度 & 風速閾値</div>
+  <div class="form-row">
+    <div class="form-group">
+      <label class="form-label">温度変化閾値（°C）</label>
+      <input class="form-input" id="tempDiff" type="number" min="1" max="20">
+      <div class="hint">この値以上変化したら通知</div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">強風閾値（m/s）</label>
+      <input class="form-input" id="windLimit" type="number" min="1" max="50">
+      <div class="hint">この風速を超えたら通知</div>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-title">🔔 提醒開關</div>
+  <div class="toggle-group">
+    <div class="toggle-item">
+      <span class="toggle-label">🌧 降雨提醒</span>
+      <label class="toggle"><input type="checkbox" id="alertRain"><span class="slider"></span></label>
+    </div>
+    <div class="toggle-item">
+      <span class="toggle-label">☁️ 陰天提醒</span>
+      <label class="toggle"><input type="checkbox" id="alertCloud"><span class="slider"></span></label>
+    </div>
+    <div class="toggle-item">
+      <span class="toggle-label">☀️ 暴晒提醒（晴天高温）</span>
+      <label class="toggle"><input type="checkbox" id="alertSun"><span class="slider"></span></label>
+    </div>
+    <div class="toggle-item">
+      <span class="toggle-label">💨 大風提醒</span>
+      <label class="toggle"><input type="checkbox" id="alertWind"><span class="slider"></span></label>
+    </div>
+    <div class="toggle-item">
+      <span class="toggle-label">🌫 霧霾提醒</span>
+      <label class="toggle"><input type="checkbox" id="alertFog"><span class="slider"></span></label>
+    </div>
+    <div class="toggle-item">
+      <span class="toggle-label">❄️ 降雪提醒</span>
+      <label class="toggle"><input type="checkbox" id="alertSnow"><span class="slider"></span></label>
+    </div>
+  </div>
+</div>
+
+<button class="btn btn-primary" onclick="save()">💾 保存設定</button>
+<button class="btn btn-reset"   onclick="reset()">↺ デフォルトに戻す</button>
+
+<script src="js/app.js"></script>
+</body>
+</html>

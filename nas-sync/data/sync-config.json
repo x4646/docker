@@ -1,0 +1,33 @@
+{
+  "dirs": [
+    {
+      "id": "1",
+      "nas": "/share/BAK/Gcloud",
+      "pc": "D:\\cloud",
+      "enabled": true,
+      "mode": "mirror"
+    }
+  ],
+  "filters": {
+    "excludeExt": [
+      ".tmp",
+      ".log",
+      ".DS_Store",
+      ".bak",
+      ".lock"
+    ],
+    "excludeDir": [
+      "node_modules",
+      ".git",
+      "temp",
+      "@Recycle"
+    ],
+    "excludeGlob": [
+      "~$*",
+      "*.tmp",
+      "Thumbs.db"
+    ],
+    "minSize": 0,
+    "maxSize": 524288000
+  }
+}

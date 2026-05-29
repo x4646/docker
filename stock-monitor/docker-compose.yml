@@ -1,0 +1,10 @@
+version: '3'
+services:
+  stock-monitor:
+    image: stock-monitor
+    container_name: stock-monitor
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./data:/data

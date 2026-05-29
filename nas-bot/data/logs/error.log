@@ -1,0 +1,1123 @@
+{"error":"socket hang up","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 03:34:31"}
+{"error":"socket hang up","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 03:34:42"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 03:34:44"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 03:34:45"}
+{"error":"socket hang up","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 03:34:56"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 03:34:58"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 03:34:59"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 03:35:00"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 03:35:01"}
+{"error":"socket hang up","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 03:35:13"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 03:35:14"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 03:35:15"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 03:35:17"}
+{"error":"socket hang up","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 03:35:28"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 03:35:30"}
+{"error":"socket hang up","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 03:35:41"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 03:35:42"}
+{"error":"socket hang up","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 03:35:54"}
+{"error":"socket hang up","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 03:36:05"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 03:36:07"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 03:36:08"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 03:36:09"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 03:36:10"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 03:36:12"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 03:36:13"}
+{"error":"socket hang up","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 03:36:24"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 03:36:26"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 03:37:50"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 03:37:51"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 03:44:36"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 03:51:39"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 04:00:00"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"sendMessage","service":"nas-bot","timestamp":"2026-05-24 04:02:42"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"sendMessage","service":"nas-bot","timestamp":"2026-05-24 04:16:10"}
+{"cmd":"docker start stock-monitor\nexec docker stop stock-monitor\nexec docker restart nas-bot\nexec df -h\nexec free -h","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:16:59"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:18:49"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:18:51"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:18:52"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:19:04"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:19:06"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:19:07"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:19:08"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:19:21"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:19:33"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:19:34"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:19:46"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:19:48"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:19:49"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:19:50"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:19:52"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:19:53"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:19:54"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:19:55"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:19:57"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:19:58"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:19:59"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:20:11"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:20:13"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:20:14"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:20:15"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:20:16"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:20:18"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:20:19"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:20:20"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:20:21"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:20:23"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:20:34"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:20:36"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:20:37"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:20:38"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:20:40"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:20:41"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:20:53"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:21:05"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:21:06"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:21:08"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:21:09"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:21:21"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:21:22"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:21:24"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:21:25"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:21:26"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:21:38"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:21:40"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:21:41"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:21:42"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:21:44"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:21:45"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:21:46"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:21:47"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:21:49"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:21:50"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:21:51"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:22:03"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:22:05"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:22:06"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:22:07"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:22:19"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:22:21"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:22:22"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:22:23"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:22:35"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:22:47"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:22:49"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:22:50"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:22:52"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:22:53"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:22:54"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:22:55"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:23:07"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:23:19"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:23:22"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:23:23"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:23:24"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:23:36"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:23:48"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:23:50"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:24:02"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:24:04"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:24:05"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:24:06"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:24:07"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:24:09"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:24:20"}
+{"error":"connect ECONNREFUSED 192.168.0.3:3000","level":"error","message":"获取股票数据失败","service":"nas-bot","timestamp":"2026-05-24 05:24:21"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:24:22"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:24:24"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:24:25"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:24:26"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:24:27"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:24:39"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:24:41"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:24:42"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:24:44"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:24:45"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:24:46"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:24:58"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:25:00"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:25:01"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:25:02"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:25:03"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:25:05"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:25:17"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:25:18"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:25:30"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:25:43"}
+{"error":"connect ECONNREFUSED 192.168.0.3:3000","level":"error","message":"获取股票数据失败","service":"nas-bot","timestamp":"2026-05-24 05:25:43"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:25:44"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:25:46"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:25:47"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:25:48"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:26:00"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:26:12"}
+{"error":"connect ECONNREFUSED 192.168.0.3:3000","level":"error","message":"获取股票数据失败","service":"nas-bot","timestamp":"2026-05-24 05:26:13"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:26:25"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:26:37"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:26:39"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:26:40"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:26:52"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:26:54"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:26:55"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:26:56"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:27:08"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:27:10"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:27:11"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:27:23"}
+{"error":"connect ECONNREFUSED 192.168.0.3:3000","level":"error","message":"获取股票数据失败","service":"nas-bot","timestamp":"2026-05-24 05:27:23"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:27:25"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:27:26"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:27:28"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:27:39"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:27:41"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:27:42"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:27:44"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:27:45"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:27:46"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:27:47"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:27:49"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:27:50"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:27:51"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:27:52"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:27:54"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:27:55"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:27:56"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:27:57"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:27:59"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:28:00"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:28:01"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:28:02"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:28:04"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:28:05"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:28:06"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:28:08"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:28:09"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:28:10"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:28:11"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:28:13"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:28:14"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:28:15"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:28:16"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:28:18"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:28:19"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:28:20"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:28:21"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:28:23"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:28:24"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:28:25"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:28:26"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:28:28"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:28:29"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:28:41"}
+{"error":"connect ECONNREFUSED 192.168.0.3:3000","level":"error","message":"获取股票数据失败","service":"nas-bot","timestamp":"2026-05-24 05:28:41"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:28:42"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:28:44"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:28:45"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:28:57"}
+{"error":"connect ECONNREFUSED 192.168.0.3:3000","level":"error","message":"获取股票数据失败","service":"nas-bot","timestamp":"2026-05-24 05:28:57"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:29:09"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:29:11"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:29:12"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:29:24"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:29:26"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:29:38"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:29:39"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:29:41"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:29:53"}
+{"error":"connect ECONNREFUSED 192.168.0.3:3000","level":"error","message":"获取股票数据失败","service":"nas-bot","timestamp":"2026-05-24 05:29:53"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:30:06"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:30:08"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:30:09"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:30:10"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:30:12"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:30:23"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:30:36"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:30:38"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:30:49"}
+{"error":"connect ECONNREFUSED 192.168.0.3:3000","level":"error","message":"获取股票数据失败","service":"nas-bot","timestamp":"2026-05-24 05:30:50"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:30:51"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:30:53"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:31:04"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:31:06"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:31:18"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:31:20"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:31:32"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:31:33"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:31:35"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:31:46"}
+{"error":"connect ECONNREFUSED 192.168.0.3:3000","level":"error","message":"获取股票数据失败","service":"nas-bot","timestamp":"2026-05-24 05:31:47"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:31:48"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:31:50"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:32:01"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:32:14"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:32:16"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:32:17"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:32:18"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:32:20"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:32:21"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:32:22"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:32:34"}
+{"error":"connect ECONNREFUSED 192.168.0.3:3000","level":"error","message":"获取股票数据失败","service":"nas-bot","timestamp":"2026-05-24 05:32:34"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:32:36"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:32:37"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:32:38"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:32:50"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:32:52"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:33:04"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:33:06"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:33:07"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:33:19"}
+{"error":"connect ECONNREFUSED 192.168.0.3:3000","level":"error","message":"获取股票数据失败","service":"nas-bot","timestamp":"2026-05-24 05:33:19"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:33:31"}
+{"error":"connect ECONNREFUSED 192.168.0.3:3000","level":"error","message":"获取股票数据失败","service":"nas-bot","timestamp":"2026-05-24 05:33:31"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:33:44"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:33:45"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:33:47"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:33:48"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:33:49"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:33:50"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:33:52"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:34:03"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:34:05"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:34:17"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:34:29"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:34:31"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:34:33"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:34:44"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:34:46"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:34:58"}
+{"error":"connect ECONNREFUSED 192.168.0.3:3000","level":"error","message":"获取股票数据失败","service":"nas-bot","timestamp":"2026-05-24 05:34:58"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:35:11"}
+{"error":"connect ECONNREFUSED 192.168.0.3:3000","level":"error","message":"获取股票数据失败","service":"nas-bot","timestamp":"2026-05-24 05:35:11"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:35:13"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:35:14"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:35:16"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:35:17"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:35:29"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:35:31"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:35:42"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:35:44"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:35:56"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:35:58"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:35:59"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:36:00"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:36:12"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:36:14"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:36:15"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:36:16"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:36:18"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:36:19"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:36:20"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:36:32"}
+{"error":"connect ECONNREFUSED 192.168.0.3:3000","level":"error","message":"获取股票数据失败","service":"nas-bot","timestamp":"2026-05-24 05:36:32"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:36:44"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:36:46"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:36:58"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:37:10"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:37:12"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:37:24"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:37:36"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:37:38"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:37:50"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:37:52"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:37:53"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:37:54"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:37:56"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:38:07"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:38:20"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:38:32"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:38:34"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:38:35"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:38:37"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:38:38"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:38:39"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:38:41"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:38:52"}
+{"error":"connect ECONNREFUSED 192.168.0.3:3000","level":"error","message":"获取股票数据失败","service":"nas-bot","timestamp":"2026-05-24 05:38:53"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:39:05"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:39:07"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:39:18"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:39:31"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:39:33"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:39:34"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:39:35"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:39:47"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:39:59"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:40:12"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:40:14"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:40:15"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:40:17"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:40:18"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:40:19"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:40:20"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:40:22"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:40:23"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:40:24"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:40:25"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:40:27"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:40:28"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:40:29"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:40:41"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:40:43"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:40:44"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:40:56"}
+{"error":"connect ECONNREFUSED 192.168.0.3:3000","level":"error","message":"获取股票数据失败","service":"nas-bot","timestamp":"2026-05-24 05:40:56"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:40:58"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:40:59"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:41:00"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:41:01"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:41:03"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:41:04"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:41:05"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:41:07"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:41:08"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:41:09"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:41:10"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:41:12"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:41:13"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:41:25"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:41:26"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:41:28"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:41:29"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:41:30"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:41:31"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:41:33"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:41:34"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:41:35"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:41:36"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:41:38"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:41:49"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:41:51"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:41:53"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:41:54"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:42:06"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:42:07"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:42:09"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:42:10"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:42:22"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:42:24"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:42:25"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:42:37"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:42:49"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:42:51"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:42:52"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:43:04"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:43:06"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:43:18"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:43:30"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:43:32"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:43:33"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:43:34"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:43:46"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:43:48"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:43:49"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:44:01"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:44:03"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:44:04"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:44:05"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:44:17"}
+{"error":"connect ECONNREFUSED 192.168.0.3:3000","level":"error","message":"获取股票数据失败","service":"nas-bot","timestamp":"2026-05-24 05:44:17"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:44:30"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:44:31"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:44:33"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:44:34"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:44:35"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:44:37"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:44:38"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:44:50"}
+{"error":"connect ECONNREFUSED 192.168.0.3:3000","level":"error","message":"获取股票数据失败","service":"nas-bot","timestamp":"2026-05-24 05:44:50"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:44:51"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:45:03"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:45:05"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:45:06"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:45:08"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:45:19"}
+{"error":"connect ECONNREFUSED 192.168.0.3:3000","level":"error","message":"获取股票数据失败","service":"nas-bot","timestamp":"2026-05-24 05:45:20"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:45:32"}
+{"error":"connect ECONNREFUSED 192.168.0.3:3000","level":"error","message":"获取股票数据失败","service":"nas-bot","timestamp":"2026-05-24 05:45:32"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:45:34"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:45:45"}
+{"error":"connect ECONNREFUSED 192.168.0.3:3000","level":"error","message":"获取股票数据失败","service":"nas-bot","timestamp":"2026-05-24 05:45:46"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:45:47"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:45:49"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:46:00"}
+{"error":"connect ECONNREFUSED 192.168.0.3:3000","level":"error","message":"获取股票数据失败","service":"nas-bot","timestamp":"2026-05-24 05:46:01"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:46:02"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:46:14"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:46:16"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:46:17"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:46:29"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:46:41"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:46:43"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:46:44"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:46:56"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:47:09"}
+{"error":"connect ECONNREFUSED 192.168.0.3:3000","level":"error","message":"获取股票数据失败","service":"nas-bot","timestamp":"2026-05-24 05:47:09"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:47:21"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:47:23"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:47:24"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:47:26"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:47:27"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:47:39"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:47:41"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:47:42"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:47:54"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:48:06"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:48:08"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:48:20"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:48:32"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:48:45"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:48:57"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:48:59"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:49:11"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:49:23"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:49:25"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:49:37"}
+{"error":"connect ECONNREFUSED 192.168.0.3:3000","level":"error","message":"获取股票数据失败","service":"nas-bot","timestamp":"2026-05-24 05:49:37"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:49:39"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:49:51"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:50:03"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:50:16"}
+{"error":"connect ECONNREFUSED 192.168.0.3:3000","level":"error","message":"获取股票数据失败","service":"nas-bot","timestamp":"2026-05-24 05:50:16"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:50:28"}
+{"error":"connect ECONNREFUSED 192.168.0.3:3000","level":"error","message":"获取股票数据失败","service":"nas-bot","timestamp":"2026-05-24 05:50:28"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:50:30"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:50:31"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:50:43"}
+{"error":"connect ECONNREFUSED 192.168.0.3:3000","level":"error","message":"获取股票数据失败","service":"nas-bot","timestamp":"2026-05-24 05:50:43"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:50:45"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:50:57"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:50:59"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:51:00"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:51:01"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:51:13"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:51:15"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:51:16"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:51:28"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:51:40"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:51:42"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:51:44"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:51:45"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:51:57"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:51:59"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:52:10"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:52:23"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:52:35"}
+{"error":"connect ECONNREFUSED 192.168.0.3:3000","level":"error","message":"获取股票数据失败","service":"nas-bot","timestamp":"2026-05-24 05:52:36"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:52:37"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:52:38"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:52:40"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:52:41"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:52:42"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:52:54"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:52:56"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:53:08"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:53:10"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:53:11"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:53:12"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:53:13"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:53:25"}
+{"error":"connect ECONNREFUSED 192.168.0.3:3000","level":"error","message":"获取股票数据失败","service":"nas-bot","timestamp":"2026-05-24 05:53:25"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:53:38"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:53:40"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:53:51"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:54:04"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:54:16"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:54:18"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:54:19"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:54:21"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:54:22"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:54:23"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:54:35"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:54:37"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:54:38"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:54:39"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:54:41"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:54:42"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:54:43"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:54:44"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:54:46"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:54:47"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:54:48"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:54:49"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:55:01"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:55:03"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:55:04"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:55:05"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:55:07"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:55:08"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:55:09"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:55:11"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:55:22"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:55:35"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:55:47"}
+{"error":"connect ECONNREFUSED 192.168.0.3:3000","level":"error","message":"获取股票数据失败","service":"nas-bot","timestamp":"2026-05-24 05:55:48"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:55:49"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:55:50"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:55:52"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:55:53"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:55:54"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:55:55"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:55:57"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:55:58"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:56:10"}
+{"error":"connect ECONNREFUSED 192.168.0.3:3000","level":"error","message":"获取股票数据失败","service":"nas-bot","timestamp":"2026-05-24 05:56:10"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:56:12"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:56:14"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:56:15"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:56:27"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:56:29"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:56:30"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:56:31"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:56:32"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:56:34"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:56:45"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:56:58"}
+{"error":"connect ECONNREFUSED 192.168.0.3:3000","level":"error","message":"获取股票数据失败","service":"nas-bot","timestamp":"2026-05-24 05:56:58"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:57:00"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:57:01"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:57:02"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:57:03"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:57:05"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:57:06"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:57:18"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:57:20"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:57:31"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:57:33"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:57:45"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:57:47"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:57:48"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:57:49"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:58:01"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:58:14"}
+{"error":"connect ECONNREFUSED 192.168.0.3:3000","level":"error","message":"获取股票数据失败","service":"nas-bot","timestamp":"2026-05-24 05:58:14"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:58:17"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:58:18"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:58:20"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:58:21"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:58:22"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:58:23"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:58:25"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:58:37"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:58:39"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:58:40"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:58:41"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:58:53"}
+{"error":"connect ECONNREFUSED 192.168.0.3:3000","level":"error","message":"获取股票数据失败","service":"nas-bot","timestamp":"2026-05-24 05:58:53"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:58:56"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:58:57"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:58:58"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:58:59"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:59:01"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:59:02"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:59:03"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:59:15"}
+{"error":"connect ECONNREFUSED 192.168.0.3:3000","level":"error","message":"获取股票数据失败","service":"nas-bot","timestamp":"2026-05-24 05:59:16"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:59:18"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:59:30"}
+{"error":"connect ECONNREFUSED 192.168.0.3:3000","level":"error","message":"获取股票数据失败","service":"nas-bot","timestamp":"2026-05-24 05:59:30"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:59:43"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:59:44"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 05:59:56"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 05:59:58"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 06:00:10"}
+{"error":"connect ECONNREFUSED 192.168.0.3:3000","level":"error","message":"获取股票数据失败","service":"nas-bot","timestamp":"2026-05-24 06:00:10"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:00:12"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 06:00:24"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:00:26"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:00:27"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 06:00:39"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 06:00:51"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:00:53"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:00:54"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 06:01:06"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:01:08"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:01:09"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:01:10"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 06:01:22"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:01:24"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 06:01:36"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 06:01:48"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 06:02:00"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:02:02"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:02:04"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:02:05"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:02:06"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:02:07"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:02:09"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:02:10"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:02:11"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:02:12"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:02:14"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 06:02:25"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:02:27"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:02:29"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 06:02:40"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:02:42"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:02:43"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:02:45"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 06:02:56"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:02:58"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:03:00"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:03:01"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:03:02"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 06:03:14"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:03:16"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:03:17"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:03:18"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:03:20"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:03:21"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 06:03:33"}
+{"error":"connect ECONNREFUSED 192.168.0.3:3000","level":"error","message":"获取股票数据失败","service":"nas-bot","timestamp":"2026-05-24 06:03:33"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:03:35"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:03:36"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:03:37"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:03:38"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:03:40"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:03:41"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:03:42"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:03:43"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:03:45"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 06:03:56"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 06:04:09"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:04:11"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:04:12"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:04:13"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:04:14"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:04:16"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:04:17"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:04:18"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:04:19"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:04:21"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:04:22"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:04:23"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:04:24"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:04:26"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:04:27"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:04:28"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:04:29"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:04:31"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:04:32"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:04:33"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:04:34"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:04:36"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:04:37"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:04:38"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:04:40"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:04:41"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:04:42"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:04:43"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:04:45"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:04:46"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:04:47"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:04:48"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:04:50"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:04:51"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:04:52"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 06:05:04"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 06:05:16"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:05:18"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:05:20"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:05:21"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:05:22"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:05:23"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:05:25"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:05:26"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:05:27"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:05:28"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:05:30"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:05:31"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:05:32"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:05:33"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:05:35"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 06:05:47"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:05:48"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:05:50"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:05:51"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:05:52"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:05:53"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:05:55"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:05:56"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:05:57"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:05:58"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:06:00"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:06:01"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:06:02"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:06:03"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:06:05"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:06:06"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:06:07"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:06:08"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:06:10"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:06:11"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:06:12"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:06:13"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:06:15"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:06:16"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:06:17"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:06:18"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:06:20"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:06:21"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:06:22"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:06:23"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:06:25"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:06:26"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:06:27"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:06:28"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:06:30"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:06:31"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:06:32"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:06:34"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:06:35"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:06:36"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:06:37"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:06:39"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:06:40"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:06:41"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:06:42"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:06:44"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:06:45"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:06:46"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:06:47"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:06:49"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:06:50"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:06:51"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:06:52"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:06:54"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:06:55"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:06:56"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:06:57"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:06:59"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:07:00"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:07:01"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:07:02"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:07:04"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:07:05"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:07:06"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 06:07:18"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 06:07:30"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:07:32"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:07:33"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 06:07:45"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:07:47"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 06:07:59"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 06:08:11"}
+{"error":"connect ECONNREFUSED 192.168.0.3:3000","level":"error","message":"获取股票数据失败","service":"nas-bot","timestamp":"2026-05-24 06:08:12"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:08:13"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:08:15"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 06:08:26"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 06:08:39"}
+{"error":"connect ECONNREFUSED 192.168.0.3:3000","level":"error","message":"获取股票数据失败","service":"nas-bot","timestamp":"2026-05-24 06:08:39"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 06:08:51"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:08:53"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:08:55"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 06:09:06"}
+{"error":"connect ECONNREFUSED 192.168.0.3:3000","level":"error","message":"获取股票数据失败","service":"nas-bot","timestamp":"2026-05-24 06:09:07"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 06:09:19"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:09:21"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:09:22"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 06:09:34"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:09:35"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:09:37"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:09:38"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:09:39"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:09:41"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:09:42"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 06:09:54"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:09:55"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:09:57"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 06:10:08"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 06:10:21"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 06:10:33"}
+{"error":"connect ECONNREFUSED 192.168.0.3:3000","level":"error","message":"获取股票数据失败","service":"nas-bot","timestamp":"2026-05-24 06:10:34"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:10:35"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:10:37"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:10:38"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 06:10:50"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 06:11:02"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 06:11:14"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:11:16"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:11:17"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:11:19"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:11:20"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:11:21"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 06:11:33"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:11:35"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:11:36"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 06:11:48"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:11:50"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 06:12:02"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:12:04"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:12:05"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:12:06"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 06:12:18"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 06:12:30"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 06:12:43"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 06:12:55"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 06:13:08"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:13:09"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:13:11"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:13:12"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:13:13"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:13:14"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 06:13:26"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:13:28"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:13:29"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:13:31"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:13:32"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:13:33"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 06:13:45"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:13:47"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 06:13:59"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:14:00"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:14:02"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:14:03"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:14:04"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 06:14:16"}
+{"error":"connect ECONNREFUSED 192.168.0.3:3000","level":"error","message":"获取股票数据失败","service":"nas-bot","timestamp":"2026-05-24 06:14:16"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:14:18"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:14:19"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:14:20"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:14:22"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:14:23"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:14:24"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 06:14:36"}
+{"error":"connect ECONNREFUSED 192.168.0.3:3000","level":"error","message":"获取股票数据失败","service":"nas-bot","timestamp":"2026-05-24 06:14:36"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 06:14:49"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 06:15:01"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:15:03"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:15:04"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:15:05"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:15:07"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:15:08"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 06:15:20"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:15:21"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 06:15:33"}
+{"error":"connect ECONNREFUSED 192.168.0.3:3000","level":"error","message":"获取股票数据失败","service":"nas-bot","timestamp":"2026-05-24 06:15:34"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 06:15:46"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:15:48"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:15:49"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:15:50"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:15:51"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 06:16:03"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:16:05"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:16:06"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:16:08"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:16:09"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:16:10"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 06:16:22"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 06:16:34"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 06:16:47"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:16:49"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 06:17:00"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:17:02"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:17:04"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 06:17:15"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:17:17"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 06:17:29"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:17:31"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:17:32"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 06:17:44"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:17:46"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:17:47"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:17:49"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:17:50"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:17:51"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 06:18:03"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:18:05"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:18:06"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:18:07"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:18:09"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:18:10"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 06:18:22"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:18:30"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:18:31"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:18:32"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:18:33"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:18:35"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:18:36"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:18:37"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:18:38"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:18:40"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:18:41"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:18:42"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:18:43"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:18:45"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:18:46"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:18:47"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:18:48"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:18:50"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:18:51"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:18:52"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 06:19:04"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:19:06"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 06:19:18"}
+{"error":"connect ECONNREFUSED 192.168.0.3:3000","level":"error","message":"获取股票数据失败","service":"nas-bot","timestamp":"2026-05-24 06:19:18"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:19:23"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:19:25"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:19:26"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 06:19:38"}
+{"error":"connect ECONNREFUSED 192.168.0.3:3000","level":"error","message":"获取股票数据失败","service":"nas-bot","timestamp":"2026-05-24 06:19:38"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:19:41"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:19:43"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:19:44"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:19:45"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:19:46"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 06:19:58"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 06:20:10"}
+{"error":"connect ECONNREFUSED 192.168.0.3:3000","level":"error","message":"获取股票数据失败","service":"nas-bot","timestamp":"2026-05-24 06:20:11"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:20:12"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:20:14"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:20:15"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:20:16"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:20:17"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:20:19"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:20:20"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 06:20:32"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:20:34"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:20:35"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:20:36"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:20:38"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:20:39"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:20:40"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:20:41"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:20:43"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:20:44"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:20:45"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 06:20:57"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:20:59"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:21:00"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:21:01"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:21:02"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:21:04"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:21:05"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:21:06"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:21:08"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:21:09"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:21:10"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:21:11"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:21:13"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 06:21:24"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:21:26"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:21:27"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:21:29"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:21:30"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 06:21:42"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 06:21:54"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:21:56"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:21:57"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:21:59"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 06:22:10"}
+{"error":"connect ECONNREFUSED 192.168.0.3:3000","level":"error","message":"获取股票数据失败","service":"nas-bot","timestamp":"2026-05-24 06:22:11"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 06:22:23"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:22:25"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:22:26"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:22:27"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:22:29"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:22:30"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:22:31"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:22:32"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:22:34"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 06:22:45"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:22:47"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:22:49"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:22:50"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:22:51"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:22:52"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:22:54"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:22:55"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:22:56"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:22:57"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:22:59"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:23:00"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:23:01"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 06:23:13"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 06:23:25"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:23:27"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:23:28"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:23:30"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 06:23:42"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 06:23:54"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:23:56"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:23:57"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:23:58"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:24:00"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:24:01"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:24:02"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:24:03"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:24:05"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 06:24:16"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:24:18"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:24:20"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:24:21"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:24:22"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:24:23"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:24:25"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 06:24:36"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:24:38"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:24:40"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:24:41"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:24:42"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 06:24:54"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:24:56"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:24:57"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:24:58"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:24:59"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:25:01"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:25:03"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:25:04"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:25:05"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 06:25:17"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:25:19"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:25:20"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:25:22"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:25:23"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:25:24"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 06:25:36"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:25:38"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 06:25:50"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:25:51"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:25:53"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:25:54"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 06:26:06"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:26:08"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:26:09"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:26:10"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 06:26:22"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 06:26:35"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:26:36"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 06:26:48"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:26:50"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 06:27:02"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:27:04"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:27:05"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:27:06"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:27:08"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 06:27:19"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:27:21"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 06:27:33"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:27:35"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 06:27:47"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 06:27:59"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:28:01"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 06:28:13"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 06:28:25"}
+{"error":"connect ECONNREFUSED 192.168.0.3:3000","level":"error","message":"获取股票数据失败","service":"nas-bot","timestamp":"2026-05-24 06:28:25"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 06:28:38"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 06:28:50"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:28:52"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 06:29:14"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:29:16"}
+{"cmd":"docker restart nas-bot","error":"spawnSync /bin/sh ETIMEDOUT","level":"error","message":"Docker命令执行失败","service":"nas-bot","timestamp":"2026-05-24 06:29:28"}
+{"error":"connect ECONNREFUSED 192.168.0.3:3000","level":"error","message":"获取股票数据失败","service":"nas-bot","timestamp":"2026-05-24 06:29:28"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:29:30"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:29:37"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:29:39"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:29:56"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"sendMessage","service":"nas-bot","timestamp":"2026-05-24 06:33:06"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:37:11"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:42:22"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:42:23"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:42:24"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:43:35"}
+{"error":"","level":"error","message":"Telegram请求失败","method":"getUpdates","service":"nas-bot","timestamp":"2026-05-24 06:43:38"}

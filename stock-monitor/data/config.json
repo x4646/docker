@@ -1,0 +1,51 @@
+{
+  "stocks": [
+    {
+      "symbol": "3382.T",
+      "name": "Seven & i Holdings Co., Ltd."
+    },
+    {
+      "symbol": "8058.T",
+      "name": "Mitsubishi Corporation",
+      "alias": "三菱商事"
+    },
+    {
+      "symbol": "VTI",
+      "name": "全米株式 VTI",
+      "alias": "全球",
+      "jpyOn": true
+    },
+    {
+      "symbol": "VOO",
+      "name": "S&P500 VOO",
+      "alias": "标普500"
+    }
+  ],
+  "settings": {
+    "refreshInterval": 10,
+    "currency": "JPY",
+    "theme": "dark",
+    "fontScale": 1.25,
+    "cardSize": "large",
+    "priceAlerts": [
+      {
+        "symbol": "3382.T",
+        "direction": "below",
+        "price": 1850
+      },
+      {
+        "symbol": "3382.T",
+        "direction": "above",
+        "price": 1950
+      }
+    ],
+    "changePctAlert": 5,
+    "ntfyTopic": "stockalert_whf0517",
+    "ntfyServer": "https://ntfy.sh",
+    "dailySummaryTime": "14:30",
+    "dailySummaryEnabled": true,
+    "jpyDisplay": "all",
+    "customWatchlist": [],
+    "alertEmail": ""
+  }
+}

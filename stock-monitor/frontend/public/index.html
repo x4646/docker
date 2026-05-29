@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stock Monitor</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header>
+  <div class="logo"><div class="logo-icon">📈</div>STOCK WATCH</div>
+  <div class="header-right">
+    <div class="refresh-status"><div class="dot"></div><span id="last-update">--</span></div>
+    <button class="btn" onclick="manualRefresh()"><span id="refresh-icon" class="refresh-btn">⟳</span> 刷新</button>
+    <button class="btn btn-primary" onclick="openAddModal()">＋ 添加</button>
+  </div>
+</header>
+
+<div class="nav-tabs">
+  <div class="tab active" onclick="switchPage('dashboard',this)">📊 监控面板</div>
+  <div class="tab" onclick="switchPage('alerts',this)">🔔 价格提醒</div>
+  <div class="tab" onclick="switchPage('settings',this)">⚙️ 设置</div>
+</div>
+
+<main>
+
+<!-- 监控面板 -->
+<div class="page active" id="page-dashboard">
+  <!-- 快速调节浮动栏 -->
+  <div class="quick-adjust-bar">
+    <div class="qa-item">
+      <span class="qa-label">字体</span>
+      <input type="range" id="qa-font-slider" min="0.8" max="1.8" step="0.05" value="1" oninput="qaFontChange(this)">
+      <span class="qa-val" id="qa-font-val">100%</span>
+    </div>
+    <div class="qa-divider"></div>
+    <div class="qa-item">
+      <span class="qa-label">卡片</span>
+      <input type="range" id="qa-card-slider" min="200" max="600" step="10" value="300" oninput="qaCardChange(this)">
+      <span class="qa-val" id="qa-card-val">300px</span>
+    </div>
+  </div>
+
+  <div class="summary-bar">
+    <div class="summary-card"><div class="summary-label">监控数量</div><div class="summary-value" id="sum-count" style="color:var(--accent)">—</div><div class="summary-sub">只</div></div>
+    <div class="summary-card"><div class="summary-label">今日上涨</div><div class="summary-value text-up" id="sum-up">—</div><div class="summary-sub">支</div></div>
+    <div class="summary-card"><div class="summary-label">今日下跌</div><div class="summary-value text-down" id="sum-down">—</div><div class="summary-sub">支</div></div>
+    <div class="summary-card"><div class="summary-label">平均涨跌幅</div><div class="summary-value" id="sum-avg">—</div><div class="summary-sub">今日</div></div>
+    <div class="summary-card"><div class="summary-label">USD/JPY</div><div class="summary-value" id="fx-usdjpy" style="color:var(--gold)">—</div><div class="summary-sub">リアルタイム</div></div>
+  </div>
+  <div class="stock-grid" id="stock-grid">
+    <div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">📉</div><div class="empty-title">暂无监控股票</div><div class="empty-sub">点击右上角「添加」开始</div></div>
+  </div>
+</div>
+
+<!-- 价格提醒 -->
+<div class="page" id="page-alerts">
+  <div class="settings-section" style="max-width:720px">
+    <div class="settings-section-title">价格提醒配置</div>
+    <p style="font-size:.8rem;color:var(--text2);margin-bottom:16px">触及目标价时推送通知（需配置ntfy）</p>
+    <div class="alert-form">
+      <div class="form-group" style="margin:0"><div class="form-label">股票</div><select class="form-select" id="alert-symbol"></select></div>
+      <div class="form-group" style="margin:0"><div class="form-label">条件</div><select class="form-select" id="alert-direction"><option value="above">高于 ↑</option><option value="below">低于 ↓</option></select></div>
+      <div class="form-group" style="margin:0"><div class="form-label">目标价</div><input class="form-input" id="alert-price" type="number" step="0.01" placeholder="0.00"></div>
+      <button class="btn btn-primary" onclick="addAlert()" style="height:37px">添加</button>
+    </div>
+    <div id="alert-list"></div>
+  </div>
+</div>
+
+<!-- 设置 -->
+<div class="page" id="page-settings">
+  <div class="settings-grid">
+    <div style="display:flex;flex-direction:column;gap:16px">
+
+      <div class="settings-section">
+        <div class="settings-section-title">监控股票列表</div>
+        <div id="settings-stock-list" style="margin-bottom:12px"></div>
+        <button class="btn" style="width:100%" onclick="openAddModal()">＋ 添加股票</button>
+      </div>
+
+      <div class="settings-section">
+        <div class="settings-section-title">🔔 ntfy 推送通知</div>
+        <div class="form-group">
+          <label class="form-label">频道名（Topic）</label>
+          <input class="form-input" id="cfg-ntfy-topic" placeholder="例：stockalert_whf0517">
+        </div>
+        <div class="form-group">
+          <label class="form-label">服务器（默认ntfy.sh）</label>
+          <input class="form-input" id="cfg-ntfy-server" placeholder="https://ntfy.sh">
+        </div>
+        <div class="form-row" style="margin-bottom:12px">
+          <div class="form-group" style="margin:0">
+            <label class="form-label">涨跌幅报警阈值（%）</label>
+            <input class="form-input" id="cfg-change-pct" type="number" min="1" max="50" value="5">
+          </div>
+          <div class="form-group" style="margin:0">
+            <label class="form-label">每日播报时间</label>
+            <input class="form-input" id="cfg-summary-time" type="time" value="16:00">
+          </div>
+        </div>
+        <div class="form-group" style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+          <input type="checkbox" id="cfg-summary-enabled" style="accent-color:var(--accent);width:16px;height:16px">
+          <label class="form-label" for="cfg-summary-enabled" style="margin:0;cursor:pointer">启用每日收盘播报</label>
+        </div>
+        <button class="btn" style="width:100%" onclick="testNtfy()">📱 发送测试消息</button>
+      </div>
+
+    </div>
+    <div style="display:flex;flex-direction:column;gap:16px">
+
+      <div class="settings-section">
+        <div class="settings-section-title">显示与主题</div>
+        <div class="form-group">
+          <div class="form-label">主题</div>
+          <div class="theme-swatches">
+            <div class="theme-swatch" id="sw-dark" onclick="setTheme('dark')">🌑 深色</div>
+            <div class="theme-swatch" id="sw-dim"  onclick="setTheme('dim')">🌒 暗淡</div>
+            <div class="theme-swatch" id="sw-light" onclick="setTheme('light')">☀️ 浅色</div>
+          </div>
+        </div>
+        <div class="form-group">
+          <div class="form-label">字体大小</div>
+          <div class="font-scale-row">
+            <span style="font-size:.72rem;color:var(--text3)">小</span>
+            <input type="range" id="font-scale-slider" min="0.8" max="1.5" step="0.05" value="1">
+            <span style="font-size:.72rem;color:var(--text3)">大</span>
+            <span class="font-scale-label" id="font-scale-val">100%</span>
+          </div>
+        </div>
+        <div class="form-group">
+          <div class="form-label">卡片宽度</div>
+          <div class="font-scale-row">
+            <span style="font-size:.72rem;color:var(--text3)">窄</span>
+            <input type="range" id="card-size-slider" min="200" max="600" step="10" value="300">
+            <span style="font-size:.72rem;color:var(--text3)">宽</span>
+            <span class="font-scale-label" id="card-size-val">300px</span>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">日元换算显示</label>
+          <select class="form-select" id="cfg-jpy-display">
+            <option value="none">不显示</option>
+            <option value="all">所有非日元股票</option>
+            <option value="usd">仅美元股票</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <div class="settings-section-title">⚙️ 其他设置</div>
+        <div class="form-group">
+          <label class="form-label">自动刷新间隔（秒）</label>
+          <input class="form-input" id="cfg-interval" type="number" min="10" max="3600" value="60">
+        </div>
+        <button class="btn btn-primary" style="width:100%;margin-top:4px" onclick="saveSettings()">💾 保存所有设置</button>
+      </div>
+
+      <div class="settings-section">
+        <div class="settings-section-title">📋 自定义宽基指数列表</div>
+        <p style="font-size:.75rem;color:var(--text2);margin-bottom:12px">自定义快速添加列表</p>
+        <div id="custom-watchlist-editor"></div>
+        <button class="btn" style="width:100%;margin-top:8px" onclick="addCustomWatchlistItem()">＋ 添加一行</button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+</main>
+
+<!-- 添加股票 Modal -->
+<div class="modal-overlay" id="add-modal">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-header">
+      <div><div class="modal-title">添加股票 / ETF / 指数</div><div class="modal-sub">搜索或从列表快速添加</div></div>
+      <button class="icon-btn" onclick="closeAddModal()" style="width:30px;height:30px;font-size:14px">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">搜索（名称或代码）</label>
+        <div class="search-container">
+          <input class="form-input" id="stock-search" placeholder="AAPL, TSLA, 00700.HK …" autocomplete="off">
+          <div class="search-results" id="search-results"></div>
+        </div>
+      </div>
+      <div id="selected-stock" style="display:none;margin-top:9px">
+        <div class="stock-list-item">
+          <div><div class="stock-list-symbol" id="sel-symbol"></div><div class="stock-list-name" id="sel-name"></div></div>
+          <button class="btn btn-primary" onclick="confirmAddStock()">确认添加</button>
+        </div>
+      </div>
+      <div class="section-divider">📦 投資信託（eMAXIS Slim等）</div>
+      <div class="etf-grid" id="fund-quick-grid"></div>
+      <div class="section-divider" style="margin-top:14px">🌍 ETF・指数</div>
+      <div class="etf-grid" id="etf-quick-grid"></div>
+      <div class="section-divider" style="margin-top:14px">⭐ 自定义列表</div>
+      <div class="etf-grid" id="custom-quick-grid"></div>
+      <p style="font-size:.68rem;color:var(--text3);margin-top:12px">投信コード直接入力可（例：0331418A）</p>
+    </div>
+  </div>
+</div>
+
+<!-- チャート Modal -->
+<div class="modal-overlay" id="chart-modal">
+  <div class="chart-modal-inner">
+
+    <!-- ヘッダー -->
+    <div class="cm-header">
+      <div class="cm-header-left">
+        <div class="cm-symbol" id="chart-symbol-title">—</div>
+        <div class="cm-name"   id="chart-name-sub">—</div>
+      </div>
+      <button class="cm-close" onclick="closeChartModal()">✕</button>
+    </div>
+
+    <!-- 価格ヘッダー -->
+    <div class="cm-price-header">
+      <div id="chart-price-main"></div>
+      <div id="chart-price-jpy" style="font-size:.8rem;margin-top:4px;font-family:var(--mono)"></div>
+    </div>
+
+    <!-- 期間タブ -->
+    <div class="cm-range-bar">
+      <button class="range-tab" onclick="loadChart(this,'1d')">1日</button>
+      <button class="range-tab" onclick="loadChart(this,'5d')">5日</button>
+      <button class="range-tab active" onclick="loadChart(this,'1mo')">1ヶ月</button>
+      <button class="range-tab" onclick="loadChart(this,'3mo')">3ヶ月</button>
+      <button class="range-tab" onclick="loadChart(this,'1y')">1年</button>
+      <button class="range-tab" onclick="loadChart(this,'5y')">5年</button>
+    </div>
+
+    <!-- チャートエリア -->
+    <div class="cm-chart-wrap">
+      <div id="chart-loading" style="display:none;position:absolute;inset:0;align-items:center;justify-content:center;background:rgba(15,19,25,.6);z-index:2">
+        <div style="width:28px;height:28px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .6s linear infinite"></div>
+      </div>
+      <canvas id="chart-canvas"></canvas>
+    </div>
+
+    <!-- 指標バー -->
+    <div class="cm-stats-bar" id="chart-stats-bar"></div>
+
+  </div>
+</div>
+
+<div id="toast-container"></div>
+
+<!-- JS モジュール（依存順に読み込み）-->
+<script src="js/utils.js"></script>
+<script src="js/config.js"></script>
+<script src="js/prices.js"></script>
+<script src="js/market.js"></script>
+<script src="js/cards.js"></script>
+<script src="js/chart.js"></script>
+<script src="js/render.js"></script>
+<script src="js/settings.js"></script>
+<script src="js/actions.js"></script>
+
+<!-- Chart.js & 起動 -->
+<script>
+// モーダル外クリックで閉じる
+document.getElementById('add-modal').addEventListener('click',   e => { if(e.target===e.currentTarget) closeAddModal(); });
+document.getElementById('chart-modal').addEventListener('click', e => { if(e.target===e.currentTarget) closeChartModal(); });
+document.addEventListener('click', e => { if(!e.target.closest('.search-container')) document.getElementById('search-results').classList.remove('show'); });
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"
+        onload="(async()=>{ await loadConfig(); applyTheme(config.settings.theme||'dark'); applyFontScale(config.settings.fontScale||1); applyCardSize(config.settings.cardSize||'medium'); renderAll(); buildQuickGrids(); renderCustomWatchlistEditor(); await fetchFxRates(); await refreshPrices(); startAutoRefresh(); })()">
+</script>
+</body>
+</html>

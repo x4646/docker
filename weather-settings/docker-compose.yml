@@ -1,0 +1,10 @@
+version: '3'
+services:
+  weather-settings:
+    image: weather-settings
+    container_name: weather-settings
+    restart: unless-stopped
+    ports:
+      - "3010:3010"
+    volumes:
+      - /share/Container/docker/weather-settings/data:/data

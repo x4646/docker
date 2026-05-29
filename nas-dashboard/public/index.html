@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NAS Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="nav-logo">🖥️ NAS Dashboard</div>
+  <div class="nav-tabs">
+    <button class="nav-tab active" id="tab-panel" onclick="switchTab('panel')">📊 面板</button>
+    <button class="nav-tab" id="tab-admin" onclick="switchTab('admin')">⚙️ 管理</button>
+  </div>
+</nav>
+
+<!-- 顶部通知条 -->
+<div class="notify-bar" id="notify-bar" style="display:none">
+  <div class="notify-items" id="notify-items"></div>
+</div>
+
+<div class="main">
+  <div id="page-panel">
+    <div class="btn-grid" id="btn-grid"></div>
+    <div class="result-area" id="result-area">
+      <div class="result-empty">点击上方按钮执行功能</div>
+    </div>
+  </div>
+
+  <div id="page-admin" style="display:none">
+    <div class="admin-header">
+      <div class="admin-title">功能按钮管理</div>
+      <button class="btn-add" onclick="openAddModal()">＋ 添加功能</button>
+    </div>
+    <div class="btn-list" id="btn-list"></div>
+  </div>
+</div>
+
+<!-- 添加/编辑 Modal -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <div class="modal-title" id="modal-title">添加功能按钮</div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">按钮名称</label>
+        <input class="form-input" id="form-name" placeholder="例：查看磁盘">
+      </div>
+      <div class="form-group">
+        <label class="form-label">图标</label>
+        <div class="icon-picker-wrap">
+          <button class="icon-preview" id="icon-preview" onclick="toggleEmojiPicker()">⚙️</button>
+          <input type="hidden" id="form-icon" value="⚙️">
+        </div>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">触发类型</label>
+      <select class="form-select" id="form-type" onchange="onTypeChange()">
+        <option value="module">📦 调用模块</option>
+        <option value="ssh">🖥 执行命令</option>
+      </select>
+    </div>
+
+    <div class="form-group params-area show" id="module-params">
+      <label class="form-label">选择模块</label>
+      <select class="form-select" id="form-module"></select>
+      <div class="hint">模块位于 /modules/ 目录，新增模块重启服务后自动出现</div>
+    </div>
+
+    <div class="form-group params-area" id="ssh-params">
+      <label class="form-label">执行命令</label>
+      <input class="form-input" id="form-command" placeholder="例：docker restart stock-monitor">
+      <div class="hint">直接输入Shell命令</div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">结果显示方式</label>
+      <select class="form-select" id="form-display">
+        <option value="table">📊 表格</option>
+        <option value="card">🃏 卡片</option>
+        <option value="text">📝 文本</option>
+        <option value="toast">🔔 提示</option>
+      </select>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn-primary" onclick="saveBtn()">保存</button>
+      <button class="btn-cancel"  onclick="closeModal()">取消</button>
+    </div>
+  </div>
+</div>
+
+<!-- Emoji选择器 -->
+<div class="emoji-overlay" id="emoji-overlay" onclick="closeEmojiPicker()"></div>
+<div class="emoji-picker" id="emoji-picker">
+  <div class="emoji-search-wrap">
+    <input class="emoji-search" id="emoji-search" placeholder="搜索..." oninput="filterEmoji()">
+  </div>
+  <div id="emoji-tabs" class="emoji-tabs"></div>
+  <div id="emoji-grid" class="emoji-grid"></div>
+</div>
+
+<script src="js/app.js"></script>
+</body>
+</html>
