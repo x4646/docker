@@ -18,10 +18,11 @@ export class SyncController {
     private readonly pipeUrl:     string,
     private readonly dirRepo:     ISyncDirRepository,
   ) {
-    this.router.get('/status',   this.getStatus.bind(this));
-    this.router.post('/start',   this.startSync.bind(this));
-    this.router.post('/result',  this.handleResult.bind(this));
-    this.router.get('/diff/:id', this.getDiff.bind(this));
+    this.router.get('/status',          this.getStatus.bind(this));
+    this.router.post('/start',          this.startSync.bind(this));
+    this.router.post('/result',         this.handleResult.bind(this));
+    this.router.get('/diff/:id',        this.getDiff.bind(this));
+    this.router.post('/sync-diff/:id',  this.syncFromDiff.bind(this));
   }
 
   private async getStatus(req: Request, res: Response) {
@@ -42,9 +43,7 @@ export class SyncController {
 
   private async handleResult(req: Request, res: Response) {
     const { task_id, status } = req.body;
-    if (task_id && status) {
-      await this.logUseCase.updateStatus(task_id, status);
-    }
+    if (task_id && status) await this.logUseCase.updateStatus(task_id, status);
     res.json({ ok: true });
   }
 
@@ -58,9 +57,8 @@ export class SyncController {
       if (!scanResult.ok) return res.json({ ok: false, error: scanResult.error });
 
       const nasFiles = this.scanNas(dir.nas);
-
-      const pcMap  = new Map<string, any>(scanResult.files.map((f: any) => [f.path, f]));
-      const nasMap = new Map<string, any>(nasFiles.map((f: any) => [f.path, f]));
+      const pcMap    = new Map<string, any>(scanResult.files.map((f: any) => [f.path, f]));
+      const nasMap   = new Map<string, any>(nasFiles.map((f: any) => [f.path, f]));
 
       const toSync:   any[] = [];
       const toDelete: any[] = [];
@@ -80,6 +78,71 @@ export class SyncController {
         ok: true, toSync, updated, toDelete,
         summary: { toSync: toSync.length, updated: updated.length, toDelete: toDelete.length }
       });
+
+    } catch(e: any) {
+      res.json({ ok: false, error: e.message });
+    }
+  }
+
+  // ── 基于差异直接同步 ──────────────────────────────────
+  private async syncFromDiff(req: Request, res: Response) {
+    const dir = await this.dirRepo.findById(req.params.id);
+    if (!dir) return res.status(404).json({ error: '目录不存在' });
+
+    try {
+      const scanResult = await this.postJson(`${this.pipeUrl}/api/scan`, { pc_path: dir.pc });
+      if (!scanResult.ok) return res.json({ ok: false, error: scanResult.error });
+
+      const nasFiles = this.scanNas(dir.nas);
+      const pcMap    = new Map<string, any>(scanResult.files.map((f: any) => [f.path, f]));
+      const nasMap   = new Map<string, any>(nasFiles.map((f: any) => [f.path, f]));
+
+      const tasks: any[] = [];
+
+      // NAS有PC没有，或NAS更新 → 同步
+      nasMap.forEach((nasFile, p) => {
+        const pcFile = pcMap.get(p);
+        if (!pcFile || nasFile.mtime > pcFile.mtime) {
+          tasks.push({
+            task_id: String(Date.now() + Math.random()),
+            type:    'sync',
+            event:   pcFile ? 'modify' : 'create',
+            path:    dir.nas + '/' + p,
+            nasPath: dir.nas,
+            pcPath:  dir.pc,
+            mode:    dir.mode,
+          });
+        }
+      });
+
+      // PC有NAS没有，mirror模式下删除
+      if (dir.mode === 'mirror') {
+        pcMap.forEach((_, p) => {
+          if (!nasMap.has(p)) {
+            tasks.push({
+              task_id: String(Date.now() + Math.random()),
+              type:    'sync',
+              event:   'delete',
+              path:    dir.nas + '/' + p,
+              nasPath: dir.nas,
+              pcPath:  dir.pc,
+              mode:    dir.mode,
+            });
+          }
+        });
+      }
+
+      // 发送所有任务
+      let sent = 0;
+      for (const task of tasks) {
+        try {
+          await this.postJson(`${this.pipeUrl}/api/task`, task);
+          sent++;
+        } catch(e) {}
+      }
+
+      this.logger.info('差异同步完成', { sent, total: tasks.length });
+      res.json({ ok: true, sent, total: tasks.length });
 
     } catch(e: any) {
       res.json({ ok: false, error: e.message });

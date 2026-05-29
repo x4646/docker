@@ -129,6 +129,22 @@
 
 </div>
 
+<!-- 操作Modal -->
+<div class="modal-overlay" id="action-modal">
+  <div class="modal" style="max-width:360px">
+    <div class="modal-title" id="action-modal-title">操作</div>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-top:4px">
+      <button class="btn btn-primary" onclick="actionSyncDir()">▶️ 立即同步</button>
+      <button class="btn" style="background:#1e2838;color:#c8dff5;border:1px solid #2a3d55" onclick="actionShowDiff()">🔍 查看差异</button>
+      <button class="btn" style="background:#1e2838;color:#c8dff5;border:1px solid #2a3d55" onclick="actionEditDir()">✏️ 编辑配置</button>
+      <button class="btn" style="background:transparent;color:#ff5567;border:1px solid #ff5567" onclick="actionDeleteDir()">❌ 删除</button>
+    </div>
+    <div class="modal-actions" style="margin-top:16px">
+      <button class="btn-cancel" onclick="closeActionModal()">取消</button>
+    </div>
+  </div>
+</div>
+
 <!-- 添加/编辑目录 Modal -->
 <div class="modal-overlay" id="dir-modal">
   <div class="modal">
@@ -156,7 +172,7 @@
   </div>
 </div>
 
-<!-- 单目录同步 Modal -->
+<!-- 同步进度Modal -->
 <div class="modal-overlay" id="sync-modal">
   <div class="modal">
     <div class="modal-title" id="sync-modal-title">同步中...</div>
@@ -170,13 +186,13 @@
   </div>
 </div>
 
-<!-- 查看差异 Modal -->
+<!-- 差异Modal -->
 <div class="modal-overlay" id="diff-modal">
   <div class="modal" style="max-width:600px">
     <div class="modal-title" id="diff-modal-title">查看差异</div>
     <div id="diff-content"></div>
     <div class="modal-actions">
-      <button class="btn-primary" id="diff-sync-btn" onclick="syncFromDiff()">▶️ 全部同步</button>
+      <button class="btn-primary" onclick="syncFromDiff()">▶️ 全部同步</button>
       <button class="btn-cancel"  onclick="closeDiffModal()">关闭</button>
     </div>
   </div>

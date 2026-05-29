@@ -3,10 +3,6 @@ import { ILogRepository } from '../domain/repositories/ILogRepository';
 import { FilterRule } from '../domain/valueObjects/FilterRule';
 import { ILogger } from '../domain/shared/ILogger';
 
-/**
- * 同步用例
- * 触发同步，通过WebSocket推送任务给电脑
- */
 export class SyncUseCase {
 
   constructor(
@@ -14,22 +10,18 @@ export class SyncUseCase {
     private readonly logRepo:  ILogRepository,
     private readonly filter:   FilterRule,
     private readonly logger:   ILogger,
-    private readonly pipeUrl:  string, // nas-pipe地址
+    private readonly pipeUrl:  string,
   ) {}
 
-  /**
-   * 触发同步
-   * 把pending的变更推送给电脑
-   */
-  async startSync(): Promise<{ sent: number; skipped: number }> {
-    const http    = require('http');
+  async startSync(dirId?: string): Promise<{ sent: number; skipped: number }> {
     const pending = await this.logRepo.findAll({ status: 'pending' });
+    const dirs    = await this.dirRepo.findAll();
 
     let sent    = 0;
     let skipped = 0;
 
     for (const log of pending) {
-      // 过滤规则检查
+      // 过滤规则
       if (this.filter.shouldExclude(log.path, log.size)) {
         log.status = 'excluded';
         await this.logRepo.save(log);
@@ -37,21 +29,24 @@ export class SyncUseCase {
         continue;
       }
 
-      // 找到对应的同步目录
-      const dirs   = await this.dirRepo.findAll();
-      const srcDir = dirs.find(d => d.enabled && log.path.startsWith(d.nas));
+      // 找对应的同步目录
+      const srcDir = dirs.find(d =>
+        d.enabled &&
+        log.path.startsWith(d.nas) &&
+        (!dirId || d.id === dirId)
+      );
       if (!srcDir) { skipped++; continue; }
 
-      // 发送任务给电脑（通过nas-pipe）
       try {
         await this.sendTask({
           task_id:  log.id,
           type:     'sync',
-          event:    log.event,
+          event:    log.event,         // create/modify/move/delete
           path:     log.path,
           oldPath:  log.oldPath,
           nasPath:  srcDir.nas,
           pcPath:   srcDir.pc,
+          mode:     srcDir.mode,       // mirror/bidirectional/addonly
         });
         sent++;
       } catch(e: any) {
@@ -61,6 +56,10 @@ export class SyncUseCase {
     }
 
     return { sent, skipped };
+  }
+
+  async getDirs() {
+    return this.dirRepo.findAll();
   }
 
   private sendTask(task: any): Promise<void> {

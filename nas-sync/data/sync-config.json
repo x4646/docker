@@ -3,7 +3,14 @@
     {
       "id": "1",
       "nas": "/share/BAK/Gcloud",
-      "pc": "D:\\cloud",
+      "pc": "D:\\cloud\\Gcloud",
+      "enabled": false,
+      "mode": "mirror"
+    },
+    {
+      "id": "1780062375794",
+      "nas": "/share/BAK/微信备份",
+      "pc": "D:\\cloud\\微信备份",
       "enabled": true,
       "mode": "mirror"
     }
