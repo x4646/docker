@@ -1,0 +1,15 @@
+{
+  "cities": [
+    "Sumida"
+  ],
+  "startHour": 15,
+  "endHour": 21,
+  "tempDiff": 8,
+  "windLimit": 10,
+  "alertRain": true,
+  "alertCloud": false,
+  "alertSun": true,
+  "alertWind": true,
+  "alertFog": true,
+  "alertSnow": true
+}

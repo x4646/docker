@@ -1,0 +1,200 @@
+[
+  {
+    "id": "1779798438722",
+    "name": "查看LOG",
+    "icon": "📄",
+    "type": "module",
+    "display": "card",
+    "order": 0,
+    "module": "logs",
+    "params": {}
+  },
+  {
+    "id": "1779797002992",
+    "name": "股票监控",
+    "icon": "💹",
+    "type": "module",
+    "display": "text",
+    "order": 1,
+    "module": "open-stock",
+    "params": {}
+  },
+  {
+    "id": "8",
+    "name": "今日天气",
+    "icon": "🌤",
+    "type": "module",
+    "module": "weather-today",
+    "params": {},
+    "display": "card",
+    "order": 2
+  },
+  {
+    "id": "9",
+    "name": "明日天气",
+    "icon": "📅",
+    "type": "module",
+    "module": "weather-tomorrow",
+    "params": {},
+    "display": "card",
+    "order": 3
+  },
+  {
+    "id": "1779976215549",
+    "name": "同步配置",
+    "icon": "📁",
+    "type": "ssh",
+    "display": "table",
+    "order": 4,
+    "command": "echo http://192.168.0.3:3040/"
+  },
+  {
+    "id": "7",
+    "name": "容器列表",
+    "icon": "🐳",
+    "type": "module",
+    "module": "container-list",
+    "params": {},
+    "display": "table",
+    "order": 5
+  },
+  {
+    "id": "2",
+    "name": "股票开启",
+    "icon": "▶️",
+    "type": "module",
+    "module": "stock-start",
+    "params": {},
+    "display": "toast",
+    "order": 6
+  },
+  {
+    "id": "3",
+    "name": "股票关闭",
+    "icon": "⏹️",
+    "type": "module",
+    "module": "stock-stop",
+    "params": {},
+    "display": "toast",
+    "order": 8
+  },
+  {
+    "id": "5",
+    "name": "收盘简报",
+    "icon": "📊",
+    "type": "module",
+    "module": "stock-summary",
+    "params": {},
+    "display": "table",
+    "order": 9
+  },
+  {
+    "id": "12",
+    "name": "磁盘状态",
+    "icon": "💿",
+    "type": "module",
+    "module": "disk-info",
+    "params": {},
+    "display": "table",
+    "order": 10
+  },
+  {
+    "id": "6",
+    "name": "系统状态",
+    "icon": "💾",
+    "type": "module",
+    "module": "system-status",
+    "params": {},
+    "display": "card",
+    "order": 11
+  },
+  {
+    "id": "11",
+    "name": "重启Bot",
+    "icon": "🤖",
+    "type": "module",
+    "module": "container-action",
+    "params": {
+      "action": "restart",
+      "container": "nas-bot"
+    },
+    "display": "toast",
+    "order": 12
+  },
+  {
+    "id": "1779797634531",
+    "name": "重启控制面板",
+    "icon": "⚙️",
+    "type": "ssh",
+    "display": "text",
+    "order": 13,
+    "command": "sh /scripts/restart-nas-dashboard.sh"
+  },
+  {
+    "id": "1779798068437",
+    "name": "重建股票监控",
+    "icon": "⚙️",
+    "type": "ssh",
+    "display": "text",
+    "order": 14,
+    "command": "sh /scripts/rebuild-stock-monitor.sh"
+  },
+  {
+    "id": "1779804738602",
+    "name": "Bot日志",
+    "icon": "⚙️",
+    "type": "module",
+    "display": "text",
+    "order": 15,
+    "module": "logs",
+    "params": {}
+  },
+  {
+    "id": "1779881313447",
+    "name": "天气设置",
+    "icon": "⛅",
+    "type": "module",
+    "display": "text",
+    "order": 16,
+    "module": "open-weather",
+    "params": {}
+  },
+  {
+    "id": "1779881636546",
+    "name": "打开股票监控",
+    "icon": "⚙️",
+    "type": "module",
+    "display": "card",
+    "order": 17,
+    "module": "open-stock",
+    "params": {}
+  },
+  {
+    "id": "1779882666141",
+    "name": "一周天气",
+    "icon": "⚙️",
+    "type": "module",
+    "display": "table",
+    "order": 18,
+    "module": "weather-week",
+    "params": {}
+  },
+  {
+    "id": "1779882880349",
+    "name": "打开百度",
+    "icon": "🌐",
+    "type": "ssh",
+    "display": "card",
+    "order": 19,
+    "command": "echo https://www.baidu.com"
+  },
+  {
+    "id": "1779883040489",
+    "name": "打开shehua",
+    "icon": "🌐",
+    "type": "ssh",
+    "display": "text",
+    "order": 20,
+    "command": "echo https://www.sehuatang.net"
+  }
+]

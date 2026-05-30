@@ -1,0 +1,43 @@
+{
+  "dirs": [
+    {
+      "id": "1",
+      "nas": "/share/BAK/Gcloud",
+      "pc": "D:\\cloud\\Gcloud",
+      "enabled": true,
+      "mode": "mirror"
+    },
+    {
+      "id": "1780062375794",
+      "nas": "/share/BAK/微信备份",
+      "pc": "D:\\cloud\\微信备份",
+      "enabled": false,
+      "mode": "mirror"
+    }
+  ],
+  "filters": {
+    "excludeExt": [
+      ".tmp",
+      ".log",
+      ".DS_Store",
+      ".bak",
+      ".lock",
+      ".ffs_db"
+    ],
+    "excludeDir": [
+      "node_modules",
+      ".git",
+      "temp",
+      "@Recycle",
+      ".@__thumb",
+      "__MACOSX"
+    ],
+    "excludeGlob": [
+      "~$*",
+      "*.tmp",
+      "Thumbs.db"
+    ],
+    "minSize": 0,
+    "maxSize": 524288000
+  }
+}
