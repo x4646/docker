@@ -69,19 +69,6 @@
     "order": 6
   },
   {
-    "id": "10",
-    "name": "重启股票监控",
-    "icon": "🔄",
-    "type": "module",
-    "module": "container-action",
-    "params": {
-      "action": "restart",
-      "container": "stock-monitor"
-    },
-    "display": "toast",
-    "order": 7
-  },
-  {
     "id": "3",
     "name": "股票关闭",
     "icon": "⏹️",

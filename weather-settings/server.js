@@ -4,7 +4,7 @@ const path    = require('path');
 
 const app    = express();
 const PORT   = 3010;
-const CONFIG = '/data/weather-config.json';
+const CONFIG = '/data/weather/weather-config.json';
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));

@@ -50,9 +50,7 @@ export class Container {
 
     const configCtrl = new ConfigController(configUseCase);
     const logCtrl    = new LogController(logUseCase);
-    const syncCtrl   = new SyncController(
-      syncUseCase, logUseCase, logger, this.config.PIPE_URL, dirRepo
-    );
+    const syncCtrl   = new SyncController(syncUseCase, logUseCase, logger, this.config.PIPE_URL, dirRepo, configPath);
 
     this.app.use('/api/config', configCtrl.router);
     this.app.use('/api/log',    logCtrl.router);

@@ -29,8 +29,8 @@ interface WeatherSnapshot {
 
 export class WeatherHandler extends BaseHandler {
 
-  private lastSnapshot: WeatherSnapshot | null = null;
-  private readonly configPath = '/data/weather-config.json';
+  private lastSnapshots = new Map<string, WeatherSnapshot>();
+  private readonly configPath = '/data/weather/weather-config.json';
 
   private readonly defaultConfig: WeatherConfig = {
     cities:     ['Sumida'],
@@ -62,7 +62,7 @@ export class WeatherHandler extends BaseHandler {
         return { ...this.defaultConfig, ...JSON.parse(fs.readFileSync(this.configPath, 'utf8')) };
       }
     } catch(e) {
-      this.logger.warn('天气配置读取失败，使用默认配置');
+      this.logger.warn('天気配置読取失敗、デフォルト使用');
     }
     return this.defaultConfig;
   }
@@ -71,117 +71,127 @@ export class WeatherHandler extends BaseHandler {
     return command === '天气';
   }
 
-  /** 按钮由Dashboard统一管理 */
   getButtons(): ButtonDef[] { return []; }
 
   async handle(ctx: MessageContext): Promise<HandlerResponse> {
-    const cfg   = this.getConfig();
-    const parts = ctx.args.split(' ');
-    const type  = parts[0] || '今日';
-    const city  = parts[1] || (cfg.cities && cfg.cities[0]) || 'Sumida';
+    const cfg    = this.getConfig();
+    const parts  = ctx.args.split(' ');
+    const type   = parts[0] || '今日';
+    const cities = parts[1]
+      ? [parts[1]]
+      : (cfg.cities && cfg.cities.length ? cfg.cities : ['Sumida']);
 
-    switch(type) {
-      case '今日':   return this.handleToday(city);
-      case '明日':   return this.handleTomorrow(city);
-      case '一週間': return this.handleWeek(city);
-      default:
-        return { text: '用法：\n天气 今日\n天气 明日\n天气 一週間' };
+    const results: string[] = [];
+    for (const city of cities) {
+      let res: HandlerResponse;
+      switch(type) {
+        case '今日':   res = await this.handleToday(city);    break;
+        case '明日':   res = await this.handleTomorrow(city); break;
+        case '一週間': res = await this.handleWeek(city);     break;
+        default: return { text: '用法：\n天気 今日\n天気 明日\n天気 一週間' };
+      }
+      if (res.text) results.push(res.text);
     }
+    return { text: results.join('\n\n━━━━━━━━━━━━\n\n') };
   }
 
   async checkWeatherAlert(): Promise<void> {
-    const cfg  = this.getConfig();
-    const city = (cfg.cities && cfg.cities[0]) || 'Sumida';
-    const data = await this.fetchWeather(city);
-    if (!data) return;
+    const cfg    = this.getConfig();
+    const cities = (cfg.cities && cfg.cities.length) ? cfg.cities : ['Sumida'];
 
-    const current: WeatherSnapshot = {
-      temp:      Math.round(data.main.temp),
-      weatherId: data.weather[0].id,
-      wind:      data.wind.speed,
-      desc:      data.weather[0].description,
-    };
+    for (const city of cities) {
+      const data = await this.fetchWeather(city);
+      if (!data) continue;
 
-    if (!this.lastSnapshot) {
-      this.lastSnapshot = current;
-      this.logger.info('天气基准快照已记录', { temp: current.temp, desc: current.desc });
-      return;
+      const current: WeatherSnapshot = {
+        temp:      Math.round(data.main.temp),
+        weatherId: data.weather[0].id,
+        wind:      data.wind.speed,
+        desc:      data.weather[0].description,
+      };
+
+      const snapshot = this.lastSnapshots.get(city);
+
+      if (!snapshot) {
+        this.lastSnapshots.set(city, current);
+        this.logger.info('天気基準記録', { city, temp: current.temp, desc: current.desc });
+        continue;
+      }
+
+      const alerts: string[] = [];
+
+      if (cfg.alertRain) {
+        const wasRain    = snapshot.weatherId >= 500 && snapshot.weatherId < 600;
+        const isRain     = current.weatherId  >= 500 && current.weatherId  < 600;
+        const wasThunder = snapshot.weatherId >= 200 && snapshot.weatherId < 300;
+        const isThunder  = current.weatherId  >= 200 && current.weatherId  < 300;
+        if (!wasRain && isRain)       alerts.push(`🌧 開始降雨：${current.desc}`);
+        if (wasRain  && !isRain)      alerts.push(`☀️ 雨已停止：${current.desc}`);
+        if (!wasThunder && isThunder) alerts.push(`⛈ 雷雨警告：${current.desc}`);
+      }
+
+      if (cfg.alertSnow) {
+        const wasSnow = snapshot.weatherId >= 600 && snapshot.weatherId < 700;
+        const isSnow  = current.weatherId  >= 600 && current.weatherId  < 700;
+        if (!wasSnow && isSnow) alerts.push(`❄️ 開始降雪：${current.desc}`);
+      }
+
+      if (cfg.alertFog) {
+        const wasFog = snapshot.weatherId >= 700 && snapshot.weatherId < 800;
+        const isFog  = current.weatherId  >= 700 && current.weatherId  < 800;
+        if (!wasFog && isFog) alerts.push(`🌫 霧霾警告：${current.desc}`);
+      }
+
+      if (cfg.alertCloud) {
+        const wasClear = snapshot.weatherId === 800;
+        const isCloud  = current.weatherId  >  800;
+        if (wasClear && isCloud) alerts.push(`☁️ 天気転陰：${current.desc}`);
+      }
+
+      if (cfg.alertSun) {
+        const isSunny  = current.weatherId  === 800 && current.temp  >= 30;
+        const wasSunny = snapshot.weatherId === 800 && snapshot.temp >= 30;
+        if (!wasSunny && isSunny) alerts.push(`☀️ 高温暴晒：${current.temp}°C 注意防晒`);
+      }
+
+      const tempChange = current.temp - snapshot.temp;
+      if (Math.abs(tempChange) >= cfg.tempDiff) {
+        alerts.push(`${tempChange > 0 ? '📈' : '📉'} 気温変化 ${snapshot.temp}°C → ${current.temp}°C`);
+      }
+
+      if (cfg.alertWind) {
+        const wasWind = snapshot.wind >= cfg.windLimit;
+        const isWind  = current.wind  >= cfg.windLimit;
+        if (!wasWind && isWind)  alerts.push(`💨 大風警告：${current.wind.toFixed(1)} m/s`);
+        if (wasWind  && !isWind) alerts.push(`💨 風速恢復：${current.wind.toFixed(1)} m/s`);
+      }
+
+      if (alerts.length > 0) {
+        await this.send(this.adminId,
+          `⚠️ ${city} 天気変化\n━━━━━━━━━━━━\n${alerts.join('\n')}\n━━━━━━━━━━━━\n現在：${current.temp}°C ${current.desc}`
+        );
+      }
+
+      this.lastSnapshots.set(city, current);
     }
-
-    const alerts: string[] = [];
-
-    if (cfg.alertRain) {
-      const wasRain = this.lastSnapshot.weatherId >= 500 && this.lastSnapshot.weatherId < 600;
-      const isRain  = current.weatherId >= 500 && current.weatherId < 600;
-      if (!wasRain && isRain)  alerts.push(`🌧 开始下雨：${current.desc}`);
-      if (wasRain  && !isRain) alerts.push(`☀️ 雨已停止：${current.desc}`);
-
-      const wasThunder = this.lastSnapshot.weatherId >= 200 && this.lastSnapshot.weatherId < 300;
-      const isThunder  = current.weatherId >= 200 && current.weatherId < 300;
-      if (!wasThunder && isThunder) alerts.push(`⛈ 雷雨警告：${current.desc}`);
-    }
-
-    if (cfg.alertSnow) {
-      const wasSnow = this.lastSnapshot.weatherId >= 600 && this.lastSnapshot.weatherId < 700;
-      const isSnow  = current.weatherId >= 600 && current.weatherId < 700;
-      if (!wasSnow && isSnow) alerts.push(`❄️ 开始降雪：${current.desc}`);
-    }
-
-    if (cfg.alertFog) {
-      const wasFog = this.lastSnapshot.weatherId >= 700 && this.lastSnapshot.weatherId < 800;
-      const isFog  = current.weatherId >= 700 && current.weatherId < 800;
-      if (!wasFog && isFog) alerts.push(`🌫 雾霾警告：${current.desc}`);
-    }
-
-    if (cfg.alertCloud) {
-      const wasClear = this.lastSnapshot.weatherId === 800;
-      const isCloud  = current.weatherId > 800;
-      if (wasClear && isCloud) alerts.push(`☁️ 天气转阴：${current.desc}`);
-    }
-
-    if (cfg.alertSun) {
-      const isSunny  = current.weatherId === 800 && current.temp >= 30;
-      const wasSunny = this.lastSnapshot.weatherId === 800 && this.lastSnapshot.temp >= 30;
-      if (!wasSunny && isSunny) alerts.push(`☀️ 高温暴晒：${current.temp}°C 注意防晒`);
-    }
-
-    const tempChange = current.temp - this.lastSnapshot.temp;
-    if (Math.abs(tempChange) >= cfg.tempDiff) {
-      alerts.push(`${tempChange > 0 ? '📈' : '📉'} 气温变化 ${this.lastSnapshot.temp}°C → ${current.temp}°C`);
-    }
-
-    if (cfg.alertWind) {
-      const wasWind = this.lastSnapshot.wind >= cfg.windLimit;
-      const isWind  = current.wind >= cfg.windLimit;
-      if (!wasWind && isWind)  alerts.push(`💨 大风警告：${current.wind.toFixed(1)} m/s`);
-      if (wasWind  && !isWind) alerts.push(`💨 风速已恢复：${current.wind.toFixed(1)} m/s`);
-    }
-
-    if (alerts.length > 0) {
-      await this.send(this.adminId,
-        `⚠️ ${city} 天气变化\n━━━━━━━━━━━━\n${alerts.join('\n')}\n━━━━━━━━━━━━\n现在：${current.temp}°C ${current.desc}`
-      );
-    }
-
-    this.lastSnapshot = current;
   }
 
   private async handleToday(city: string): Promise<HandlerResponse> {
     const data = await this.fetchWeather(city);
-    if (!data) return { text: '❌ 获取天气失败' };
+    if (!data) return { text: `❌ ${city} 天気取得失敗` };
     const emoji = this.getEmoji(data.weather[0].id);
     return {
       text:
-        `${emoji} ${data.name} 今日天气\n━━━━━━━━━━━━\n` +
-        `天气：${data.weather[0].description}\n` +
-        `气温：${Math.round(data.main.temp)}°C（体感 ${Math.round(data.main.feels_like)}°C）\n` +
+        `${emoji} ${data.name} 今日天気\n━━━━━━━━━━━━\n` +
+        `天気：${data.weather[0].description}\n` +
+        `気温：${Math.round(data.main.temp)}°C（体感 ${Math.round(data.main.feels_like)}°C）\n` +
         `湿度：${data.main.humidity}%\n風速：${data.wind.speed} m/s`,
     };
   }
 
   private async handleTomorrow(city: string): Promise<HandlerResponse> {
     const data = await this.fetchForecast(city);
-    if (!data) return { text: '❌ 获取天气失败' };
+    if (!data) return { text: `❌ ${city} 天気取得失敗` };
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
     const tDate    = tomorrow.toISOString().split('T')[0];
@@ -199,7 +209,7 @@ export class WeatherHandler extends BaseHandler {
 
   private async handleWeek(city: string): Promise<HandlerResponse> {
     const data = await this.fetchForecast(city);
-    if (!data) return { text: '❌ 获取天气失败' };
+    if (!data) return { text: `❌ ${city} 天気取得失敗` };
     const dailyMap = new Map<string, any>();
     data.list.forEach((item: any) => {
       const date = item.dt_txt.split(' ')[0];

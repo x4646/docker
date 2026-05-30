@@ -3,6 +3,7 @@ import { SyncUseCase } from '../../application/SyncUseCase';
 import { LogUseCase } from '../../application/LogUseCase';
 import { ILogger } from '../../domain/shared/ILogger';
 import { ISyncDirRepository } from '../../domain/repositories/ISyncDirRepository';
+import { FilterRule } from '../../domain/valueObjects/FilterRule';
 import http from 'http';
 import fs from 'fs';
 import path from 'path';
@@ -17,12 +18,13 @@ export class SyncController {
     private readonly logger:      ILogger,
     private readonly pipeUrl:     string,
     private readonly dirRepo:     ISyncDirRepository,
+    private readonly configPath:  string,
   ) {
-    this.router.get('/status',          this.getStatus.bind(this));
-    this.router.post('/start',          this.startSync.bind(this));
-    this.router.post('/result',         this.handleResult.bind(this));
-    this.router.get('/diff/:id',        this.getDiff.bind(this));
-    this.router.post('/sync-diff/:id',  this.syncFromDiff.bind(this));
+    this.router.get('/status',         this.getStatus.bind(this));
+    this.router.post('/start',         this.startSync.bind(this));
+    this.router.post('/result',        this.handleResult.bind(this));
+    this.router.get('/diff/:id',       this.getDiff.bind(this));
+    this.router.post('/sync-diff/:id', this.syncFromDiff.bind(this));
   }
 
   private async getStatus(req: Request, res: Response) {
@@ -47,18 +49,19 @@ export class SyncController {
     res.json({ ok: true });
   }
 
-  // ── 差异对比 ──────────────────────────────────────────
   private async getDiff(req: Request, res: Response) {
     const dir = await this.dirRepo.findById(req.params.id);
-    if (!dir) return res.status(404).json({ error: '目录不存在' });
+    if (!dir) return res.status(404).json({ error: 'not found' });
 
     try {
-      const scanResult = await this.postJson(`${this.pipeUrl}/api/scan`, { pc_path: dir.pc });
+      const scanResult = await this.postJson(this.pipeUrl + '/api/scan', { pc_path: dir.pc });
       if (!scanResult.ok) return res.json({ ok: false, error: scanResult.error });
 
-      const nasFiles = this.scanNas(dir.nas);
-      const pcMap    = new Map<string, any>(scanResult.files.map((f: any) => [f.path, f]));
-      const nasMap   = new Map<string, any>(nasFiles.map((f: any) => [f.path, f]));
+      const nasFiles = this.scanNas(dir.nas).filter(f => !this.getFilter().shouldExclude(f.path, f.size));
+      const pcFiles  = (scanResult.files as any[]).filter((f: any) => !this.getFilter().shouldExclude(f.path, f.size));
+
+      const pcMap  = new Map<string, any>(pcFiles.map((f: any) => [f.path, f]));
+      const nasMap = new Map<string, any>(nasFiles.map((f: any) => [f.path, f]));
 
       const toSync:   any[] = [];
       const toDelete: any[] = [];
@@ -74,8 +77,7 @@ export class SyncController {
         if (!nasMap.has(p)) toDelete.push({ path: p });
       });
 
-      res.json({
-        ok: true, toSync, updated, toDelete,
+      res.json({ ok: true, toSync, updated, toDelete,
         summary: { toSync: toSync.length, updated: updated.length, toDelete: toDelete.length }
       });
 
@@ -84,22 +86,22 @@ export class SyncController {
     }
   }
 
-  // ── 基于差异直接同步 ──────────────────────────────────
   private async syncFromDiff(req: Request, res: Response) {
     const dir = await this.dirRepo.findById(req.params.id);
-    if (!dir) return res.status(404).json({ error: '目录不存在' });
+    if (!dir) return res.status(404).json({ error: 'not found' });
 
     try {
-      const scanResult = await this.postJson(`${this.pipeUrl}/api/scan`, { pc_path: dir.pc });
+      const scanResult = await this.postJson(this.pipeUrl + '/api/scan', { pc_path: dir.pc });
       if (!scanResult.ok) return res.json({ ok: false, error: scanResult.error });
 
-      const nasFiles = this.scanNas(dir.nas);
-      const pcMap    = new Map<string, any>(scanResult.files.map((f: any) => [f.path, f]));
-      const nasMap   = new Map<string, any>(nasFiles.map((f: any) => [f.path, f]));
+      const nasFiles = this.scanNas(dir.nas).filter(f => !this.getFilter().shouldExclude(f.path, f.size));
+      const pcFiles  = (scanResult.files as any[]).filter((f: any) => !this.getFilter().shouldExclude(f.path, f.size));
+
+      const pcMap  = new Map<string, any>(pcFiles.map((f: any) => [f.path, f]));
+      const nasMap = new Map<string, any>(nasFiles.map((f: any) => [f.path, f]));
 
       const tasks: any[] = [];
 
-      // NAS有PC没有，或NAS更新 → 同步
       nasMap.forEach((nasFile, p) => {
         const pcFile = pcMap.get(p);
         if (!pcFile || nasFile.mtime > pcFile.mtime) {
@@ -115,7 +117,6 @@ export class SyncController {
         }
       });
 
-      // PC有NAS没有，mirror模式下删除
       if (dir.mode === 'mirror') {
         pcMap.forEach((_, p) => {
           if (!nasMap.has(p)) {
@@ -132,13 +133,9 @@ export class SyncController {
         });
       }
 
-      // 发送所有任务
       let sent = 0;
       for (const task of tasks) {
-        try {
-          await this.postJson(`${this.pipeUrl}/api/task`, task);
-          sent++;
-        } catch(e) {}
+        try { await this.postJson(this.pipeUrl + '/api/task', task); sent++; } catch(e) {}
       }
 
       this.logger.info('差异同步完成', { sent, total: tasks.length });
@@ -146,6 +143,15 @@ export class SyncController {
 
     } catch(e: any) {
       res.json({ ok: false, error: e.message });
+    }
+  }
+
+  private getFilter(): FilterRule {
+    try {
+      const data = JSON.parse(require("fs").readFileSync(this.configPath, "utf8"));
+      return FilterRule.fromJSON(data.filters || {});
+    } catch(e) {
+      return FilterRule.fromJSON({});
     }
   }
 
@@ -193,7 +199,7 @@ export class SyncController {
 
   private fetchPipeStatus(): Promise<any> {
     return new Promise((resolve, reject) => {
-      http.get(`${this.pipeUrl}/api/status`, (r) => {
+      http.get(this.pipeUrl + '/api/status', (r) => {
         let data = '';
         r.on('data', c => data += c);
         r.on('end', () => { try { resolve(JSON.parse(data)); } catch(e) { reject(e); } });

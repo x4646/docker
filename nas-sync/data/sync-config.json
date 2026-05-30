@@ -4,14 +4,14 @@
       "id": "1",
       "nas": "/share/BAK/Gcloud",
       "pc": "D:\\cloud\\Gcloud",
-      "enabled": false,
+      "enabled": true,
       "mode": "mirror"
     },
     {
       "id": "1780062375794",
       "nas": "/share/BAK/微信备份",
       "pc": "D:\\cloud\\微信备份",
-      "enabled": true,
+      "enabled": false,
       "mode": "mirror"
     }
   ],
@@ -21,13 +21,16 @@
       ".log",
       ".DS_Store",
       ".bak",
-      ".lock"
+      ".lock",
+      ".ffs_db"
     ],
     "excludeDir": [
       "node_modules",
       ".git",
       "temp",
-      "@Recycle"
+      "@Recycle",
+      ".@__thumb",
+      "__MACOSX"
     ],
     "excludeGlob": [
       "~$*",

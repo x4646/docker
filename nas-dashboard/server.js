@@ -5,7 +5,7 @@ const { spawnSync, spawn } = require('child_process');
 
 const app    = express();
 const PORT   = 3020;
-const DATA   = '/data/buttons.json';
+const DATA   = '/data/dashboard/buttons.json';
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
