@@ -38,7 +38,7 @@ echo "开始监听目录："
 echo "$DIRS"
 
 # 开始监听
-inotifywait -m -r -e create,modify,move,delete \
+inotifywait -m -r -e create,close_write,move,delete \
   --format '%e %w%f %w%f' \
   $DIRS 2>/dev/null | while read event path oldpath; do
 
@@ -46,7 +46,7 @@ inotifywait -m -r -e create,modify,move,delete \
     CREATE|MOVED_TO)
       [ -f "$path" ] && send_event "create" "$path"
       ;;
-    MODIFY)
+    CLOSE_WRITE)
       [ -f "$path" ] && send_event "modify" "$path"
       ;;
     DELETE|MOVED_FROM)
