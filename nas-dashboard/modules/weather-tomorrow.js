@@ -17,13 +17,13 @@ module.exports = {
         const data     = await utils.fetchForecast(city);
         const forecast = data.list.find(i => i.dt_txt.startsWith(tDate) && i.dt_txt.includes('12:00')) || data.list[8];
         rows.push({
-          '地区': data.city.name,
+          '地区': utils.getCityName(city),
           '天気': `${utils.weatherEmoji(forecast.weather[0].id)} ${forecast.weather[0].description}`,
           '気温': `${Math.round(forecast.main.temp)}°C`,
           '湿度': `${forecast.main.humidity}%`,
         });
       } catch(e) {
-        rows.push({ '地区': city, '天気': '❌ 取得失敗', '気温': '-', '湿度': '-' });
+        rows.push({ '地区': utils.getCityName(city), '天気': '❌ 取得失敗', '気温': '-', '湿度': '-' });
       }
     }
     return { type: 'table', data: rows };

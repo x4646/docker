@@ -20,9 +20,9 @@ module.exports = {
         });
 
         Array.from(dailyMap.entries()).slice(0, 7).forEach(([date, item]) => {
-          const d  = new Date(date);
+          const d = new Date(date);
           rows.push({
-            '地区': data.city.name,
+            '地区': utils.getCityName(city),
             '日期': `${d.getMonth()+1}/${d.getDate()}(${weekDays[d.getDay()]})`,
             '天気': `${utils.weatherEmoji(item.weather[0].id)} ${item.weather[0].description}`,
             '気温': `${Math.round(item.main.temp)}°C`,
@@ -30,7 +30,7 @@ module.exports = {
           });
         });
       } catch(e) {
-        rows.push({ '地区': city, '日期': '-', '天気': '❌ 取得失敗', '気温': '-', '湿度': '-' });
+        rows.push({ '地区': utils.getCityName(city), '日期': '-', '天気': '❌ 取得失敗', '気温': '-', '湿度': '-' });
       }
     }
     return { type: 'table', data: rows };

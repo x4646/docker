@@ -13,7 +13,7 @@ module.exports = {
       try {
         const data = await utils.fetchWeather(city);
         rows.push({
-          '地区': data.name,
+          '地区': utils.getCityName(city),
           '天気': `${utils.weatherEmoji(data.weather[0].id)} ${data.weather[0].description}`,
           '気温': `${Math.round(data.main.temp)}°C`,
           '体感': `${Math.round(data.main.feels_like)}°C`,
@@ -21,7 +21,7 @@ module.exports = {
           '風速': `${data.wind.speed} m/s`,
         });
       } catch(e) {
-        rows.push({ '地区': city, '天気': '❌ 取得失敗', '気温': '-', '体感': '-', '湿度': '-', '風速': '-' });
+        rows.push({ '地区': utils.getCityName(city), '天気': '❌ 取得失敗', '気温': '-', '体感': '-', '湿度': '-', '風速': '-' });
       }
     }
     return { type: 'table', data: rows };

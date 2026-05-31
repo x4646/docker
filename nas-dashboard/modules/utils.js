@@ -1,8 +1,10 @@
 const https = require('https');
 const fs    = require('fs');
+const path  = require('path');
 
-const API_KEY = '95f6885e043c782e21cb7fa152fad7d6';
-const CONFIG  = '/data/weather/weather-config.json';
+const API_KEY    = '95f6885e043c782e21cb7fa152fad7d6';
+const CONFIG     = '/data/weather/weather-config.json';
+const CITIES_JSON = path.join(__dirname, '../public/cities.json');
 
 function getCities() {
   try {
@@ -12,6 +14,21 @@ function getCities() {
     }
   } catch(e) {}
   return ['Sumida'];
+}
+
+// 从cities.json获取英文→中文映射
+function getCityNameMap() {
+  try {
+    const data = JSON.parse(fs.readFileSync(CITIES_JSON, 'utf8'));
+    const map  = {};
+    (data.tokyo23 || []).forEach(c => { map[c.value] = c.name; });
+    return map;
+  } catch(e) { return {}; }
+}
+
+function getCityName(value) {
+  const map = getCityNameMap();
+  return map[value] || value;
 }
 
 function fetchJson(url) {
@@ -41,4 +58,4 @@ function fetchForecast(city) {
   return fetchJson(`https://api.openweathermap.org/data/2.5/forecast?q=${city}&appid=${API_KEY}&units=metric&lang=zh_cn`);
 }
 
-module.exports = { getCities, fetchJson, fetchWeather, fetchForecast, weatherEmoji };
+module.exports = { getCities, getCityName, fetchJson, fetchWeather, fetchForecast, weatherEmoji };
