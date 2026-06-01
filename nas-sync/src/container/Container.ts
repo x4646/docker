@@ -70,6 +70,7 @@ export class Container {
           nas_path: filePath,
           size:     size || 0,
           mtime:    Math.floor(Date.now() / 1000),
+          sha256:   undefined,
           status:   'pending',
         });
       }
@@ -87,6 +88,26 @@ export class Container {
       const total   = fileRepo.count();
       const pending = fileRepo.findPendingHash(9999).length;
       res.json({ total, pending, hashed: total - pending });
+    });
+
+    // PC文件索引上报接口
+    this.app.post('/api/pc-files', (req, res) => {
+      const { files, pc_path } = req.body;
+      if (!Array.isArray(files)) return res.json({ ok: false, error: '缺少files' });
+      let updated = 0;
+      for (const f of files) {
+        if (!f.path || !f.sha256) continue;
+        fileRepo.upsert({
+          path:     pc_path + '/' + f.path,
+          nas_path: pc_path + '/' + f.path,
+          size:     f.size || 0,
+          mtime:    f.mtime || 0,
+          sha256:   f.sha256,
+          status:   'hashed',
+        });
+        updated++;
+      }
+      res.json({ ok: true, updated });
     });
 
     logger.info('NAS Sync容器构建完成');

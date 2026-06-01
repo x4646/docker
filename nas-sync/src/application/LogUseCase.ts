@@ -1,10 +1,11 @@
 import { ILogRepository } from '../domain/repositories/ILogRepository';
 import { SyncLog, LogEvent, LogStatus } from '../domain/entities/SyncLog';
 
-/**
- * 日志用例
- */
 export class LogUseCase {
+
+  // 去重缓存：key=event+path，value=时间戳
+  private readonly dedupeCache = new Map<string, number>();
+  private readonly DEDUPE_TTL  = 2000; // 5秒内相同事件去重
 
   constructor(private readonly logRepo: ILogRepository) {}
 
@@ -12,9 +13,25 @@ export class LogUseCase {
     return this.logRepo.findAll(filter);
   }
 
-  async addLog(event: LogEvent, filePath: string, oldPath?: string, size?: number): Promise<SyncLog> {
+  async addLog(event: LogEvent, filePath: string, oldPath?: string, size?: number): Promise<SyncLog | null> {
+    // 去重检查
+    const key  = `${event}:${filePath}`;
+    const last = this.dedupeCache.get(key);
+    const now  = Date.now();
+
+    if (last && (now - last) < this.DEDUPE_TTL) {
+      return null; // 忽略重复事件
+    }
+    this.dedupeCache.set(key, now);
+
+    // 定期清理缓存
+    if (this.dedupeCache.size > 1000) {
+      const expire = now - this.DEDUPE_TTL;
+      this.dedupeCache.forEach((t, k) => { if (t < expire) this.dedupeCache.delete(k); });
+    }
+
     const log = new SyncLog(
-      String(Date.now()),
+      String(now),
       event,
       filePath,
       oldPath || null,
