@@ -1,0 +1,81 @@
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#0f1319; color:#f0f6ff; font-family:'Noto Sans SC',sans-serif; min-height:100vh; }
+.navbar { background:#161d28; border-bottom:1px solid #2a3d55; padding:0 24px; height:56px; display:flex; align-items:center; gap:12px; position:sticky; top:0; z-index:100; }
+.nav-logo { font-size:1.1rem; font-weight:700; color:#40d0ff; }
+.nav-tabs { display:flex; gap:4px; margin-left:auto; }
+.nav-tab { padding:6px 16px; border-radius:6px; font-size:.82rem; cursor:pointer; color:#90b8d8; border:none; background:transparent; transition:all .15s; }
+.nav-tab:hover { color:#f0f6ff; background:#1e2838; }
+.nav-tab.active { color:#40d0ff; background:rgba(64,208,255,.1); }
+.main { padding:24px; max-width:1200px; margin:0 auto; }
+.card { background:#161d28; border:1px solid #2a3d55; border-radius:12px; padding:20px; margin-bottom:16px; }
+.card-title { font-size:.72rem; color:#40d0ff; text-transform:uppercase; letter-spacing:2px; margin-bottom:16px; padding-bottom:10px; border-bottom:1px solid #2a3d55; display:flex; align-items:center; justify-content:space-between; }
+
+/* 状态卡片 */
+.stats-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); gap:12px; }
+.stat-item { background:#1e2838; border-radius:8px; padding:14px; }
+.stat-label { font-size:.68rem; color:#507090; text-transform:uppercase; letter-spacing:.5px; margin-bottom:6px; }
+.stat-value { font-size:1.4rem; font-weight:700; color:#f0f6ff; font-family:monospace; }
+.stat-value.pending  { color:#ffa500; }
+.stat-value.done     { color:#3ddc84; }
+.stat-value.error    { color:#ff5567; }
+.stat-value.processing { color:#40d0ff; }
+
+/* 进度条 */
+.progress-wrap { background:#1e2838; border-radius:6px; height:8px; margin-top:12px; overflow:hidden; }
+.progress-bar  { height:100%; background:linear-gradient(90deg,#40d0ff,#3ddc84); border-radius:6px; transition:width .5s; }
+
+/* 目录列表 */
+.dir-list { display:flex; flex-direction:column; gap:8px; }
+.dir-item { background:#1e2838; border:1px solid #2a3d55; border-radius:8px; padding:12px 16px; display:flex; align-items:center; gap:12px; }
+.dir-path { flex:1; font-family:monospace; font-size:.82rem; color:#c8dff5; }
+.dir-count { font-size:.75rem; color:#507090; }
+.dir-actions { display:flex; gap:6px; }
+
+/* 按钮 */
+.btn { padding:8px 18px; border-radius:7px; border:none; font-size:.85rem; font-weight:700; cursor:pointer; transition:all .2s; }
+.btn-primary { background:#40d0ff; color:#000; }
+.btn-primary:hover { filter:brightness(1.1); }
+.btn-sm { padding:5px 12px; border-radius:5px; border:1px solid #2a3d55; background:#1e2838; color:#c8dff5; font-size:.75rem; cursor:pointer; transition:all .15s; }
+.btn-sm:hover { border-color:#40d0ff; color:#40d0ff; }
+.btn-sm.danger:hover { border-color:#ff5567; color:#ff5567; }
+.btn-sm.success { border-color:#3ddc84; color:#3ddc84; }
+
+/* 表单 */
+.form-group { margin-bottom:12px; }
+.form-label { display:block; font-size:.78rem; color:#c8dff5; margin-bottom:5px; }
+.form-input { width:100%; padding:9px 12px; background:#1e2838; border:1px solid #2a3d55; border-radius:7px; color:#f0f6ff; font-size:.86rem; outline:none; transition:border-color .2s; }
+.form-input:focus { border-color:#40d0ff; }
+
+/* Modal */
+.modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,.7); z-index:200; display:none; align-items:center; justify-content:center; }
+.modal-overlay.show { display:flex; }
+.modal { background:#161d28; border:1px solid #2a3d55; border-radius:14px; width:92%; max-width:500px; padding:24px; }
+.modal-title { font-size:1rem; font-weight:700; color:#40d0ff; margin-bottom:20px; }
+.modal-actions { display:flex; gap:8px; margin-top:20px; }
+.modal-actions .btn-primary { flex:1; padding:10px; }
+.modal-actions .btn-cancel  { flex:1; padding:10px; background:transparent; color:#90b8d8; border:1px solid #2a3d55; border-radius:7px; cursor:pointer; }
+
+/* 播放列表 */
+.playlist-list { display:flex; flex-direction:column; gap:8px; }
+.playlist-item { background:#1e2838; border:1px solid #2a3d55; border-radius:8px; padding:12px 16px; display:flex; align-items:center; gap:12px; cursor:pointer; transition:border-color .15s; }
+.playlist-item:hover { border-color:#40d0ff; }
+.playlist-name { flex:1; font-size:.85rem; color:#f0f6ff; }
+.playlist-count { font-size:.75rem; color:#507090; }
+.song-list { display:flex; flex-direction:column; gap:4px; max-height:300px; overflow-y:auto; margin-top:12px; }
+.song-item { display:flex; align-items:center; gap:8px; padding:8px 10px; background:#0f1319; border-radius:6px; font-size:.78rem; }
+.song-name { flex:1; color:#c8dff5; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.song-path { font-size:.68rem; color:#507090; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex:2; }
+
+/* 文件浏览器 */
+.file-browser { background:#0f1319; border:1px solid #2a3d55; border-radius:8px; max-height:300px; overflow-y:auto; }
+.file-path-bar { padding:8px 12px; background:#1e2838; border-bottom:1px solid #2a3d55; font-size:.75rem; color:#507090; font-family:monospace; }
+.file-item { display:flex; align-items:center; gap:8px; padding:8px 12px; cursor:pointer; transition:background .15s; font-size:.82rem; border-bottom:1px solid rgba(42,61,85,.3); }
+.file-item:hover { background:#1e2838; }
+.file-item.dir { color:#40d0ff; }
+.file-item.file { color:#c8dff5; }
+
+/* Toast */
+.toast { position:fixed; bottom:20px; right:20px; background:#1e2838; border:1px solid #40d0ff; border-radius:8px; padding:12px 20px; font-size:.85rem; color:#40d0ff; animation:slideIn .3s ease; z-index:999; }
+.toast.error { border-color:#ff5567; color:#ff5567; }
+.toast.success { border-color:#3ddc84; color:#3ddc84; }
+@keyframes slideIn { from{transform:translateX(16px);opacity:0} to{transform:translateX(0);opacity:1} }

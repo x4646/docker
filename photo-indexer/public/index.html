@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Photo Indexer 管理</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="nav-logo">🖼 Photo Indexer</div>
+  <div class="nav-tabs">
+    <button class="nav-tab active" id="tab-status"    onclick="switchTab('status')">📊 状态</button>
+    <button class="nav-tab"        id="tab-dirs"      onclick="switchTab('dirs')">📁 目录</button>
+    <button class="nav-tab"        id="tab-playlists" onclick="switchTab('playlists')">🎵 播放列表</button>
+  </div>
+</nav>
+
+<div class="main">
+
+  <!-- 状态页 -->
+  <div id="page-status">
+    <div class="card">
+      <div class="card-title">
+        📊 处理状态
+        <button class="btn btn-primary" onclick="startDispatch()">▶ 派发任务</button>
+      </div>
+      <div class="stats-grid">
+        <div class="stat-item">
+          <div class="stat-label">待处理</div>
+          <div class="stat-value pending" id="stat-pending">0</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">处理中</div>
+          <div class="stat-value processing" id="stat-processing">0</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">已完成</div>
+          <div class="stat-value done" id="stat-done">0</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">失败</div>
+          <div class="stat-value error" id="stat-error">0</div>
+        </div>
+      </div>
+      <div class="progress-wrap" style="margin-top:16px">
+        <div class="progress-bar" id="progress-bar" style="width:0%"></div>
+      </div>
+      <div style="font-size:.75rem;color:#507090;margin-top:6px" id="progress-text">0%</div>
+    </div>
+  </div>
+
+  <!-- 目录页 -->
+  <div id="page-dirs" style="display:none">
+    <div class="card">
+      <div class="card-title">
+        📁 监控目录
+        <button class="btn btn-primary" onclick="openAddDirModal()">＋ 添加目录</button>
+      </div>
+      <div class="dir-list" id="dir-list"></div>
+    </div>
+  </div>
+
+  <!-- 播放列表页 -->
+  <div id="page-playlists" style="display:none">
+    <div class="card">
+      <div class="card-title">
+        🎵 播放列表
+        <button class="btn btn-primary" onclick="openAddPlaylistModal()">＋ 新建列表</button>
+      </div>
+      <div class="playlist-list" id="playlist-list"></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- 添加目录 Modal -->
+<div class="modal-overlay" id="dir-modal">
+  <div class="modal" style="max-width:600px">
+    <div class="modal-title">选择监控目录</div>
+    <div style="margin-bottom:8px;font-size:.78rem;color:#507090">
+      已选择：<span id="selected-dir-path" style="color:#40d0ff">未选择</span>
+    </div>
+    <div class="file-browser">
+      <div class="file-path-bar" id="browser-path">/share</div>
+      <div id="browser-list"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-primary" onclick="confirmAddDir()">确认添加</button>
+      <button class="btn-cancel"  onclick="closeDirModal()">取消</button>
+    </div>
+  </div>
+</div>
+
+<!-- 新建播放列表 Modal -->
+<div class="modal-overlay" id="pl-modal">
+  <div class="modal">
+    <div class="modal-title">新建播放列表</div>
+    <div class="form-group">
+      <label class="form-label">列表名称</label>
+      <input class="form-input" id="pl-name" placeholder="例：看图BGM">
+    </div>
+    <div class="modal-actions">
+      <button class="btn-primary" onclick="confirmAddPlaylist()">创建</button>
+      <button class="btn-cancel"  onclick="closePlModal()">取消</button>
+    </div>
+  </div>
+</div>
+
+<!-- 编辑播放列表 Modal -->
+<div class="modal-overlay" id="edit-pl-modal">
+  <div class="modal" style="max-width:700px">
+    <div class="modal-title" id="edit-pl-title">编辑播放列表</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      <div>
+        <div style="font-size:.75rem;color:#40d0ff;margin-bottom:8px">歌曲列表</div>
+        <div class="song-list" id="song-list"></div>
+      </div>
+      <div>
+        <div style="font-size:.75rem;color:#40d0ff;margin-bottom:8px">浏览NAS音乐</div>
+        <div class="file-browser">
+          <div class="file-path-bar" id="browser-path"></div>
+          <div id="browser-list"></div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeEditPlModal()">关闭</button>
+    </div>
+  </div>
+</div>
+
+<script src="js/admin.js"></script>
+</body>
+</html>
