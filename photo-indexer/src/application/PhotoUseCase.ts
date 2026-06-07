@@ -51,7 +51,7 @@ export class PhotoUseCase {
           const full = path.join(dir, name);
           try {
             const stat = fs.statSync(full);
-            if (stat.isDirectory()) walk(full);
+            if (stat.isDirectory() && !name.startsWith("@") && !name.startsWith(".")) walk(full);
             else if (EXTS.has(path.extname(name).toLowerCase())) {
               this.photoRepo.upsert({ path: full, size: stat.size, mtime: Math.floor(stat.mtimeMs/1000), status: "pending" });
               count++;
@@ -68,6 +68,16 @@ export class PhotoUseCase {
 
   // ── 接收电脑处理结果 ──────────────────────────────────
   receiveResult(path: string, data: any): void {
+    // 用file_key查找已有记录，避免重复处理
+    if (data.file_key) {
+      const existing = (this.photoRepo as any).findByFileKey(data.file_key);
+      if (existing && existing.path !== path) {
+        // 路径变了但file_key相同，更新路径即可，复用缩略图
+        (this.photoRepo as any).updatePath(existing.path, path, data.file_key);
+        this.logger.info("路径更新（复用缩略图）", { old: existing.path, new: path });
+        return;
+      }
+    }
     this.photoRepo.updateResult(path, {
       thumbPath:   data.thumb_path   || null,
       previewPath: data.preview_path || null,

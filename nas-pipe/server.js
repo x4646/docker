@@ -79,7 +79,7 @@ app.post('/api/scan', (req, res) => {
   const timeout = setTimeout(() => {
     pendingScans.delete(task_id);
     res.json({ ok: false, error: '扫描超时' });
-  }, 30000);
+  }, 480000);
 
   pendingScans.set(task_id, (result) => {
     clearTimeout(timeout);

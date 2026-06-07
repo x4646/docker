@@ -9,6 +9,9 @@ export interface PhotoQuery {
   q?:        string;
   dateFrom?: number;
   dateTo?:   number;
+  dirPath?:  string;
+  year?:     number;
+  month?:    number;
   dirId?:    string;
 }
 

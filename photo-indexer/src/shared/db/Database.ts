@@ -141,10 +141,6 @@ export class Database {
       );
 
       -- 默认NAS根目录
-      INSERT OR IGNORE INTO browser_roots (name, path, source) VALUES
-        ('备份', '/share/BAK', 'nas'),
-        ('照片', '/share/Photos', 'nas'),
-        ('音乐', '/share/Music', 'nas');
     `);
   }
 }

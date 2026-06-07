@@ -1,21 +1,22 @@
-let playlists    = [];
-let editPlaylist = null;
-let browserPath  = '/share';
-let browserMode  = '';
-let currentPl    = null;
+let playlists  = [];
+let currentPl  = null;
+let dispatching = false;
+let dispatchTimer = null;
 
+// ── 初始化 ────────────────────────────────────────────
 async function init() {
-  await Promise.all([loadStats(), loadDirs(), loadPlaylists()]);
+  await Promise.all([loadStats(), loadDirs(), loadPlaylists(), loadMusicSettings(), loadBrowserRoots()]);
   setInterval(loadStats, 5000);
 }
 
 function switchTab(tab) {
   document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
-  document.querySelectorAll('.page').forEach(p => p.style.display = 'none');
+  document.querySelectorAll('[id^="page-"]').forEach(p => p.style.display = 'none');
   document.getElementById('tab-' + tab).classList.add('active');
   document.getElementById('page-' + tab).style.display = 'block';
 }
 
+// ── 处理状态 ──────────────────────────────────────────
 async function loadStats() {
   const r     = await fetch('/api/photos/stats');
   const stats = await r.json();
@@ -30,13 +31,46 @@ async function loadStats() {
   document.getElementById('progress-text').textContent = `${pct}% (${done}/${total})`;
 }
 
-async function startDispatch() {
+function toggleDispatch() {
+  if (dispatching) {
+    stopDispatch();
+  } else {
+    startDispatch();
+  }
+}
+
+function startDispatch() {
+  dispatching = true;
+  document.getElementById('btn-dispatch').textContent   = '⏸ 暂停派发';
+  document.getElementById('btn-dispatch').style.background = '#ff9500';
+  doDispatch();
+  dispatchTimer = setInterval(doDispatch, 5000);
+}
+
+function stopDispatch() {
+  dispatching = false;
+  clearInterval(dispatchTimer);
+  document.getElementById('btn-dispatch').textContent   = '▶ 开始派发';
+  document.getElementById('btn-dispatch').style.background = '';
+}
+
+async function doDispatch() {
+  if (!dispatching) return;
   const r = await fetch('/api/photos/dispatch', { method: 'POST' });
   const d = await r.json();
-  showToast(`已派发 ${d.sent} 个任务`, 'success');
+  if (d.sent === 0 && (await getStats()).pending === 0) {
+    stopDispatch();
+    showToast('全部处理完成', 'success');
+  }
   loadStats();
 }
 
+async function getStats() {
+  const r = await fetch('/api/photos/stats');
+  return r.json();
+}
+
+// ── 监控目录 ──────────────────────────────────────────
 async function loadDirs() {
   const r    = await fetch('/api/watch-dirs');
   const dirs = await r.json();
@@ -51,28 +85,21 @@ async function loadDirs() {
     </div>`).join('') || '<div style="color:#507090;padding:12px">暂无监控目录</div>';
 }
 
-function openAddDirModal() {
-  browserMode = 'dir';
-  browserPath = '/share';
-  document.getElementById('selected-dir-path').textContent = '未选择';
-  loadBrowser('/share');
-  document.getElementById('dir-modal').classList.add('show');
-}
-
-function closeDirModal() {
-  document.getElementById('dir-modal').classList.remove('show');
-}
-
-async function confirmAddDir() {
-  const path = document.getElementById('selected-dir-path').textContent;
-  if (!path || path === '未选择') { showToast('请选择目录', 'error'); return; }
-  await fetch('/api/watch-dirs', {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ path }),
+function openAddDirBrowser() {
+  const browser = new FileBrowser({
+    mode:   'dir',
+    source: 'nas',
+    title:  '选择监控目录',
+    onConfirm: async (path) => {
+      await fetch('/api/watch-dirs', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path }),
+      });
+      loadDirs();
+      showToast('目录已添加', 'success');
+    }
   });
-  closeDirModal();
-  loadDirs();
-  showToast('目录已添加', 'success');
+  browser.open();
 }
 
 async function deleteDir(id) {
@@ -93,42 +120,7 @@ async function scanDir(id, path) {
   loadStats();
 }
 
-async function loadBrowser(path) {
-  if (path) browserPath = path;
-  document.getElementById('browser-path').textContent = browserPath;
-
-  const r     = await fetch(`/api/music/browse?path=${encodeURIComponent(browserPath)}`);
-  const items = await r.json();
-  const list  = document.getElementById('browser-list');
-  list.innerHTML = '';
-
-  if (browserPath !== '/' && browserPath !== '/share') {
-    const up = document.createElement('div');
-    up.className = 'file-item dir';
-    up.textContent = '📁 ..';
-    up.onclick = () => loadBrowser(browserPath.split('/').slice(0,-1).join('/') || '/share');
-    list.appendChild(up);
-  }
-
-  items.forEach(item => {
-    const el = document.createElement('div');
-    el.className = `file-item ${item.type}`;
-    if (item.type === 'dir') {
-      el.textContent = `📁 ${item.name}`;
-      el.onclick = () => {
-        if (browserMode === 'dir') {
-          document.getElementById('selected-dir-path').textContent = item.path;
-        }
-        loadBrowser(item.path);
-      };
-    } else {
-      el.textContent = `🎵 ${item.name}`;
-      el.onclick = () => addSongToPlaylist(item);
-    }
-    list.appendChild(el);
-  });
-}
-
+// ── 播放列表管理 ──────────────────────────────────────
 async function loadPlaylists() {
   const r   = await fetch('/api/playlists');
   playlists = await r.json();
@@ -180,14 +172,38 @@ function openPlaylist(id) {
   if (!currentPl) return;
   document.getElementById('edit-pl-title').textContent = currentPl.name;
   renderSongList();
-  browserMode = 'song';
-  loadBrowser('/share');
   document.getElementById('edit-pl-modal').classList.add('show');
 }
 
 function closeEditPlModal() {
   document.getElementById('edit-pl-modal').classList.remove('show');
   currentPl = null;
+}
+
+function openAddSongBrowser() {
+  const browser = new FileBrowser({
+    mode:   'multi',
+    source: 'nas',
+    filter: ['.mp3', '.flac', '.aac', '.wav', '.m4a', '.ogg'],
+    title:  '选择音乐文件',
+    onConfirm: async (paths) => {
+      if (!currentPl) return;
+      const songs = [...(currentPl.songs || [])];
+      paths.forEach(p => {
+        if (!songs.find(s => s.path === p)) {
+          songs.push({ path: p, name: p.split('/').pop() });
+        }
+      });
+      currentPl.songs = songs;
+      await fetch(`/api/playlists/${currentPl.id}`, {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: currentPl.name, songs }),
+      });
+      renderSongList();
+      showToast(`已添加 ${paths.length} 首`, 'success');
+    }
+  });
+  browser.open();
 }
 
 function renderSongList() {
@@ -199,21 +215,7 @@ function renderSongList() {
       <span class="song-name">${escHtml(s.name || s.path.split('/').pop())}</span>
       <span class="song-path">${escHtml(s.path)}</span>
       <button class="btn-sm danger" onclick="removeSong(${i})">✕</button>
-    </div>`).join('') || '<div style="color:#507090;padding:12px">暂无歌曲</div>';
-}
-
-async function addSongToPlaylist(item) {
-  if (!currentPl) return;
-  const songs = [...(currentPl.songs || [])];
-  if (songs.find(s => s.path === item.path)) { showToast('歌曲已存在', 'error'); return; }
-  songs.push({ path: item.path, name: item.name });
-  currentPl.songs = songs;
-  await fetch(`/api/playlists/${currentPl.id}`, {
-    method: 'PUT', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name: currentPl.name, songs }),
-  });
-  renderSongList();
-  showToast(`已添加：${item.name}`, 'success');
+    </div>`).join('') || '<div style="color:#507090;padding:12px">暂无歌曲，点击上方添加</div>';
 }
 
 async function removeSong(idx) {
@@ -228,6 +230,77 @@ async function removeSong(idx) {
   renderSongList();
 }
 
+// ── 浏览器根目录管理 ──────────────────────────────────
+async function loadBrowserRoots() {
+  const r     = await fetch('/api/browser/roots?source=nas');
+  const roots = await r.json();
+  const list  = document.getElementById('browser-roots-list');
+  if (!list) return;
+  list.innerHTML = roots.map(r => `
+    <div class="dir-item">
+      <div class="dir-path"><strong>${escHtml(r.name)}</strong> — ${escHtml(r.path)}</div>
+      <div class="dir-actions">
+        <button class="btn-sm danger" onclick="deleteRoot(${r.id})">删除</button>
+      </div>
+    </div>`).join('') || '<div style="color:#507090;padding:12px">暂无根目录</div>';
+}
+
+function openAddRootBrowser() {
+  const browser = new FileBrowser({
+    mode:   'dir',
+    source: 'nas',
+    title:  '选择根目录',
+    onConfirm: async (path) => {
+      const name = prompt('给这个目录起个名字：', path.split('/').pop());
+      if (!name) return;
+      await fetch('/api/browser/roots', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, path, source: 'nas' }),
+      });
+      loadBrowserRoots();
+      showToast('根目录已添加', 'success');
+    }
+  });
+  browser.open();
+}
+
+async function deleteRoot(id) {
+  if (!confirm('确认删除根目录？')) return;
+  await fetch(`/api/browser/roots/${id}`, { method: 'DELETE' });
+  loadBrowserRoots();
+  showToast('已删除', 'success');
+}
+
+// ── 音乐设置 ──────────────────────────────────────────
+async function loadMusicSettings() {
+  const r   = await fetch('/api/music-settings');
+  const cfg = await r.json();
+  if (!cfg) return;
+  document.getElementById('music-mode').value     = cfg.mode     || 'shuffle';
+  document.getElementById('music-volume').value   = cfg.volume   || 0.6;
+  document.getElementById('music-autoplay').checked = cfg.auto_play === 1;
+  document.getElementById('music-volume-val').textContent = Math.round((cfg.volume||0.6)*100) + '%';
+}
+
+document.addEventListener('change', e => {
+  if (e.target.id === 'music-volume') {
+    document.getElementById('music-volume-val').textContent = Math.round(e.target.value * 100) + '%';
+  }
+});
+
+async function saveMusicSettings() {
+  await fetch('/api/music-settings', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      mode:      document.getElementById('music-mode').value,
+      volume:    parseFloat(document.getElementById('music-volume').value),
+      auto_play: document.getElementById('music-autoplay').checked,
+    }),
+  });
+  showToast('设置已保存', 'success');
+}
+
+// ── 工具 ──────────────────────────────────────────────
 function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 function escJs(s)   { return String(s).replace(/'/g,"\\'"); }
 function showToast(msg, type='success') {

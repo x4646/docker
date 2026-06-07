@@ -77,6 +77,17 @@ export class SqlitePhotoRepository implements IPhotoRepository {
                     params.push(`%${q}%`, `%${q}%`, `%${q}%`, `%${q}%`); }
     if (dateFrom) { conditions.push('exif_time >= ?'); params.push(dateFrom); }
     if (dateTo)   { conditions.push('exif_time <= ?'); params.push(dateTo); }
+    if (query.dirPath) { conditions.push('path LIKE ?'); params.push(query.dirPath + '%'); }
+    if (query.year)  {
+      const from = new Date(query.year, 0, 1).getTime() / 1000;
+      const to   = new Date(query.year + 1, 0, 1).getTime() / 1000;
+      conditions.push('exif_time >= ? AND exif_time < ?'); params.push(from, to);
+    }
+    if (query.month && query.year) {
+      const from = new Date(query.year, query.month - 1, 1).getTime() / 1000;
+      const to   = new Date(query.year, query.month, 1).getTime() / 1000;
+      conditions.push('exif_time >= ? AND exif_time < ?'); params.push(from, to);
+    }
     if (tags && tags.length) {
       tags.forEach(t => { conditions.push('user_tags LIKE ? OR ai_tags LIKE ?');
                           params.push(`%${t}%`, `%${t}%`); });
@@ -178,4 +189,25 @@ export class SqlitePhotoRepository implements IPhotoRepository {
     const insert = this.db.prepare('INSERT OR REPLACE INTO tags (name, count) VALUES (?, ?)');
     tagCount.forEach((count, name) => insert.run(name, count));
   }
+
+  findByMd5(md5: string): Photo | null {
+    const row = this.db.prepare('SELECT * FROM photos WHERE md5 = ? LIMIT 1').get(md5);
+    return row ? Photo.fromRow(row) : null;
+  }
+
+  findBySizeCtime(size: number, ctime: number): Photo[] {
+    const rows = this.db.prepare('SELECT * FROM photos WHERE size = ? AND ctime = ?').all(size, ctime);
+    return rows.map(Photo.fromRow);
+  }
+
+  updatePath(oldPath: string, newPath: string): void {
+    this.db.prepare('UPDATE photos SET path = ?, updated_at = strftime(\'%s\',\'now\') WHERE path = ?')
+      .run(newPath, oldPath);
+  }
+
+  findByFileKey(fileKey: string): Photo | null {
+    const row = this.db.prepare('SELECT * FROM photos WHERE file_key = ? LIMIT 1').get(fileKey);
+    return row ? Photo.fromRow(row) : null;
+  }
+
 }

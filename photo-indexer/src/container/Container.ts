@@ -19,7 +19,7 @@ export class Container {
     const photoUseCase = new PhotoUseCase(photoRepo, logger, this.config.PIPE_URL, this.config.DATA_PATH);
 
     this.app.use(express.json());
-    this.app.use(express.static(path.join(__dirname, '../../../public')));
+    this.app.use(express.static('/app/public'));
     this.app.use('/thumbs',  express.static(path.join(this.config.DATA_PATH, 'thumbs')));
     this.app.use('/preview', express.static(path.join(this.config.DATA_PATH, 'preview')));
 
@@ -32,7 +32,7 @@ export class Container {
 
     // 音乐文件流
     this.app.get('/music/*', (req, res) => {
-      const filePath = '/' + (req.params as any)[0];
+      const filePath = '/share/' + (req.params as any)[0];
       if (fs.existsSync(filePath)) res.sendFile(filePath);
       else res.status(404).json({ error: 'not found' });
     });
@@ -94,8 +94,92 @@ export class Container {
       res.json({ ok: true });
     });
 
+
+    // 数据库管理接口
+    this.app.post("/api/db/query", (req: any, res: any) => {
+      const { sql } = req.body;
+      if (!sql) return res.status(400).json({ error: "缺少sql" });
+      try {
+        const stmt = this.db().prepare(sql);
+        if (sql.trim().toUpperCase().startsWith("SELECT")) {
+          res.json({ rows: stmt.all() });
+        } else {
+          const r = stmt.run();
+          res.json({ changes: r.changes });
+        }
+      } catch(e: any) {
+        res.json({ error: e.message });
+      }
+    });
+
+
+    // 时间分组接口
+    this.app.get("/api/photos/groups/time", (req: any, res: any) => {
+      const rows = this.db().prepare(`
+        SELECT
+          CAST(strftime('%Y', exif_time, 'unixepoch') AS INTEGER) as year,
+          CAST(strftime('%m', exif_time, 'unixepoch') AS INTEGER) as month,
+          COUNT(*) as count
+        FROM photos
+        WHERE status = 'done' AND exif_time IS NOT NULL
+        GROUP BY year, month
+        ORDER BY year DESC, month DESC
+      `).all();
+      res.json(rows);
+    });
+
+    // 目录分组接口
+    this.app.get("/api/photos/groups/dir", (req: any, res: any) => {
+      const db   = this.db();
+      const dirs = db.prepare("SELECT * FROM photo_watch_dirs WHERE enabled = 1").all() as any[];
+      const result: any[] = [];
+
+      const walk = (dirPath: string, depth: number, parentId: string) => {
+        const count = (db.prepare("SELECT COUNT(*) as cnt FROM photos WHERE path LIKE ? AND status = 'done'").get(dirPath + "/%") as any).cnt;
+        if (count === 0 && depth > 0) return;
+
+        const node = {
+          id:       parentId + '_' + dirPath.split('/').pop(),
+          path:     dirPath,
+          name:     dirPath.split('/').pop(),
+          count,
+          depth,
+          children: [] as any[],
+        };
+
+        if (depth < 3) {
+          try {
+            const fs   = require('fs');
+            const path = require('path');
+            const items = fs.readdirSync(dirPath);
+            for (const name of items) {
+              if (name.startsWith('.') || name.startsWith('@')) continue;
+              const full = path.join(dirPath, name);
+              try {
+                if (fs.statSync(full).isDirectory()) {
+                  walk(full, depth + 1, node.id);
+                }
+              } catch(e) {}
+            }
+          } catch(e) {}
+        }
+
+        result.push(node);
+      };
+
+      dirs.forEach((d: any) => walk(d.path, 0, String(d.id)));
+      res.json(result);
+    });
+
     // 定时派发任务（每30秒）
     setInterval(() => photoUseCase.dispatchPending(), 30000);
+    // 超时重置：processing超过10分钟重置为pending
+    setInterval(() => {
+      const db      = this.db();
+      const timeout = Math.floor(Date.now() / 1000) - 600;
+      const r       = db.prepare("UPDATE photos SET status='pending' WHERE status='processing' AND updated_at < ?").run(timeout);
+      if (r.changes > 0) logger.info(`超时重置 ${r.changes} 张图片`);
+    }, 60000);
 
     logger.info('Photo Indexer容器构建完成');
     return this;

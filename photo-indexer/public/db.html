@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>数据库管理</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#0f1319; color:#f0f6ff; font-family:monospace; font-size:.85rem; }
+.header { background:#161d28; border-bottom:1px solid #2a3d55; padding:12px 20px; display:flex; align-items:center; gap:16px; }
+.title { color:#40d0ff; font-size:1rem; font-weight:700; }
+.tabs { display:flex; gap:4px; margin-left:auto; }
+.tab { padding:6px 14px; border-radius:6px; border:none; background:transparent; color:#507090; cursor:pointer; font-size:.8rem; }
+.tab:hover { color:#f0f6ff; }
+.tab.active { background:rgba(64,208,255,.1); color:#40d0ff; }
+.main { display:flex; height:calc(100vh - 49px); }
+.sidebar { width:180px; background:#161d28; border-right:1px solid #2a3d55; overflow-y:auto; padding:8px 0; flex-shrink:0; }
+.table-item { padding:9px 16px; font-size:.78rem; color:#90b8d8; cursor:pointer; }
+.table-item:hover { background:#1e2838; color:#40d0ff; }
+.table-item.active { background:rgba(64,208,255,.1); color:#40d0ff; }
+.content { flex:1; display:flex; flex-direction:column; overflow:hidden; }
+.toolbar { padding:10px 16px; background:#161d28; border-bottom:1px solid #2a3d55; display:flex; gap:8px; align-items:center; }
+.sql-input { flex:1; padding:7px 12px; background:#0f1319; border:1px solid #2a3d55; border-radius:6px; color:#f0f6ff; font-family:monospace; font-size:.82rem; outline:none; }
+.sql-input:focus { border-color:#40d0ff; }
+.btn { padding:7px 14px; border-radius:6px; border:none; font-size:.8rem; cursor:pointer; }
+.btn-primary { background:#40d0ff; color:#000; font-weight:700; }
+.btn-sm { padding:5px 12px; border-radius:5px; border:1px solid #2a3d55; background:#1e2838; color:#c8dff5; font-size:.75rem; cursor:pointer; }
+.btn-sm:hover { border-color:#40d0ff; color:#40d0ff; }
+.result { flex:1; overflow:auto; padding:12px; }
+.result-info { font-size:.75rem; color:#507090; margin-bottom:8px; }
+table { width:100%; border-collapse:collapse; }
+th { background:#1e2838; padding:8px 12px; text-align:left; color:#40d0ff; border:1px solid #2a3d55; position:sticky; top:0; white-space:nowrap; }
+td { padding:7px 12px; border:1px solid #1e2838; color:#c8dff5; max-width:300px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; cursor:default; }
+td:hover { white-space:normal; word-break:break-all; background:#1a2235; }
+tr:hover td { background:#1a2235; }
+.error { color:#ff5567; padding:12px; }
+.count { color:#3ddc84; }
+
+/* 目录浏览页 */
+.browser-page { display:none; flex:1; overflow:hidden; flex-direction:column; }
+.browser-page.active { display:flex; }
+.sql-page { display:flex; flex:1; overflow:hidden; flex-direction:column; }
+.browser-toolbar { padding:10px 16px; background:#161d28; border-bottom:1px solid #2a3d55; display:flex; gap:8px; align-items:center; }
+.breadcrumb { flex:1; display:flex; gap:4px; align-items:center; flex-wrap:wrap; }
+.crumb { color:#507090; cursor:pointer; }
+.crumb:hover { color:#40d0ff; }
+.crumb.active { color:#c8dff5; cursor:default; }
+.sep { color:#2a3d55; }
+.browser-list { flex:1; overflow-y:auto; }
+.browser-item { display:flex; align-items:center; gap:10px; padding:9px 16px; border-bottom:1px solid rgba(42,61,85,.3); cursor:pointer; transition:background .1s; }
+.browser-item:hover { background:#1e2838; }
+.browser-item.dir { color:#40d0ff; }
+.browser-item.file { color:#c8dff5; }
+.browser-item-name { flex:1; }
+.browser-item-size { font-size:.72rem; color:#507090; }
+.browser-footer { padding:12px 16px; background:#161d28; border-top:1px solid #2a3d55; display:flex; gap:8px; align-items:center; }
+.selected-path { flex:1; font-size:.8rem; color:#40d0ff; }
+.add-root-form { display:flex; gap:8px; align-items:center; }
+.form-input { padding:6px 12px; background:#0f1319; border:1px solid #2a3d55; border-radius:6px; color:#f0f6ff; font-size:.8rem; outline:none; }
+.form-input:focus { border-color:#40d0ff; }
+</style>
+</head>
+<body>
+<div class="header">
+  <div class="title">🗄 数据库管理 — /data/nas.db</div>
+  <div class="tabs">
+    <button class="tab active" onclick="showTab('sql',this)">SQL查询</button>
+    <button class="tab" onclick="showTab('browser',this)">📁 目录浏览</button>
+  </div>
+</div>
+<div class="main">
+  <div class="sidebar" id="sidebar"></div>
+  <div class="content">
+
+    <!-- SQL查询页 -->
+    <div class="sql-page" id="tab-sql">
+      <div class="toolbar">
+        <input class="sql-input" id="sql" placeholder="输入SQL... (Ctrl+Enter执行)" value="SELECT * FROM browser_roots">
+        <button class="btn btn-primary" onclick="runSql()">▶ 执行</button>
+        <button class="btn-sm" onclick="document.getElementById('sql').value=''">清空</button>
+      </div>
+      <div class="result" id="result"><div style="color:#507090;padding:20px">选择左侧表格或输入SQL查询</div></div>
+    </div>
+
+    <!-- 目录浏览页 -->
+    <div class="browser-page" id="tab-browser">
+      <div class="browser-toolbar">
+        <div class="breadcrumb" id="breadcrumb"></div>
+        <button class="btn-sm" onclick="browserNav('/share')">🏠 根目录</button>
+      </div>
+      <div class="browser-list" id="browser-list"></div>
+      <div class="browser-footer">
+        <div class="selected-path" id="selected-path">点击目录选择路径</div>
+        <div class="add-root-form">
+          <input class="form-input" id="root-name" placeholder="目录名称" style="width:120px">
+          <button class="btn btn-primary" onclick="addRoot()">＋ 添加为根目录</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const TABLES = ['photos','tags','photo_watch_dirs','playlists','music_settings','browser_roots','sync_events','sync_dirs'];
+let currentBrowserPath = '/share';
+let selectedPath = '';
+
+// ── Tab切换 ───────────────────────────────────────────
+function showTab(tab, btn) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('tab-sql').style.display     = tab === 'sql'     ? 'flex' : 'none';
+  document.getElementById('tab-browser').style.display = tab === 'browser' ? 'flex' : 'none';
+  if (tab === 'browser' && !document.getElementById('browser-list').children.length) {
+    browserNav('/share');
+  }
+}
+
+// ── 初始化 ────────────────────────────────────────────
+function init() {
+  document.getElementById('tab-browser').style.display = 'none';
+  const sidebar = document.getElementById('sidebar');
+  sidebar.innerHTML = TABLES.map(t =>
+    `<div class="table-item" onclick="selectTable('${t}',this)">${t}</div>`
+  ).join('');
+}
+
+function selectTable(name, el) {
+  document.querySelectorAll('.table-item').forEach(e => e.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('sql').value = `SELECT * FROM ${name} LIMIT 100`;
+  showTab('sql', document.querySelector('.tab.active') || document.querySelector('.tab'));
+  document.querySelectorAll('.tab')[0].classList.add('active');
+  document.querySelectorAll('.tab')[1].classList.remove('active');
+  document.getElementById('tab-sql').style.display = 'flex';
+  document.getElementById('tab-browser').style.display = 'none';
+  runSql();
+}
+
+// ── SQL查询 ───────────────────────────────────────────
+async function runSql() {
+  const sql = document.getElementById('sql').value.trim();
+  if (!sql) return;
+  try {
+    const r    = await fetch('/api/db/query', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sql }),
+    });
+    const data = await r.json();
+    renderResult(data);
+  } catch(e) {
+    document.getElementById('result').innerHTML = `<div class="error">请求失败：${e.message}</div>`;
+  }
+}
+
+function renderResult(data) {
+  const result = document.getElementById('result');
+  if (data.error) { result.innerHTML = `<div class="error">❌ ${data.error}</div>`; return; }
+  if (data.changes !== undefined) { result.innerHTML = `<div class="result-info count">✅ 影响 ${data.changes} 行</div>`; return; }
+  if (!data.rows || !data.rows.length) { result.innerHTML = '<div class="result-info">查询结果为空</div>'; return; }
+  const cols = Object.keys(data.rows[0]);
+  result.innerHTML = `
+    <div class="result-info">共 <span class="count">${data.rows.length}</span> 条结果</div>
+    <table>
+      <thead><tr>${cols.map(c => `<th>${c}</th>`).join('')}</tr></thead>
+      <tbody>${data.rows.map(row =>
+        `<tr>${cols.map(c => `<td title="${esc(str(row[c]))}">${esc(str(row[c]))}</td>`).join('')}</tr>`
+      ).join('')}</tbody>
+    </table>`;
+}
+
+// ── 目录浏览 ──────────────────────────────────────────
+async function browserNav(path) {
+  currentBrowserPath = path;
+  selectedPath = path;
+  document.getElementById('selected-path').textContent = path;
+  document.getElementById('root-name').value = path.split('/').pop() || 'share';
+
+  try {
+    const r    = await fetch(`/api/browser/list?path=${encodeURIComponent(path)}&source=nas`);
+    const data = await r.json();
+    renderBreadcrumb(path);
+    renderBrowserList(data.items || []);
+  } catch(e) {
+    // 如果api/browser/list不支持，直接用shell列目录
+    const r    = await fetch(`/api/db/query`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sql: `SELECT '${path}' as current_path` }),
+    });
+    renderBrowserList([]);
+  }
+}
+
+function renderBreadcrumb(path) {
+  const parts = path.split('/').filter(Boolean);
+  const crumbs = [{ name:'/', path:'/' }];
+  let cur = '';
+  parts.forEach(p => { cur += '/' + p; crumbs.push({ name: p, path: cur }); });
+
+  document.getElementById('breadcrumb').innerHTML = crumbs.map((c, i) =>
+    i < crumbs.length - 1
+      ? `<span class="crumb" onclick="browserNav('${c.path}')">${c.name}</span><span class="sep">›</span>`
+      : `<span class="crumb active">${c.name}</span>`
+  ).join('');
+}
+
+function renderBrowserList(items) {
+  const list = document.getElementById('browser-list');
+  const back = currentBrowserPath !== '/' ? `
+    <div class="browser-item dir" onclick="browserNav('${currentBrowserPath.split('/').slice(0,-1).join('/') || '/'}')">
+      <span>📁</span><span class="browser-item-name">..</span>
+    </div>` : '';
+
+  list.innerHTML = back + items.map(item => {
+    const icon = item.type === 'dir' ? '📁' : '📄';
+    const size = item.type === 'file' ? `<span class="browser-item-size">${fmtSize(item.size)}</span>` : '';
+    const onclick = item.type === 'dir'
+      ? `browserNav('${item.path}')`
+      : `selectFile('${item.path}')`;
+    return `<div class="browser-item ${item.type}" onclick="${onclick}">
+      <span>${icon}</span>
+      <span class="browser-item-name">${esc(item.name)}</span>
+      ${size}
+    </div>`;
+  }).join('') || '<div style="padding:20px;color:#507090">空目录</div>';
+}
+
+function selectFile(path) {
+  selectedPath = path;
+  document.getElementById('selected-path').textContent = path;
+}
+
+async function addRoot() {
+  const name = document.getElementById('root-name').value.trim();
+  if (!name || !selectedPath) { alert('请先选择目录并填写名称'); return; }
+  await fetch('/api/browser/roots', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, path: selectedPath, source: 'nas' }),
+  });
+  alert(`已添加根目录：${name} → ${selectedPath}`);
+}
+
+// ── 工具 ──────────────────────────────────────────────
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function str(v) { return v === null || v === undefined ? '' : String(v); }
+function fmtSize(b) {
+  if (!b) return '';
+  if (b > 1024*1024) return (b/1024/1024).toFixed(1)+'MB';
+  if (b > 1024) return (b/1024).toFixed(0)+'KB';
+  return b+'B';
+}
+
+document.addEventListener('DOMContentLoaded', init);
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey && e.key === 'Enter') runSql();
+});
+</script>
+</body>
+</html>
+<script>
+// 覆盖addRoot，加载根目录列表
+const _origAddRoot = addRoot;
+async function addRoot() {
+  await _origAddRoot();
+  loadRootsList();
+}
+
+async function loadRootsList() {
+  const r     = await fetch('/api/browser/roots?source=nas');
+  const roots = await r.json();
+  let el = document.getElementById('roots-list');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'roots-list';
+    el.style = 'padding:8px 16px;border-top:1px solid #2a3d55;background:#0f1319;';
+    document.querySelector('.browser-footer').after(el);
+  }
+  el.innerHTML = '<div style="font-size:.72rem;color:#507090;margin-bottom:6px">已添加的根目录：</div>' +
+    roots.map(r => `
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+        <span style="color:#40d0ff;font-size:.78rem">${esc(r.name)}</span>
+        <span style="color:#507090;font-size:.75rem;font-family:monospace">${esc(r.path)}</span>
+        <button class="btn-sm" style="border-color:#ff5567;color:#ff5567;margin-left:auto" onclick="deleteRoot(${r.id})">删除</button>
+      </div>`).join('') || '<div style="color:#507090;font-size:.78rem">暂无根目录</div>';
+}
+
+async function deleteRoot(id) {
+  if (!confirm('确认删除？')) return;
+  await fetch('/api/browser/roots/' + id, { method: 'DELETE' });
+  loadRootsList();
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  setTimeout(loadRootsList, 500);
+});
+</script>

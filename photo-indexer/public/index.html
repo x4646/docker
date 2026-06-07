@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Photo Indexer 管理</title>
 <link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/file-browser.css">
 </head>
 <body>
 
@@ -14,6 +15,7 @@
     <button class="nav-tab active" id="tab-status"    onclick="switchTab('status')">📊 状态</button>
     <button class="nav-tab"        id="tab-dirs"      onclick="switchTab('dirs')">📁 目录</button>
     <button class="nav-tab"        id="tab-playlists" onclick="switchTab('playlists')">🎵 播放列表</button>
+    <button class="nav-tab"        id="tab-settings"  onclick="switchTab('settings')">⚙️ 设置</button>
   </div>
 </nav>
 
@@ -24,7 +26,10 @@
     <div class="card">
       <div class="card-title">
         📊 处理状态
-        <button class="btn btn-primary" onclick="startDispatch()">▶ 派发任务</button>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-primary" id="btn-dispatch" onclick="toggleDispatch()">▶ 开始派发</button>
+          <button class="btn-sm" onclick="loadStats()">🔄 刷新</button>
+        </div>
       </div>
       <div class="stats-grid">
         <div class="stat-item">
@@ -56,7 +61,7 @@
     <div class="card">
       <div class="card-title">
         📁 监控目录
-        <button class="btn btn-primary" onclick="openAddDirModal()">＋ 添加目录</button>
+        <button class="btn btn-primary" onclick="openAddDirBrowser()">＋ 添加目录</button>
       </div>
       <div class="dir-list" id="dir-list"></div>
     </div>
@@ -73,24 +78,40 @@
     </div>
   </div>
 
-</div>
-
-<!-- 添加目录 Modal -->
-<div class="modal-overlay" id="dir-modal">
-  <div class="modal" style="max-width:600px">
-    <div class="modal-title">选择监控目录</div>
-    <div style="margin-bottom:8px;font-size:.78rem;color:#507090">
-      已选择：<span id="selected-dir-path" style="color:#40d0ff">未选择</span>
+  <!-- 设置页 -->
+  <div id="page-settings" style="display:none">
+    <div class="card">
+      <div class="card-title">⚙️ 文件浏览器根目录</div>
+      <div id="browser-roots-list"></div>
+      <div style="margin-top:12px;display:flex;gap:8px">
+        <button class="btn btn-primary" onclick="openAddRootBrowser()">＋ 添加NAS根目录</button>
+      </div>
     </div>
-    <div class="file-browser">
-      <div class="file-path-bar" id="browser-path">/share</div>
-      <div id="browser-list"></div>
-    </div>
-    <div class="modal-actions">
-      <button class="btn-primary" onclick="confirmAddDir()">确认添加</button>
-      <button class="btn-cancel"  onclick="closeDirModal()">取消</button>
+    <div class="card" style="margin-top:12px">
+      <div class="card-title">🎵 音乐设置</div>
+      <div class="form-group">
+        <label class="form-label">播放模式</label>
+        <select class="form-input" id="music-mode">
+          <option value="shuffle">🔀 随机</option>
+          <option value="order">▶ 顺序</option>
+          <option value="repeat">🔁 单曲循环</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">音量</label>
+        <input type="range" min="0" max="1" step="0.05" id="music-volume" style="width:200px;accent-color:#40d0ff">
+        <span id="music-volume-val" style="font-size:.8rem;color:#507090;margin-left:8px">60%</span>
+      </div>
+      <div class="form-group">
+        <label class="form-label">
+          <input type="checkbox" id="music-autoplay" style="margin-right:6px">
+          进入看图模式自动播放
+        </label>
+      </div>
+      <button class="btn btn-primary" onclick="saveMusicSettings()">保存</button>
     </div>
   </div>
+
 </div>
 
 <!-- 新建播放列表 Modal -->
@@ -112,25 +133,15 @@
 <div class="modal-overlay" id="edit-pl-modal">
   <div class="modal" style="max-width:700px">
     <div class="modal-title" id="edit-pl-title">编辑播放列表</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
-      <div>
-        <div style="font-size:.75rem;color:#40d0ff;margin-bottom:8px">歌曲列表</div>
-        <div class="song-list" id="song-list"></div>
-      </div>
-      <div>
-        <div style="font-size:.75rem;color:#40d0ff;margin-bottom:8px">浏览NAS音乐</div>
-        <div class="file-browser">
-          <div class="file-path-bar" id="browser-path"></div>
-          <div id="browser-list"></div>
-        </div>
-      </div>
+    <div style="margin-bottom:10px;display:flex;gap:8px">
+      <button class="btn btn-primary" onclick="openAddSongBrowser()">＋ 添加音乐</button>
+      <button class="btn-sm" onclick="closeEditPlModal()">关闭</button>
     </div>
-    <div class="modal-actions">
-      <button class="btn-cancel" onclick="closeEditPlModal()">关闭</button>
-    </div>
+    <div class="song-list" id="song-list"></div>
   </div>
 </div>
 
+<script src="js/file-browser.js"></script>
 <script src="js/admin.js"></script>
 </body>
 </html>

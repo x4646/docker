@@ -1,0 +1,12 @@
+{
+  "dirs": [
+    {
+      "id": "1780835539004",
+      "nas": "/share/BAK/Gcloud",
+      "pc": "D:\\cloud",
+      "enabled": true,
+      "mode": "mirror"
+    }
+  ],
+  "filters": {}
+}

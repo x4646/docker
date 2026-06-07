@@ -23,7 +23,7 @@ export class PhotoController {
   }
 
   private async getPhotos(req: Request, res: Response) {
-    const { page, limit, status, favorite, tags, q, dateFrom, dateTo } = req.query as any;
+    const { page, limit, status, favorite, tags, q, dateFrom, dateTo, dirPath, year, month } = req.query as any;
     const result = this.useCase.getPhotos({
       page:     parseInt(page)  || 1,
       limit:    parseInt(limit) || 50,
@@ -33,6 +33,9 @@ export class PhotoController {
       q,
       dateFrom: dateFrom ? parseInt(dateFrom) : undefined,
       dateTo:   dateTo   ? parseInt(dateTo)   : undefined,
+      dirPath:  dirPath  || undefined,
+      year:     year     ? parseInt(year)     : undefined,
+      month:    month    ? parseInt(month)    : undefined,
     });
     res.json(result);
   }
