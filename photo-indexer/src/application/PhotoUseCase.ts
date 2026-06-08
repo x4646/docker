@@ -53,19 +53,37 @@ export class PhotoUseCase {
             const stat = fs.statSync(full);
             if (stat.isDirectory() && !name.startsWith("@") && !name.startsWith(".")) walk(full);
             else if (EXTS.has(path.extname(name).toLowerCase())) {
-              this.photoRepo.upsert({ path: full, size: stat.size, mtime: Math.floor(stat.mtimeMs/1000), status: "pending" });
-              count++;
+              const newMtime  = Math.floor(stat.mtimeMs / 1000);
+              const newCtime  = Math.floor(stat.ctimeMs / 1000);
+              const byPath    = (this.photoRepo as any).findByPath(full);
+              if (byPath) {
+                // 路径匹配：mtime没变跳过，mtime变了重新处理
+                if (byPath.status === "done" && byPath.mtime !== newMtime) {
+                  this.photoRepo.upsert({ path: full, size: stat.size, mtime: newMtime, status: "pending" });
+                  count++;
+                }
+              } else {
+                // 路径没找到：用size+ctime查找，可能是文件移动了
+                const bySizeCtime = (this.photoRepo as any).findBySizeCtime(stat.size, newCtime);
+                const matched     = bySizeCtime.find((r: any) => r.status === "done");
+                if (matched) {
+                  // 文件移动了，更新路径，复用缩略图
+                  (this.photoRepo as any).updatePath(matched.path, full);
+                } else {
+                  // 全新文件
+                  this.photoRepo.upsert({ path: full, size: stat.size, mtime: newMtime, status: "pending" });
+                  count++;
+                }
+              }
             }
           } catch(e) {}
         });
       } catch(e) {}
     };
-
     walk(dirPath);
     this.logger.info("目录扫描完成", { dir: dirPath, count });
     return count;
   }
-
   // ── 接收电脑处理结果 ──────────────────────────────────
   receiveResult(path: string, data: any): void {
     // 用file_key查找已有记录，避免重复处理
