@@ -63,7 +63,7 @@ body { background:var(--bg); color:var(--text); font-family:'Noto Sans SC',sans-
 .tag-chip:hover,.tag-chip.active { border-color:var(--accent); color:var(--accent); }
 
 /* ── 主内容区 ─────────────────────────────────────── */
-.main { margin-left:200px; padding-top:56px; min-height:100vh; }
+.main { padding-top:56px; min-height:100vh; flex:1; overflow:hidden; }
 .content { padding:16px; }
 
 /* ── 瀑布流网格 ───────────────────────────────────── */
@@ -300,4 +300,74 @@ body { background:var(--bg); color:var(--text); font-family:'Noto Sans SC',sans-
 .photo-item img,
 .viewer-img {
   image-orientation: from-image;
+}
+
+/* ── 右键菜单 ─────────────────────────────────────── */
+.context-menu {
+  position: fixed; z-index: 9000;
+  background: #1e2838; border: 1px solid #2a3d55;
+  border-radius: 8px; padding: 4px 0;
+  min-width: 180px;
+  box-shadow: 0 8px 24px rgba(0,0,0,.6);
+  display: none;
+}
+.context-menu.show { display: block; }
+.ctx-item {
+  padding: 8px 16px; font-size: .82rem; color: #c8dff5;
+  cursor: pointer; display: flex; align-items: center; gap: 8px;
+  transition: background .1s;
+}
+.ctx-item:hover { background: rgba(64,208,255,.1); color: #40d0ff; }
+.ctx-item.danger:hover { background: rgba(255,85,103,.1); color: #ff5567; }
+.ctx-sep { height: 1px; background: #2a3d55; margin: 3px 0; }
+.ctx-label { font-size: .72rem; color: #507090; padding: 4px 16px; }
+
+/* ── 目录状态徽章 ─────────────────────────────────── */
+.dir-stats {
+  display: flex; gap: 6px; align-items: center;
+  padding: 2px 0 4px 26px; font-size: .7rem;
+}
+.dir-stat-done    { color: #3ddc84; }
+.dir-stat-pending { color: #ffa500; }
+.dir-stat-error   { color: #ff5567; }
+.dir-stat-loading { color: #507090; }
+
+/* ── 侧边栏可调宽度 ───────────────────────────────── */
+.sidebar {
+  position: relative;
+  min-width: 120px;
+  max-width: 400px;
+  resize: horizontal;
+  overflow: auto;
+}
+.sidebar-resizer {
+  position: absolute; right: 0; top: 0; bottom: 0;
+  width: 4px; cursor: col-resize;
+  background: transparent;
+  transition: background .15s;
+}
+.sidebar-resizer:hover { background: #40d0ff; }
+
+
+/* ── 页面布局 ─────────────────────────────────────── */
+.page-wrapper {
+  display: flex;
+  flex-direction: row;
+  margin-top: 56px;
+  min-height: calc(100vh - 56px);
+}
+.sidebar {
+  width: 200px;
+  flex-shrink: 0;
+  position: sticky;
+  top: 56px;
+  height: calc(100vh - 56px);
+  overflow-y: auto;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+}
+.main {
+  flex: 1;
+  min-width: 0;
+  padding-top: 0;
 }

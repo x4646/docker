@@ -310,3 +310,44 @@ function showToast(msg, type='success') {
 }
 
 document.addEventListener('DOMContentLoaded', init);
+
+// ── PC目录管理 ────────────────────────────────────────
+async function loadPcRoots() {
+  const r     = await fetch('/api/pc-roots');
+  const roots = await r.json();
+  const list  = document.getElementById('pc-root-list');
+  if (!list) return;
+  list.innerHTML = roots.map((r, i) => `
+    <div class="dir-item">
+      <div class="dir-path">
+        <strong>💻 ${escHtml(r.name)}</strong><br>
+        <small style="color:#507090">${escHtml(r.path)}</small>
+      </div>
+      <div class="dir-actions">
+        <button class="btn-sm danger" onclick="deletePcRoot(${i})">删除</button>
+      </div>
+    </div>`).join('') || '<div style="color:#507090;padding:12px">暂无PC目录，点击右上角添加</div>';
+}
+
+function openAddPcRootModal() {
+  const name = prompt('目录名称（例：音乐、照片）：');
+  if (!name) return;
+  const dirPath = prompt('PC目录路径（例：D:\\\\Music）：');
+  if (!dirPath) return;
+  fetch('/api/pc-roots', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, path: dirPath }),
+  }).then(() => {
+    loadPcRoots();
+    showToast('已添加', 'success');
+  });
+}
+
+async function deletePcRoot(idx) {
+  if (!confirm('确认删除？')) return;
+  await fetch(`/api/pc-roots/${idx}`, { method: 'DELETE' });
+  loadPcRoots();
+  showToast('已删除', 'success');
+}
+
+// 切换到PC标签时加载

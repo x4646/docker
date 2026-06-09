@@ -9,7 +9,8 @@ const PORT   = 3030;
 
 app.use(express.json());
 
-let pcClient     = null;
+let pcClient = null;
+let pcIp     = null;
 const pendingScans = new Map();
 
 wss.on('connection', (ws) => {
@@ -21,6 +22,7 @@ wss.on('connection', (ws) => {
 
       if (msg.type === 'online') {
         pcClient = ws;
+        pcIp     = msg.ip || null;
         console.log('电脑上线', msg);
       }
 
@@ -49,6 +51,7 @@ wss.on('connection', (ws) => {
   ws.on('close', () => {
     console.log('电脑已断开');
     pcClient = null;
+    pcIp     = null;
   });
 
   ws.on('error', (e) => {
@@ -57,7 +60,7 @@ wss.on('connection', (ws) => {
 });
 
 app.get('/api/status', (req, res) => {
-  res.json({ online: pcClient !== null });
+  res.json({ online: pcClient !== null, ip: pcIp });
 });
 
 app.post('/api/task', (req, res) => {

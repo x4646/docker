@@ -15,7 +15,7 @@ export class PhotoController {
     this.router.post('/:id/favorite',      this.toggleFavorite.bind(this));
     this.router.get('/tags/all',           this.getTags.bind(this));
     this.router.post('/scan',              this.scan.bind(this));
-    this.router.post('/scan',              this.scan.bind(this));
+    this.router.delete('/:id',             this.deletePhoto.bind(this));
   }
 
   private async getStats(req: Request, res: Response) {
@@ -78,5 +78,11 @@ export class PhotoController {
     if (!dirPath) return res.status(400).json({ error: "缺少path" });
     const count = await this.useCase.scanDir(dirPath);
     res.json({ ok: true, count });
+  }
+  private async deletePhoto(req: Request, res: Response) {
+    const photo = this.useCase.getPhoto(parseInt(req.params.id));
+    if (!photo) return res.status(404).json({ error: "not found" });
+    this.useCase.deletePhoto(photo.path);
+    res.json({ ok: true });
   }
 }

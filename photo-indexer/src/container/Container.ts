@@ -129,50 +129,116 @@ export class Container {
     });
 
     // 目录分组接口
+    // 目录树懒加载：不传path返回根目录，传path返回该目录的直接子目录
     this.app.get("/api/photos/groups/dir", (req: any, res: any) => {
-      const db   = this.db();
-      const dirs = db.prepare("SELECT * FROM photo_watch_dirs WHERE enabled = 1").all() as any[];
+      const db      = this.db();
+      const reqPath = req.query.path as string;
+
+      if (!reqPath) {
+        // 返回browser_roots根目录
+        const roots = db.prepare("SELECT * FROM browser_roots WHERE source = 'nas' AND enabled = 1 ORDER BY name").all() as any[];
+        const result = roots.map((r: any) => {
+          const count = (db.prepare("SELECT COUNT(*) as cnt FROM photos WHERE path LIKE ?").get(r.path + "/%") as any).cnt;
+          const hasChildren = count > 0;
+          return { id: String(r.id), path: r.path, name: r.name, count, depth: 0, hasChildren };
+        });
+        return res.json(result);
+      }
+
+      // 返回指定路径的直接子目录
+      const fs   = require("fs");
+      const path = require("path");
       const result: any[] = [];
 
-      const walk = (dirPath: string, depth: number, parentId: string) => {
-        const count = (db.prepare("SELECT COUNT(*) as cnt FROM photos WHERE path LIKE ? AND status = 'done'").get(dirPath + "/%") as any).cnt;
-        if (count === 0 && depth > 0) return;
-
-        const node = {
-          id:       parentId + '_' + dirPath.split('/').pop(),
-          path:     dirPath,
-          name:     dirPath.split('/').pop(),
-          count,
-          depth,
-          children: [] as any[],
-        };
-
-        if (depth < 3) {
+      try {
+        const items = fs.readdirSync(reqPath);
+        for (const name of items) {
+          if (name.startsWith(".") || name.startsWith("@")) continue;
+          const full = path.join(reqPath, name);
           try {
-            const fs   = require('fs');
-            const path = require('path');
-            const items = fs.readdirSync(dirPath);
-            for (const name of items) {
-              if (name.startsWith('.') || name.startsWith('@')) continue;
-              const full = path.join(dirPath, name);
-              try {
-                if (fs.statSync(full).isDirectory()) {
-                  walk(full, depth + 1, node.id);
-                }
-              } catch(e) {}
+            if (fs.statSync(full).isDirectory()) {
+              const count = (db.prepare("SELECT COUNT(*) as cnt FROM photos WHERE path LIKE ?").get(full + "/%") as any).cnt;
+              if (count === 0) continue;
+              const pending = (db.prepare("SELECT COUNT(*) as cnt FROM photos WHERE path LIKE ? AND status IN ('pending','processing')").get(full + "/%") as any).cnt;
+              const done    = (db.prepare("SELECT COUNT(*) as cnt FROM photos WHERE path LIKE ? AND status = 'done'").get(full + "/%") as any).cnt;
+              const hasChildren = fs.readdirSync(full).some((n: string) => !n.startsWith(".") && !n.startsWith("@") && fs.statSync(path.join(full,n)).isDirectory());
+              result.push({ id: full, path: full, name, count, done, pending, depth: 1, hasChildren });
             }
           } catch(e) {}
         }
+      } catch(e) {}
 
-        result.push(node);
-      };
-
-      dirs.forEach((d: any) => walk(d.path, 0, String(d.id)));
+      result.sort((a: any, b: any) => a.name.localeCompare(b.name, "ja"));
       res.json(result);
     });
 
+
+
+    // 按目录统计状态
+    this.app.get("/api/photos/stats/by-dir", (req: any, res: any) => {
+      const dirPath = req.query.path as string;
+      if (!dirPath) return res.status(400).json({ error: "缺少path" });
+      const db = this.db();
+      const stats = db.prepare(`
+        SELECT status, COUNT(*) as cnt FROM photos
+        WHERE path LIKE ? GROUP BY status
+      `).all(dirPath + "/%");
+      const result: any = { pending: 0, processing: 0, done: 0, error: 0 };
+      (stats as any[]).forEach((s: any) => { result[s.status] = s.cnt; });
+      result.total = result.pending + result.processing + result.done + result.error;
+      res.json(result);
+    });
+
+    // 文件数量异步统计（单独接口，不阻塞）
+    this.app.get("/api/photos/filecount", (req, res) => {
+      const dirPath = req.query.path as string;
+      if (!dirPath) return res.status(400).json({ error: "缺少path" });
+      const fsLib   = require("fs");
+      const pathLib = require("path");
+      const EXTS    = new Set([".jpg",".jpeg",".png",".heic",".webp",".gif",".bmp",".tiff",".raw"]);
+      let count = 0;
+      const walk = (dir: string) => {
+        try {
+          fsLib.readdirSync(dir).forEach((n: string) => {
+            if (n.startsWith(".") || n.startsWith("@")) return;
+            const f = pathLib.join(dir, n);
+            try {
+              const s = fsLib.statSync(f);
+              if (s.isDirectory()) walk(f);
+              else if (EXTS.has(pathLib.extname(n).toLowerCase())) count++;
+            } catch(e) {}
+          });
+        } catch(e) {}
+      };
+      setImmediate(() => {
+        walk(dirPath);
+        res.json({ count });
+      });
+    });
+
+    // 按目录派发任务
+    this.app.post("/api/photos/dispatch/dir", async (req: any, res: any) => {
+      const { dirPath, reprocess } = req.body;
+      if (!dirPath) return res.status(400).json({ error: "缺少dirPath" });
+      const db = this.db();
+      if (reprocess) {
+        db.prepare("UPDATE photos SET status='pending', thumb_path=NULL, preview_path=NULL WHERE path LIKE ? AND status='done'").run(dirPath + "/%");
+      }
+      const sent = await photoUseCase.dispatchPendingByDir(dirPath);
+      res.json({ ok: true, sent });
+    });
+
+    // 重新处理单张图片
+    this.app.post("/api/photos/:id/reprocess", async (req: any, res: any) => {
+      const photo = photoUseCase.getPhoto(parseInt(req.params.id));
+      if (!photo) return res.status(404).json({ error: "not found" });
+      this.db().prepare("UPDATE photos SET status='pending', thumb_path=NULL, preview_path=NULL WHERE id=?").run(photo.id);
+      const sent = await photoUseCase.dispatchPending();
+      res.json({ ok: true, sent });
+    });
+
     // 定时派发任务（每30秒）
-    setInterval(() => photoUseCase.dispatchPending(), 30000);
+    // setInterval(() => photoUseCase.dispatchPending(), 30000);
     // 超时重置：processing超过10分钟重置为pending
     setInterval(() => {
       const db      = this.db();
@@ -181,6 +247,39 @@ export class Container {
       if (r.changes > 0) logger.info(`超时重置 ${r.changes} 张图片`);
     }, 60000);
 
+
+    // PC根目录配置接口
+    const pcRootsPath = "/data/pc_roots.json";
+    this.app.get("/api/pc-roots", (req: any, res: any) => {
+      try {
+        if (fs.existsSync(pcRootsPath)) {
+          res.json(JSON.parse(fs.readFileSync(pcRootsPath, "utf8")));
+        } else {
+          res.json([]);
+        }
+      } catch(e) { res.json([]); }
+    });
+    this.app.post("/api/pc-roots", (req: any, res: any) => {
+      const { name, path: dirPath } = req.body;
+      if (!name || !dirPath) return res.status(400).json({ error: "缺少name或path" });
+      try {
+        const roots = fs.existsSync(pcRootsPath) ? JSON.parse(fs.readFileSync(pcRootsPath, "utf8")) : [];
+        roots.push({ name, path: dirPath });
+        fs.writeFileSync(pcRootsPath, JSON.stringify(roots, null, 2));
+        res.json({ ok: true });
+      } catch(e: any) { res.json({ error: e.message }); }
+    });
+    this.app.delete("/api/pc-roots/:idx", (req: any, res: any) => {
+      try {
+        const roots = fs.existsSync(pcRootsPath) ? JSON.parse(fs.readFileSync(pcRootsPath, "utf8")) : [];
+        roots.splice(parseInt(req.params.idx), 1);
+        fs.writeFileSync(pcRootsPath, JSON.stringify(roots, null, 2));
+        res.json({ ok: true });
+      } catch(e: any) { res.json({ error: e.message }); }
+    });
+
+    // 引入扩展路由（纯JS，挂载后重启即生效）
+    try { require("../../../../routes")(this.app, this.db.bind(this)); } catch(e) { logger.warn("routes.js加载失败", { error: String(e) }); }
     logger.info('Photo Indexer容器构建完成');
     return this;
   }

@@ -16,6 +16,7 @@
     <button class="nav-tab"        id="tab-dirs"      onclick="switchTab('dirs')">📁 目录</button>
     <button class="nav-tab"        id="tab-playlists" onclick="switchTab('playlists')">🎵 播放列表</button>
     <button class="nav-tab"        id="tab-settings"  onclick="switchTab('settings')">⚙️ 设置</button>
+    <button class="nav-tab"        id="tab-pc"        onclick="switchTab('pc')">💻 PC目录</button>
   </div>
 </nav>
 
@@ -75,6 +76,17 @@
         <button class="btn btn-primary" onclick="openAddPlaylistModal()">＋ 新建列表</button>
       </div>
       <div class="playlist-list" id="playlist-list"></div>
+    </div>
+  </div>
+
+  <!-- PC目录页 -->
+  <div id="page-pc" style="display:none">
+    <div class="card">
+      <div class="card-title">
+        💻 PC图片/音乐目录
+        <button class="btn btn-primary" onclick="openAddPcRootModal()">＋ 添加PC目录</button>
+      </div>
+      <div class="dir-list" id="pc-root-list"></div>
     </div>
   </div>
 

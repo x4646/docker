@@ -108,6 +108,7 @@ export class PhotoUseCase {
       phash:       data.phash        || null,
       aiDesc:      data.ai_desc      || null,
       aiTags:      data.ai_tags      || [],
+      ctime:       data.ctime        || null,
       status:      'done',
     });
     this.logger.info('图片处理完成', { path });
@@ -134,6 +135,29 @@ export class PhotoUseCase {
     return sent;
   }
 
+
+  async dispatchPendingByDir(dirPath: string): Promise<number> {
+    const db      = (this.photoRepo as any).db;
+    const pending = db.prepare(
+      "SELECT * FROM photos WHERE path LIKE ? AND status = 'pending' ORDER BY created_at ASC LIMIT 50"
+    ).all(dirPath + "/%");
+    let sent = 0;
+    for (const photo of pending) {
+      try {
+        await this.sendTask({
+          type:      'photo_process',
+          task_id:   String(photo.id),
+          path:      photo.path,
+          data_path: this.dataPath,
+        });
+        db.prepare("UPDATE photos SET status='processing' WHERE path=?").run(photo.path);
+        sent++;
+      } catch(e: any) {
+        this.logger.warn('推送失败', { path: photo.path });
+      }
+    }
+    return sent;
+  }
   // ── 标签和收藏 ────────────────────────────────────────
   updateTags(id: number, tags: string[]): void {
     (this.photoRepo as any).updateUserTags(id, tags);
