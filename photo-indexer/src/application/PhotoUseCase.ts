@@ -81,6 +81,16 @@ export class PhotoUseCase {
       } catch(e) {}
     };
     walk(dirPath);
+    // 清理孤立记录：数据库有但文件不存在的
+    const existing = (this.photoRepo as any).db.prepare("SELECT path FROM photos WHERE path LIKE ?").all(dirPath + "/%");
+    let deleted = 0;
+    for (const photo of existing) {
+      if (!fs.existsSync(photo.path)) {
+        (this.photoRepo as any).db.prepare("DELETE FROM photos WHERE path = ?").run(photo.path);
+        deleted++;
+      }
+    }
+    if (deleted > 0) this.logger.info("清理孤立记录", { dir: dirPath, deleted });
     this.logger.info("目录扫描完成", { dir: dirPath, count });
     return count;
   }

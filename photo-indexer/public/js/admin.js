@@ -351,3 +351,52 @@ async function deletePcRoot(idx) {
 }
 
 // 切换到PC标签时加载
+
+// ── 系统配置 ──────────────────────────────────────────
+async function loadSysConfig() {
+  const r   = await fetch('/api/config/system');
+  const cfg = await r.json();
+  document.getElementById('cfg-nas-ip').value       = cfg.nas_ip      || '192.168.0.3';
+  document.getElementById('cfg-pipe-port').value    = cfg.pipe_port   || 3030;
+  document.getElementById('cfg-indexer-port').value = cfg.indexer_port|| 3050;
+  document.getElementById('cfg-viewer-port').value  = cfg.viewer_port || 3051;
+  document.getElementById('cfg-sync-port').value    = cfg.sync_port   || 3040;
+}
+
+async function saveSysConfig() {
+  const cfg = {
+    nas_ip:       document.getElementById('cfg-nas-ip').value.trim(),
+    pipe_port:    parseInt(document.getElementById('cfg-pipe-port').value),
+    indexer_port: parseInt(document.getElementById('cfg-indexer-port').value),
+    viewer_port:  parseInt(document.getElementById('cfg-viewer-port').value),
+    sync_port:    parseInt(document.getElementById('cfg-sync-port').value),
+  };
+  await fetch('/api/config/system', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(cfg),
+  });
+  showToast('系统配置已保存', 'success');
+}
+
+// ── PC处理状态 ────────────────────────────────────────
+async function loadPcProcessStatus() {
+  const r     = await fetch('/api/photos/stats');
+  const stats = await r.json();
+  const el    = document.getElementById('pc-process-detail');
+  if (!el) return;
+
+  const total = stats.pending + stats.processing + stats.done + stats.error;
+  const pct   = total > 0 ? Math.round(stats.done / total * 100) : 0;
+
+  el.innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:12px">
+      <div class="stat-item"><div class="stat-label">待处理</div><div class="stat-value pending">${stats.pending}</div></div>
+      <div class="stat-item"><div class="stat-label">处理中</div><div class="stat-value processing">${stats.processing}</div></div>
+      <div class="stat-item"><div class="stat-label">已完成</div><div class="stat-value done">${stats.done}</div></div>
+      <div class="stat-item"><div class="stat-label">失败</div><div class="stat-value error">${stats.error}</div></div>
+    </div>
+    <div class="progress-wrap"><div class="progress-bar" style="width:${pct}%"></div></div>
+    <div style="font-size:.75rem;color:#507090;margin-top:6px">${pct}% (${stats.done}/${total})</div>`;
+
+  document.getElementById('pc-process-status').style.display = 'block';
+}

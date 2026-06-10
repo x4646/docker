@@ -57,6 +57,14 @@
     </div>
   </div>
 
+  <!-- PC处理状态 -->
+  <div id="pc-process-status" style="margin-top:12px;display:none">
+    <div class="card">
+      <div class="card-title">💻 PC处理进度 <button class="btn-sm" onclick="loadPcProcessStatus()">🔄 刷新</button></div>
+      <div id="pc-process-detail" style="color:#507090;padding:12px">等待PC处理...</div>
+    </div>
+  </div>
+
   <!-- 目录页 -->
   <div id="page-dirs" style="display:none">
     <div class="card">
@@ -92,7 +100,31 @@
 
   <!-- 设置页 -->
   <div id="page-settings" style="display:none">
-    <div class="card">
+    <div class="card" style="margin-bottom:12px">
+      <div class="card-title">🌐 系统配置</div>
+      <div class="form-group">
+        <label class="form-label">NAS IP地址</label>
+        <input class="form-input" id="cfg-nas-ip" placeholder="192.168.0.3">
+      </div>
+      <div class="form-group">
+        <label class="form-label">nas-pipe端口</label>
+        <input class="form-input" id="cfg-pipe-port" placeholder="3030">
+      </div>
+      <div class="form-group">
+        <label class="form-label">photo-indexer端口</label>
+        <input class="form-input" id="cfg-indexer-port" placeholder="3050">
+      </div>
+      <div class="form-group">
+        <label class="form-label">photo-viewer端口</label>
+        <input class="form-input" id="cfg-viewer-port" placeholder="3051">
+      </div>
+      <div class="form-group">
+        <label class="form-label">nas-sync端口</label>
+        <input class="form-input" id="cfg-sync-port" placeholder="3040">
+      </div>
+      <button class="btn btn-primary" onclick="saveSysConfig()">保存配置</button>
+    </div>
+	<div class="card">
       <div class="card-title">⚙️ 文件浏览器根目录</div>
       <div id="browser-roots-list"></div>
       <div style="margin-top:12px;display:flex;gap:8px">

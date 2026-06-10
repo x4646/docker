@@ -99,11 +99,54 @@ function renderPcDirNode(node, container, depth) {
 }
 
 async function loadPcPhotos(pcPath) {
-  showToast("PC目录功能开发中...");
+  // 显示状态栏
+  const statsBar = document.querySelector(".stats-bar");
+  if (statsBar) statsBar.innerHTML = `💻 ${pcPath} <span style="color:#507090;font-size:.8rem">加载中...</span>`;
+
+  // 查询数据库里已处理的
+  const r    = await fetch(`/api/photos?dirPath=${encodeURIComponent(pcPath)}&limit=50&page=1`);
+  const data = await r.json();
+
+  // 同时异步获取统计
+  fetch("/api/pc/dir-stats", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ pcPath }),
+  }).then(r => r.json()).then(stats => {
+    if (statsBar && !stats.error) {
+      statsBar.innerHTML = `💻 ${pcPath.split("\\").pop() || pcPath.split("/").pop()} &nbsp;`
+        + `<span style="color:#3ddc84">✅${stats.cached}</span> &nbsp;`
+        + `<span style="color:#ffa500">⏳${stats.pending}</span> &nbsp;`
+        + `<span style="color:#507090">总${stats.total}</span>`;
+    }
+  }).catch(() => {});
+
+  // 显示已处理图片
+  if (data.photos && data.photos.length) {
+    state.photos  = data.photos;
+    state.total   = data.total;
+    state.page    = 2;
+    state.hasMore = data.total > 50;
+    renderGrid(data.photos, true);
+    document.getElementById("stats-total").textContent = data.total;
+  } else {
+    document.getElementById("photo-grid").innerHTML =
+      `<div style="padding:40px;color:#507090;grid-column:1/-1;text-align:center">`
+      + `📂 此目录暂无已处理图片<br><small>右键目录→「派发给PC处理」生成缩略图</small></div>`;
+  }
 }
 
 async function dispatchPcDir(pcPath) {
-  showToast("派发PC目录: " + pcPath);
+  showToast("派发中...");
+  const r = await fetch("/api/pc/dispatch", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ pcPath }),
+  });
+  const d = await r.json();
+  if (d.ok) {
+    showToast("已派发，等待PC处理...");
+  } else {
+    showToast("派发失败: " + (d.error || "未知错误"), "error");
+  }
 }
 
 
@@ -962,7 +1005,12 @@ async function scanDir(path) {
     const d = await r.json();
     showToast(`扫描完成，发现 ${d.count} 张图片`);
     dirStatsCache.clear();
-    loadSidebar();
+    // 只更新当前目录状态，不刷新整个侧边栏
+    document.querySelectorAll(".sidebar-item.dir-node.active").forEach(el => {
+      const statsEl = el.nextElementSibling;
+      if (statsEl && statsEl.dataset) loadDirStatsLazy(path, statsEl);
+    });
+    loadPhotos(true);
   } catch(e) {
     showToast('扫描失败', 'error');
   }
