@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>处理日志</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#0f1319; color:#f0f6ff; font-family:'Noto Sans SC',sans-serif; font-size:.85rem; }
+.header { background:#161d28; border-bottom:1px solid #2a3d55; padding:14px 24px; display:flex; align-items:center; gap:16px; }
+.title { color:#40d0ff; font-size:1rem; font-weight:700; }
+.filters { padding:16px 24px; background:#161d28; border-bottom:1px solid #2a3d55; display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end; }
+.f-group { display:flex; flex-direction:column; gap:4px; }
+.f-label { font-size:.7rem; color:#507090; }
+.f-input { padding:7px 12px; background:#0f1319; border:1px solid #2a3d55; border-radius:6px; color:#f0f6ff; font-size:.82rem; outline:none; min-width:180px; }
+.f-input:focus { border-color:#40d0ff; }
+.f-select { padding:7px 12px; background:#0f1319; border:1px solid #2a3d55; border-radius:6px; color:#f0f6ff; font-size:.82rem; outline:none; }
+.btn { padding:7px 18px; border-radius:6px; border:none; cursor:pointer; font-size:.82rem; font-weight:700; }
+.btn-primary { background:#40d0ff; color:#000; }
+.btn-sm { padding:5px 12px; border-radius:5px; border:1px solid #2a3d55; background:#1e2838; color:#c8dff5; font-size:.75rem; cursor:pointer; }
+.btn-sm:hover { border-color:#ff5567; color:#ff5567; }
+.stats { padding:10px 24px; display:flex; gap:16px; font-size:.78rem; color:#507090; border-bottom:1px solid #1e2838; }
+.stats span { color:#f0f6ff; font-weight:700; }
+.table-wrap { padding:16px 24px; overflow-x:auto; }
+table { width:100%; border-collapse:collapse; }
+th { background:#1e2838; padding:9px 12px; text-align:left; color:#40d0ff; border:1px solid #2a3d55; white-space:nowrap; font-size:.78rem; }
+td { padding:8px 12px; border:1px solid #1e2838; color:#c8dff5; font-size:.78rem; }
+tr:hover td { background:#1a2235; }
+.status-done  { color:#3ddc84; font-weight:700; }
+.status-error { color:#ff5567; font-weight:700; }
+.status-processing { color:#40d0ff; font-weight:700; }
+.status-pending { color:#ffa500; font-weight:700; }
+.path-cell { max-width:400px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-family:monospace; font-size:.75rem; }
+.error-cell { max-width:250px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#ffa500; font-size:.72rem; }
+.pagination { padding:12px 24px; display:flex; gap:8px; align-items:center; }
+.page-info { color:#507090; font-size:.78rem; margin-left:auto; }
+</style>
+</head>
+<body>
+<div class="header">
+  <div class="title">📋 处理日志</div>
+  <a href="/" style="color:#507090;font-size:.78rem;margin-left:auto">← 返回管理</a>
+</div>
+<div class="filters">
+  <div class="f-group">
+    <div class="f-label">路径（模糊）</div>
+    <input class="f-input" id="f-path" placeholder="例: D:/Pictures">
+  </div>
+  <div class="f-group">
+    <div class="f-label">状态</div>
+    <select class="f-select" id="f-status">
+      <option value="">全部</option>
+      <option value="done">✅ 成功</option>
+      <option value="error">❌ 失败</option>
+      <option value="processing">🔄 处理中</option>
+      <option value="pending">⏳ 待处理</option>
+    </select>
+  </div>
+  <div class="f-group">
+    <div class="f-label">开始日期</div>
+    <input class="f-input" type="date" id="f-from" style="min-width:140px">
+  </div>
+  <div class="f-group">
+    <div class="f-label">结束日期</div>
+    <input class="f-input" type="date" id="f-to" style="min-width:140px">
+  </div>
+  <div class="f-group" style="justify-content:flex-end">
+    <div class="f-label">&nbsp;</div>
+    <button class="btn btn-primary" onclick="search(1)">🔍 查询</button>
+  </div>
+  <div class="f-group" style="justify-content:flex-end">
+    <div class="f-label">&nbsp;</div>
+    <button class="btn-sm" onclick="clearFilters()">清空</button>
+
+  </div>
+</div>
+<div style="padding:8px 24px;background:#161d28;border-bottom:1px solid #2a3d55;display:flex;gap:8px">
+  <button class="btn-sm" style="border-color:#40d0ff;color:#40d0ff" onclick="reprocessSelected()">🔄 重新处理选中</button>
+  <button class="btn-sm" style="border-color:#ff5567;color:#ff5567" onclick="deleteSelected()">🗑 删除选中</button>
+  <button class="btn-sm" style="border-color:#ff5567;color:#ff5567" onclick="deleteAll()">🗑 清空全部</button>
+  <span id="check-info" style="font-size:.75rem;color:#507090;line-height:28px">已选 0 条</span>
+</div>
+<div class="stats" id="stats">共 <span id="total">0</span> 条记录</div>
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th style="width:40px"><input type="checkbox" id="check-all" onclick="toggleAll(this)"></th><th style="width:60px">ID</th>
+        <th style="width:140px;cursor:pointer" onclick="sortBy('created_at')">时间 <span id="sort-created_at">↓</span></th>
+        <th style="cursor:pointer" onclick="sortBy('path')">路径 <span id="sort-path"></span></th>
+        <th style="width:70px;cursor:pointer" onclick="sortBy('status')">状态 <span id="sort-status"></span></th>
+        <th>错误信息</th>
+      </tr>
+    </thead>
+    <tbody id="tbody"></tbody>
+  </table>
+</div>
+<div class="pagination" id="pagination"></div>
+
+<script>
+let curPage = 1;
+let curSort = "created_at";
+let curOrder = "desc";
+
+function sortBy(col) {
+  if (curSort === col) { curOrder = curOrder === 'desc' ? 'asc' : 'desc'; }
+  else { curSort = col; curOrder = 'desc'; }
+  document.querySelectorAll('th span[id^="sort-"]').forEach(el => el.textContent = '');
+  const el = document.getElementById('sort-' + col);
+  if (el) el.textContent = curOrder === 'desc' ? '↓' : '↑';
+  search(1);
+}
+async function search(page) {
+  curPage = page || 1;
+  const path     = document.getElementById('f-path').value.trim();
+  const status   = document.getElementById('f-status').value;
+  const fromDate = document.getElementById('f-from').value;
+  const toDate   = document.getElementById('f-to').value;
+  let url = `/api/process-logs?page=${curPage}&limit=50&sort=${curSort}&order=${curOrder}`;
+  if (path)     url += '&path='     + encodeURIComponent(path);
+  if (status)   url += '&status='   + status;
+  if (fromDate) url += '&dateFrom=' + Math.floor(new Date(fromDate).getTime()/1000);
+  if (toDate)   url += '&dateTo='   + Math.floor(new Date(toDate + 'T23:59:59').getTime()/1000);
+
+  const r    = await fetch(url);
+  const data = await r.json();
+  document.getElementById('total').textContent = data.total.toLocaleString();
+
+  const tbody = document.getElementById('tbody');
+  tbody.innerHTML = data.rows.map(row => `
+    <tr>
+      <td><input type="checkbox" class="row-check" value="${row.id}"></td><td style="color:#507090">${row.id}</td>
+      <td style="font-family:monospace;font-size:.72rem">${formatTs(row.created_at)}</td>
+      <td><div class="path-cell" title="${esc(row.path)}">${esc(row.path)}</div></td>
+      <td class="status-${row.status}">${row.status === 'done' ? '✅ 成功' : row.status === 'processing' ? '🔄 处理中' : row.status === 'pending' ? '⏳ 待处理' : '❌ 失败'}</td>
+      <td><div class="error-cell" title="${esc(row.error||'')}">${esc(row.error||'-')}</div></td>
+    </tr>`).join('') || '<tr><td colspan="5" style="text-align:center;color:#507090;padding:24px">暂无数据</td></tr>';
+
+  renderPagination(data.total, data.page, data.limit);
+}
+
+function renderPagination(total, page, limit) {
+  const pages = Math.ceil(total / limit);
+  const pag   = document.getElementById('pagination');
+  if (pages <= 1) { pag.innerHTML = ''; return; }
+  let html = '';
+  if (page > 1)    html += `<button class="btn-sm" onclick="search(${page-1})">◀ 上一页</button>`;
+  if (page < pages) html += `<button class="btn-sm" onclick="search(${page+1})">下一页 ▶</button>`;
+  html += `<span class="page-info">第 ${page} / ${pages} 页，共 ${total.toLocaleString()} 条</span>`;
+  pag.innerHTML = html;
+}
+
+function formatTs(ts) {
+  const d = new Date(ts * 1000);
+  return d.toLocaleString('zh-CN', {year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit'});
+}
+
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function clearFilters() {
+  document.getElementById('f-path').value   = '';
+  document.getElementById('f-status').value = '';
+  document.getElementById('f-from').value   = '';
+  document.getElementById('f-to').value     = '';
+  search(1);
+}
+
+function toggleAll(cb) {
+  document.querySelectorAll('.row-check').forEach(c => c.checked = cb.checked);
+  updateCheckInfo();
+}
+function updateCheckInfo() {
+  const n = document.querySelectorAll('.row-check:checked').length;
+  const el = document.getElementById('check-info');
+  if (el) el.textContent = '已选 ' + n + ' 条';
+}
+document.addEventListener('change', e => { if (e.target.classList.contains('row-check')) updateCheckInfo(); });
+async function reprocessSelected() {
+  const ids = [...document.querySelectorAll('.row-check:checked')].map(c => parseInt(c.value));
+  const r = await fetch('/api/process-logs/reprocess', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ids})});
+  const d = await r.json();
+  alert('已加入队列：' + d.sent + ' 张');
+  search(curPage);
+}
+async function deleteSelected() {
+  const ids = [...document.querySelectorAll('.row-check:checked')].map(c => parseInt(c.value));
+  await fetch('/api/process-logs', {method:'DELETE', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ids})});
+  search(curPage);
+}
+async function deleteAll() {
+  await fetch('/api/process-logs', {method:'DELETE', headers:{'Content-Type':'application/json'}, body: JSON.stringify({})});
+  search(1);
+}
+document.addEventListener('keydown', e => { if (e.key === 'Enter') search(1); });
+document.addEventListener('DOMContentLoaded', () => search(1));
+</script>
+</body>
+</html>

@@ -38,6 +38,10 @@ export class Container {
     });
 
     // 图片API
+    // 引入扩展路由（纯JS，挂载后重启即生效）
+    try { require("../../../../routes")(this.app, this.db.bind(this)); } catch(e) { logger.warn("routes.js加载失败", { error: String(e) }); }
+    // 引入扩展路由（纯JS，挂载后重启即生效）
+    try { require("../../../../routes")(this.app, this.db.bind(this)); } catch(e) { logger.warn("routes.js加载失败", { error: String(e) }); }
     const photoCtrl = new PhotoController(photoUseCase);
     this.app.use('/api/photos', photoCtrl.router);
 
@@ -277,9 +281,7 @@ export class Container {
         res.json({ ok: true });
       } catch(e: any) { res.json({ error: e.message }); }
     });
-
     // 引入扩展路由（纯JS，挂载后重启即生效）
-    try { require("../../../../routes")(this.app, this.db.bind(this)); } catch(e) { logger.warn("routes.js加载失败", { error: String(e) }); }
     logger.info('Photo Indexer容器构建完成');
     return this;
   }

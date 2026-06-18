@@ -28,83 +28,92 @@ async function init() {
 // ── PC目录树 ─────────────────────────────────────────
 function renderPcDirNode(node, container, depth) {
   const indent = depth * 12;
-  const row    = document.createElement("div");
-  row.className = "sidebar-item dir-node";
-  row.style.cssText = `padding-left:${14+indent}px;font-size:${depth===0?".83":".78"}rem;display:flex;align-items:center;gap:4px`;
-
-  const toggleIcon = document.createElement("span");
-  toggleIcon.className   = "dir-toggle-icon";
-  toggleIcon.textContent = "▶";
-  toggleIcon.style.flexShrink = "0";
-
-  const nameSpan = document.createElement("span");
-  nameSpan.textContent = "💻 " + (node.name || node.path.split("\\").pop().split("/").pop());
-  nameSpan.style.flex  = "1";
-
+  const icon   = depth === 0 ? '💻' : '📂';
+  const wrap = document.createElement('div');
+  const row = document.createElement('div');
+  row.className = 'sidebar-item dir-node';
+  row.dataset.path = node.path;
+  row.style.cssText = `padding-left:${14+indent}px;font-size:${depth===0?'.83':'.78'}rem;display:flex;align-items:center;gap:4px;flex-wrap:nowrap;overflow:hidden`;
+  const toggleIcon = document.createElement('span');
+  toggleIcon.className   = 'dir-toggle-icon';
+  toggleIcon.textContent = '▶';
+  toggleIcon.style.flexShrink = '0';
+  const nameSpan = document.createElement('span');
+  nameSpan.textContent = icon + ' ' + (node.name || node.path.split('\\').pop().split('/').pop());
+  nameSpan.style.flex = '1';
+  nameSpan.style.overflow = 'hidden';
+  nameSpan.style.textOverflow = 'ellipsis';
+  nameSpan.style.whiteSpace = 'nowrap';
+  const statsSpan = document.createElement('span');
+  statsSpan.style.cssText = 'font-size:.65rem;flex-shrink:0;margin-left:4px';
   row.appendChild(toggleIcon);
   row.appendChild(nameSpan);
-
-  const childContainer = document.createElement("div");
-  childContainer.style.display = "none";
+  row.appendChild(statsSpan);
+  const childContainer = document.createElement('div');
+  childContainer.style.display = 'none';
   let loaded = false;
-
-  row.addEventListener("click", () => {
-    const isOpen = childContainer.style.display !== "none";
+  const toggle = () => {
+    const isOpen = childContainer.style.display !== 'none';
     if (!isOpen && !loaded) {
       loaded = true;
-      toggleIcon.textContent = "⟳";
-      const pcPath = node.path || node;
-      fetch(`/api/pc/browse?path=${encodeURIComponent(pcPath)}`)
+      toggleIcon.textContent = '⟳';
+      fetch(`/api/pc/browse?path=${encodeURIComponent(node.path || node)}`)
         .then(r => r.json())
         .then(items => {
-          if (items.error) {
-            toggleIcon.textContent = "✕";
-            return;
-          }
+          if (items.error) { toggleIcon.textContent = '✕'; return; }
           items.forEach(item => {
-            if (item.type === "dir") {
-              renderPcDirNode(item, childContainer, depth + 1);
-            }
+            if (item.type === 'dir') renderPcDirNode(item, childContainer, depth + 1);
           });
-          childContainer.style.display = "block";
-          toggleIcon.textContent = "▼";
+          childContainer.style.display = 'block';
+          toggleIcon.textContent = '▼';
         })
-        .catch(() => { toggleIcon.textContent = "▶"; });
+        .catch(() => { toggleIcon.textContent = '▶'; });
     } else {
-      childContainer.style.display = isOpen ? "none" : "block";
-      toggleIcon.textContent        = isOpen ? "▶" : "▼";
+      childContainer.style.display = isOpen ? 'none' : 'block';
+      toggleIcon.textContent        = isOpen ? '▶' : '▼';
     }
-    document.querySelectorAll(".sidebar-item.dir-node").forEach(el => el.classList.remove("active"));
-    row.classList.add("active");
-    state.filter.dirPath  = "";
+  };
+  row.addEventListener('click', () => {
+    toggle();
+    document.querySelectorAll('.sidebar-item.dir-node').forEach(el => el.classList.remove('active'));
+    row.classList.add('active');
+    state.filter.dirPath  = '';
     state.filter.pcPath   = node.path || node;
     state.filter.year     = 0;
     state.filter.month    = 0;
     state.filter.favorite = false;
     loadPcPhotos(node.path || node);
+    loadDirStatsLazy(node.path || node, statsSpan);
   });
-
-  row.addEventListener("contextmenu", (e) => {
+  row.addEventListener('contextmenu', (e) => {
     e.preventDefault();
     e.stopPropagation();
     ctxMenu.show(e.clientX, e.clientY, [
       { label: node.name || node.path },
       { sep: true },
-      { icon: "▶", text: "派发给PC处理", action: () => dispatchPcDir(node.path || node) },
+      { icon: '🔍', text: '查看此目录图片', action: () => row.click() },
+      { icon: '▶',  text: '派发处理',       action: () => dispatchDir(node.path || node, false) },
+      { icon: '🔄', text: '重新处理全部',   action: () => dispatchDir(node.path || node, true) },
+      { sep: true },
+      { icon: '🔁', text: '重新扫描目录',   action: () => scanDir(node.path || node) },
+      { sep: true },
+      { icon: '🗑', text: '删除整个目录',   action: () => deleteDir(node.path || node), danger: true },
     ]);
   });
-
-  container.appendChild(row);
-  container.appendChild(childContainer);
+  wrap.appendChild(row);
+  wrap.appendChild(childContainer);
+  container.appendChild(wrap);
 }
 
 async function loadPcPhotos(pcPath) {
+  state.pcMode = true;
+  pcPath = pcPath.split('\\').join('/');
   // 显示状态栏
   const statsBar = document.querySelector(".stats-bar");
   if (statsBar) statsBar.innerHTML = `💻 ${pcPath} <span style="color:#507090;font-size:.8rem">加载中...</span>`;
 
   // 查询数据库里已处理的
-  const r    = await fetch(`/api/photos?dirPath=${encodeURIComponent(pcPath)}&limit=50&page=1`);
+  const r    = await fetch(`/api/photos?dirPath=${encodeURIComponent(pcPath)}&limit=50&page=1&status=done`);
   const data = await r.json();
 
   // 同时异步获取统计
@@ -126,9 +135,14 @@ async function loadPcPhotos(pcPath) {
     state.total   = data.total;
     state.page    = 2;
     state.hasMore = data.total > 50;
+    state.filter.dirPath = pcPath;
     renderGrid(data.photos, true);
-    document.getElementById("stats-total").textContent = data.total;
+    const _st = document.getElementById("stats-total"); if (_st) _st.textContent = data.total;
   } else {
+    state.photos  = [];
+    state.total   = 0;
+    state.hasMore = false;
+    state.filter.dirPath = pcPath;
     document.getElementById("photo-grid").innerHTML =
       `<div style="padding:40px;color:#507090;grid-column:1/-1;text-align:center">`
       + `📂 此目录暂无已处理图片<br><small>右键目录→「派发给PC处理」生成缩略图</small></div>`;
@@ -164,7 +178,8 @@ function renderDirNode(node, container, depth) {
   // 目录行
   const row = document.createElement('div');
   row.className = 'sidebar-item dir-node';
-  row.style.cssText = `padding-left:${14+indent}px;font-size:${depth===0?'.83':'.78'}rem;display:flex;align-items:center;gap:4px`;
+  row.style.cssText = `padding-left:${14+indent}px;font-size:${depth===0?'.83':'.78'}rem;display:flex;align-items:center;gap:4px;flex-wrap:nowrap;overflow:hidden`;
+  row.dataset.path = node.path;
 
   const toggleIcon = document.createElement('span');
   toggleIcon.className   = 'dir-toggle-icon';
@@ -203,7 +218,7 @@ function renderDirNode(node, container, depth) {
     if (!isOpen && !loaded) {
       loaded = true;
       toggleIcon.textContent = '⟳';
-      fetch(`/api/photos/groups/dir?path=${encodeURIComponent(node.path)}`)
+      fetch(`/api/dir-tree?source=nas&path=${encodeURIComponent(node.path)}`)
         .then(r => r.json())
         .then(children => {
           children.forEach(c => renderDirNode(c, childContainer, depth + 1));
@@ -245,6 +260,8 @@ function renderDirNode(node, container, depth) {
       { icon: '🔄', text: '重新处理全部图片', action: () => dispatchDir(node.path, true) },
       { sep: true },
       { icon: '🔁', text: '重新扫描目录',     action: () => scanDir(node.path) },
+      { sep: true },
+      { icon: '🗑', text: '删除整个目录', action: () => deleteDir(node.path), danger: true },
     ]);
   });
 
@@ -253,11 +270,17 @@ function renderDirNode(node, container, depth) {
   container.appendChild(wrap);
 }
 
-function renderDirStatsInline(el, stats) {
-  if (stats.pending > 0) {
-    el.innerHTML = `<span style="color:#3ddc84">${stats.done}</span><span style="color:#507090">/</span><span style="color:#ffa500">${stats.count}</span>`;
+function renderDirStatsInline(el, stats, path) {
+  const done     = stats.done || 0;
+  const fcTotal  = path ? dirFilecountCache.get(path) : null;
+  if (fcTotal) {
+    if (done < fcTotal) {
+      el.innerHTML = `<span style="color:#3ddc84">${done}</span><span style="color:#507090">/</span><span style="color:#ffa500">${fcTotal}</span>`;
+    } else {
+      el.innerHTML = `<span style="color:#3ddc84">${done}/${fcTotal}</span>`;
+    }
   } else {
-    el.innerHTML = `<span style="color:#3ddc84">✅${stats.done}</span>`;
+    el.innerHTML = `<span style="color:#3ddc84">${done}</span>`;
   }
 }
 
@@ -267,14 +290,9 @@ async function loadDirStatsLazy(path, el) {
   try {
     const r     = await fetch(`/api/photos/stats/by-dir?path=${encodeURIComponent(path)}`);
     const stats = await r.json();
-    dirStatsCache.set(path, stats);
-    if (stats.pending > 0 || stats.processing > 0) {
-      el.innerHTML = `<span style="color:#3ddc84">${stats.done}</span><span style="color:#507090">/</span><span style="color:#ffa500">${stats.total}</span>`;
-    } else if (stats.done > 0) {
-      el.innerHTML = `<span style="color:#3ddc84">✅${stats.done}</span>`;
-    } else {
-      el.innerHTML = `<span style="color:#507090">${stats.total}</span>`;
-    }
+    const fcTotal = dirFilecountCache.get(path);
+    if (fcTotal) stats.total = fcTotal;
+    renderDirStatsInline(el, stats, path);
   } catch(e) {}
 }
 
@@ -282,7 +300,7 @@ async function loadSidebar() {
   const sidebar = document.querySelector('.sidebar');
   sidebar.innerHTML = '';
 
-  // 视图部分（立即显示）
+  // 视图
   const secView = document.createElement('div');
   secView.className = 'sidebar-section';
   secView.textContent = '视图';
@@ -306,17 +324,16 @@ async function loadSidebar() {
   favItem.addEventListener('click', () => setFavFilter(favItem));
   sidebar.appendChild(favItem);
 
-  // 目录部分（异步加载）
+  // 目录
   const secDir = document.createElement('div');
   secDir.className = 'sidebar-section';
   secDir.style.marginTop = '8px';
   secDir.textContent = '目录';
   sidebar.appendChild(secDir);
-
   const dirContainer = document.createElement('div');
   sidebar.appendChild(dirContainer);
 
-  // 时间轴占位
+  // 时间轴
   const secTime = document.createElement('div');
   secTime.className = 'sidebar-section';
   secTime.style.marginTop = '8px';
@@ -325,7 +342,16 @@ async function loadSidebar() {
   const timeContainer = document.createElement('div');
   sidebar.appendChild(timeContainer);
 
-  // 标签占位
+  // PC目录
+  const secPc = document.createElement('div');
+  secPc.className = 'sidebar-section';
+  secPc.style.marginTop = '8px';
+  secPc.textContent = '💻 PC';
+  sidebar.appendChild(secPc);
+  const pcContainer = document.createElement('div');
+  sidebar.appendChild(pcContainer);
+
+  // 标签
   const secTag = document.createElement('div');
   secTag.className = 'sidebar-section';
   secTag.style.marginTop = '8px';
@@ -337,10 +363,45 @@ async function loadSidebar() {
   sidebar.appendChild(tagCloud);
 
   // 异步加载目录树
-  fetch('/api/photos/groups/dir')
+  window.dirTree = new DirTree({
+    container: dirContainer,
+    onSelect: (path) => {
+      state.filter.dirPath  = path;
+      state.filter.year     = 0;
+      state.filter.month    = 0;
+      state.filter.favorite = false;
+      loadPhotos(true);
+    },
+    onContext: (path, e, statsSpan) => {
+      ctxMenu.show(e.clientX, e.clientY, [
+        { label: path.split('/').pop() },
+        { sep: true },
+        { icon: '🔍', text: '查看此目录图片',   action: () => { state.filter.dirPath=path; loadPhotos(true); } },
+        { icon: '▶',  text: '派发给PC处理',     action: () => dispatchDir(path, false) },
+        { icon: '🔄', text: '重新处理全部图片', action: () => dispatchDir(path, true) },
+        { sep: true },
+        { icon: '🔁', text: '重新扫描目录',     action: () => scanDir(path) },
+      { sep: true },
+      { icon: '🗑', text: '删除整个目录', action: () => deleteDir(path), danger: true },
+      ]);
+    },
+  });
+
+  fetch('/api/browser/roots?source=nas')
     .then(r => r.json())
-    .then(dirs => {
-      renderDirTree(dirs, dirContainer);
+    .then(async roots => {
+      roots = roots.map(r => ({ ...r, hasChildren: true }));
+      await window.dirTree.load(roots);
+      for (const root of roots) {
+        const dirStats = await fetch(`/api/dir-stats?path=${encodeURIComponent(root.path)}`).then(r=>r.json());
+        const stat     = dirStats.find(d => d.path === root.path);
+        if (stat) {
+          window.dirTree.updateStats(root.path, stat.done_files, stat.total_files, stat.pending_files);
+        } else {
+          const s = await fetch(`/api/photos/stats/by-dir?path=${encodeURIComponent(root.path)}`).then(r=>r.json());
+          window.dirTree.updateStats(root.path, s.done||0, 0);
+        }
+      }
     })
     .catch(() => {});
 
@@ -405,32 +466,71 @@ async function loadSidebar() {
     })
     .catch(() => {});
 
-  // PC目录
-  const secPc = document.createElement("div");
-  secPc.className = "sidebar-section";
-  secPc.style.marginTop = "8px";
-  secPc.textContent = "💻 PC";
-  sidebar.appendChild(secPc);
-  const pcContainer = document.createElement("div");
-  sidebar.appendChild(pcContainer);
-  fetch("/api/pc-roots")
+  // 异步加载PC目录
+  fetch('/api/pc-roots')
     .then(r => r.json())
-    .then(roots => {
+    .then(async roots => {
       if (!roots.length) {
-        const el = document.createElement("div");
-        el.style.cssText = "padding:8px 16px;font-size:.75rem;color:#507090";
-        el.textContent = "未配置PC目录";
+        const el = document.createElement('div');
+        el.style.cssText = 'padding:8px 16px;font-size:.75rem;color:#507090';
+        el.textContent = '未配置PC目录';
         pcContainer.appendChild(el);
         return;
       }
-      roots.forEach(root => renderPcDirNode(root, pcContainer, 0));
+      window.pcTree = new DirTree({
+        container: pcContainer,
+        onSelect: (path) => {
+          state.filter.dirPath  = '';
+          state.filter.pcPath   = path;
+          state.filter.year     = 0;
+          state.filter.month    = 0;
+          state.filter.favorite = false;
+          loadPcPhotos(path);
+        },
+        onContext: (path, e, statsSpan) => {
+          ctxMenu.show(e.clientX, e.clientY, [
+            { label: path.split('\\').pop().split('/').pop() || path },
+            { sep: true },
+            { icon: '🔍', text: '查看此目录图片', action: () => loadPcPhotos(path) },
+            { icon: '▶',  text: '派发处理',       action: () => dispatchDir(path, false) },
+            { icon: '🔄', text: '重新处理全部',   action: () => dispatchDir(path, true) },
+            { sep: true },
+            { icon: '🔁', text: '重新扫描目录',   action: () => scanDir(path) },
+            { sep: true },
+            { icon: '🗑', text: '删除整个目录',   action: () => deleteDir(path), danger: true },
+          ]);
+        },
+        childrenFn: async (path) => {
+          const items = await fetch('/api/pc/dir-children?path=' + encodeURIComponent(path)).then(r => r.json());
+          if (!items || items.error) return [];
+          return items.map(i => ({
+            path: i.path,
+            name: i.name,
+            hasChildren: true,
+            done:  i.done,
+            total: i.total,
+          }));
+        },
+      });
+      await window.pcTree.load(roots.map(r => ({
+        path: r.path,
+        name: r.name || r.path.split('\\').pop().split('/').pop(),
+        hasChildren: true,
+      })));
+      // 加载根目录统计（延迟确保树渲染完成）
+      setTimeout(async () => {
+        for (const r of roots) {
+          try {
+            const st = await fetch('/api/pc/dir-children?path=' + encodeURIComponent(r.path) + '&self=1').then(res=>res.json());
+            if (st && st.total !== undefined) window.pcTree.updateStats(r.path, st.done||0, st.total, st.total-(st.done||0));
+          } catch(e) {}
+        }
+      }, 300);
     })
     .catch(() => {});
 
-  // 异步加载标签
   loadTags();
 }
-
 
 function setFavFilter(el) {
   document.querySelectorAll('.sidebar-item').forEach(e => e.classList.remove('active'));
@@ -444,6 +544,7 @@ function setFavFilter(el) {
 
 // ── 图片加载 ──────────────────────────────────────────
 async function loadPhotos(reset = false) {
+  if (!state.pcMode) state.filter.dirPath = state.filter.dirPath;
   if (state.loading || (!reset && !state.hasMore)) return;
   if (reset) { state.page = 1; state.photos = []; state.hasMore = true; }
 
@@ -499,6 +600,7 @@ function renderGrid(photos, clear) {
     item.addEventListener('click', () => openViewer(idx));
     item.addEventListener("contextmenu", (e) => {
       e.preventDefault();
+      e.stopPropagation();
       const photo = state.photos[idx];
       ctxMenu.show(e.clientX, e.clientY, [
         { icon: "👁",  text: "预览",         action: () => openViewer(idx) },
@@ -507,7 +609,7 @@ function renderGrid(photos, clear) {
         { icon: "🏷",  text: "编辑标签",      action: () => addTagPrompt(photo.id) },
         { icon: "❤️", text: photo.favorite ? "取消收藏" : "收藏", action: () => toggleFav(e, photo.id) },
         { sep: true },
-        { icon: "🗑",  text: "从索引删除",    action: () => deletePhoto(photo.id), danger: true },
+        { icon: "🗑",  text: "彻底删除（含原文件）",    action: () => deletePhoto(photo.id), danger: true },
       ]);
     });
     grid.appendChild(item);
@@ -536,6 +638,10 @@ function closeViewer() {
   document.getElementById('viewer').classList.remove('show');
   document.body.style.overflow = '';
   stopSlideshow();
+  if (document.fullscreenElement || document.webkitFullscreenElement) {
+    if (document.exitFullscreen) document.exitFullscreen();
+    else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+  }
 }
 
 function showViewerPhoto() {
@@ -552,6 +658,10 @@ function showViewerPhoto() {
   document.getElementById('viewer-camera').textContent   = photo.exif_camera || '-';
   document.getElementById('viewer-date').textContent     = photo.exif_time ? formatDate(photo.exif_time) : '-';
   document.getElementById('viewer-ai').textContent       = photo.ai_desc || '暂无AI描述';
+  const gpsEl = document.getElementById('viewer-gps');
+  if (gpsEl) gpsEl.textContent = photo.exif_gps ? photo.exif_gps : '-';
+  const pathEl = document.getElementById('viewer-path');
+  if (pathEl) pathEl.textContent = photo.path;
 
   renderViewerTags(photo);
   updateViewerNav();
@@ -599,14 +709,14 @@ function setupViewer() {
   }, { passive: false });
 
   wrap.addEventListener('dblclick', (e) => {
-    if (state.viewer.zoom !== 1) { resetViewerTransform(); }
-    else {
-      state.viewer.zoom = 2.5;
-      const rect = wrap.getBoundingClientRect();
-      state.viewer.panX = (rect.width/2  - e.clientX) * 1.5;
-      state.viewer.panY = (rect.height/2 - e.clientY) * 1.5;
+    if (document.fullscreenElement || document.webkitFullscreenElement) {
+      if (document.exitFullscreen) document.exitFullscreen();
+      else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+    } else {
+      const el = document.getElementById('viewer');
+      if (el.requestFullscreen) el.requestFullscreen();
+      else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
     }
-    applyTransform(); showZoomIndicator();
   });
 
   wrap.addEventListener('mousedown', (e) => {
@@ -652,18 +762,25 @@ function setupViewer() {
 function applyTransform() {
   const img   = document.getElementById('viewer-img');
   const photo = state.photos[state.viewer.index];
-  img.style.transition = state.viewer.dragging ? 'none' : 'transform .05s ease';
+  img.style.transition = 'none';
   img.style.transform  = `translate(${state.viewer.panX}px, ${state.viewer.panY}px) scale(${state.viewer.zoom})`;
 
+  const isPcPath = photo && /^[A-Za-z]:/.test(photo.path);
+  const getOrigSrc = (ph) => isPcPath ? `/api/pc/file/${encodeURIComponent(ph.path)}` : `/original${ph.path}`;
   if (state.viewer.zoom > 2 && photo && img.dataset.mode !== 'original') {
     img.dataset.mode = 'original';
-    const src = `/original${photo.path}`;
+    const src = getOrigSrc(photo);
+    const currentId = photo.id;
     const tmp = new Image();
-    tmp.onload = () => { img.src = src; };
+    tmp.onload = () => {
+      // 确认还是同一张图才切换
+      const curPhoto = state.photos[state.viewer.index];
+      if (curPhoto && curPhoto.id === currentId) { img.src = src; img.dataset.mode = 'original'; }
+    };
     tmp.src = src;
   } else if (state.viewer.zoom <= 2 && img.dataset.mode === 'original') {
     img.dataset.mode = 'preview';
-    if (photo) img.src = photo.preview_path ? `/preview/${photo.preview_path.split('/').pop()}` : `/original${photo.path}`;
+    if (photo) img.src = photo.preview_path ? `/preview/${photo.preview_path.split('/').pop()}` : getOrigSrc(photo);
   }
 }
 
@@ -688,16 +805,41 @@ function toggleSlideshow() {
 
 function startSlideshow() {
   state.slideshow.active = true;
+  document.getElementById('btn-slideshow').textContent = '⏸ 幻灯片';
   document.getElementById('btn-slideshow').classList.add('active');
   state.slideshow.timer = setInterval(() => viewerNext(), state.slideshow.interval);
   if (!state.music.playing) playMusic();
+  // 全屏
+  const chk = document.getElementById('slideshow-fullscreen');
+  if (chk && chk.checked) {
+    const el = document.getElementById('viewer');
+    if (el.requestFullscreen) el.requestFullscreen();
+    else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+  }
 }
 
 function stopSlideshow() {
   state.slideshow.active = false;
+  document.getElementById('btn-slideshow').textContent = '▶ 幻灯片';
   document.getElementById('btn-slideshow').classList.remove('active');
   clearInterval(state.slideshow.timer);
 }
+
+// 全屏时隐藏头尾，退出时恢复
+document.addEventListener('fullscreenchange', () => {
+  const header = document.querySelector('.viewer-header');
+  const footer = document.querySelector('.viewer-footer');
+  const isFs   = !!document.fullscreenElement;
+  if (header) header.style.display = isFs ? 'none' : '';
+  if (footer) footer.style.display = isFs ? 'none' : '';
+  // 退出全屏时只停幻灯片，不关查看器
+  if (!isFs && state.slideshow.active) {
+    clearInterval(state.slideshow.timer);
+    state.slideshow.active = false;
+    document.getElementById('btn-slideshow').textContent = '▶ 幻灯片';
+    document.getElementById('btn-slideshow').classList.remove('active');
+  }
+});
 
 // ── 键盘 ──────────────────────────────────────────────
 function setupKeyboard() {
@@ -706,7 +848,14 @@ function setupKeyboard() {
     switch(e.key) {
       case 'ArrowLeft':  viewerPrev(); break;
       case 'ArrowRight': viewerNext(); break;
-      case 'Escape':     closeViewer(); break;
+      case 'Escape':
+        if (document.fullscreenElement || document.webkitFullscreenElement) {
+          if (document.exitFullscreen) document.exitFullscreen();
+          else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+        } else {
+          closeViewer();
+        }
+        break;
       case ' ':          e.preventDefault(); toggleSlideshow(); break;
       case 'f':          toggleFavCurrent(); break;
       case '+': case '=': state.viewer.zoom = Math.min(10, state.viewer.zoom*1.2); applyTransform(); showZoomIndicator(); break;
@@ -914,7 +1063,7 @@ function toggleMusicBar() {
   bar.style.display = bar.style.display === "none" ? "flex" : "none";
 }
 // ── 工具 ──────────────────────────────────────────────
-function updateStats() { document.getElementById('stats-total').textContent = state.total; }
+function updateStats() { const el = document.getElementById('stats-total'); if(el) el.textContent = state.total; }
 function showSpinner(show) { document.getElementById('spinner').style.display = show ? 'block' : 'none'; }
 function formatDate(ts) { if (!ts) return ''; return new Date(ts * 1000).toLocaleDateString('ja-JP'); }
 function formatSize(bytes) {
@@ -932,7 +1081,8 @@ function showToast(msg) {
 document.addEventListener('DOMContentLoaded', init);
 
 // ── 目录状态加载 ──────────────────────────────────────
-const dirStatsCache = new Map();
+const dirStatsCache     = new Map(); // 数据库stats缓存
+const dirFilecountCache = new Map(); // 实际文件数缓存
 
 async function loadDirStats(path, statsEl) {
   const el = typeof statsEl === "string" ? document.getElementById(statsEl) : statsEl;
@@ -974,49 +1124,249 @@ function showDirMenu(e, path) {
     { icon: '🔄', text: '重新处理全部图片', action: () => dispatchDir(path, true) },
     { sep: true },
     { icon: '🔁', text: '重新扫描目录',     action: () => scanDir(path) },
-  ]);
-}
+    { icon: '🗑', text: '删除整个目录', action: () => deleteDir(path), danger: true },n  ]);
+};
 
 async function dispatchDir(path, reprocess) {
-  showToast(reprocess ? '重新处理中...' : '派发中...');
-  try {
-    const r = await fetch('/api/photos/dispatch/dir', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ dirPath: path, reprocess }),
-    });
-    const d = await r.json();
-    showToast(`已派发 ${d.sent} 个任务`);
-    // 清除缓存，重新加载状态
-    dirStatsCache.delete(path);
-    const statsId = 'stats_dir_' + btoa(encodeURIComponent(path)).replace(/[^a-zA-Z0-9]/g, '_');
-    loadDirStats(path, statsId);
-  } catch(e) {
-    showToast('派发失败: ' + e.message, 'error');
+  // PC路径只提升优先级
+  if (/^[A-Za-z]:/.test(path)) {
+    try {
+      const pcPathFwd = path.split('\\').join('/');
+      const r = await fetch('/api/photos/boost-priority', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({dirPath: pcPathFwd})
+      }).then(r=>r.json());
+      showToast(`已提升优先级 ${r.boosted||0} 张`);
+    } catch(e) { showToast('派发失败:' + e.message, 'error'); }
+    return;
   }
-}
-
-async function scanDir(path) {
-  showToast('扫描中...');
+  const mask = document.createElement("div");
+  mask.id = "dispatch-mask";
+  mask.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-size:1rem;gap:12px";
+  mask.innerHTML = `<div style="font-size:2rem">📤</div><div>${reprocess?"重新派发":"派发"}中...</div><div style="font-size:.8rem;color:#909090">${path}</div><div id="dispatch-progress" style="margin-top:8px;color:#40d0ff">初始化...</div>`;
+  document.body.appendChild(mask);
   try {
-    const r = await fetch('/api/photos/scan', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
+    const d = await fetch("/api/photos/dispatch/dir2", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ dirPath: path, reprocess }),
+    }).then(r => r.json());
+
+    // 轮询进度
+    let result = {};
+    await new Promise(resolve => {
+      const poll = setInterval(async () => {
+        try {
+          const p = await fetch(`/api/photos/scan2/progress/${d.taskId}`).then(r => r.json());
+          const el = document.getElementById("dispatch-progress");
+          if (el) el.textContent = `扫描 ${p.scanned} 张，加入队列 ${p.added}，跳过 ${p.skipped}`;
+          if (p.done) { result = p; clearInterval(poll); resolve(); }
+        } catch(e) { clearInterval(poll); resolve(); }
+      }, 500);
+    });
+
+    // 显示结果
+    mask.innerHTML = `
+      <div style="background:#1e2838;border:1px solid #2a3d55;border-radius:12px;padding:24px 32px;min-width:280px;text-align:center">
+        <div style="font-size:1.1rem;font-weight:bold;margin-bottom:16px">✅ 派发完成</div>
+        <div style="margin-bottom:16px;color:#c8dff5;line-height:1.8">
+          扫描文件：<span style="color:#40d0ff">${result.scanned||0}</span> 张<br>
+          加入队列：<span style="color:#3ddc84">${result.added||0}</span> 张<br>
+          已完成跳过：<span style="color:#ffa500">${result.skipped||0}</span> 张
+        </div>
+        <button onclick="document.getElementById('dispatch-mask').remove()" style="padding:8px 24px;border-radius:6px;background:#40d0ff;color:#000;border:none;cursor:pointer">确定</button>
+      </div>`;
+
+    // 更新DirTree统计
+    await fetch("/api/dir-stats/recalc", {
+      method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ path }),
     });
-    const d = await r.json();
-    showToast(`扫描完成，发现 ${d.count} 张图片`);
-    dirStatsCache.clear();
-    // 只更新当前目录状态，不刷新整个侧边栏
-    document.querySelectorAll(".sidebar-item.dir-node.active").forEach(el => {
-      const statsEl = el.nextElementSibling;
-      if (statsEl && statsEl.dataset) loadDirStatsLazy(path, statsEl);
-    });
-    loadPhotos(true);
+    const stats = await fetch(`/api/dir-stats?path=${encodeURIComponent(path)}`).then(r => r.json());
+    for (const s of stats) {
+      if (window.dirTree && window.dirTree.has(s.path)) {
+        window.dirTree.updateStats(s.path, s.done_files, s.total_files, s.pending_files);
+      }
+    }
   } catch(e) {
-    showToast('扫描失败', 'error');
+    if (document.body.contains(mask)) document.body.removeChild(mask);
+    showToast("派发失败: " + e.message, "error");
   }
 }
 
-// ── 图片操作 ──────────────────────────────────────────
+async function scanDir(dirPath) {
+  // PC路径直接走pc/scan
+  if (dirPath.includes(':\\') || dirPath.includes(':/') || /^[A-Za-z]:/.test(dirPath)) {
+    // 酷炫PC扫描模态
+    const pcMask = document.createElement('div');
+    pcMask.id = 'scan-mask';
+    pcMask.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9999;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px)';
+    const shortPath = dirPath.split('\\').slice(-2).join('\\') || dirPath;
+    pcMask.innerHTML = `<div style="background:#161d28;border:1px solid #2a3d55;border-radius:14px;padding:28px 32px;min-width:380px;max-width:460px">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px">
+        <div style="width:40px;height:40px;border-radius:8px;background:rgba(64,208,255,.15);display:flex;align-items:center;justify-content:center;font-size:1.2rem">🔍</div>
+        <div>
+          <div style="font-size:.95rem;font-weight:700;color:#f0f6ff">扫描PC目录</div>
+          <div style="font-size:.72rem;color:#507090;font-family:monospace;margin-top:2px">${dirPath}</div>
+        </div>
+      </div>
+      <div style="margin-bottom:18px">
+        <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+          <span style="font-size:.72rem;color:#507090">扫描进度</span>
+          <span id="pc-scan-pct" style="font-size:.72rem;font-weight:700;color:#40d0ff">0%</span>
+        </div>
+        <div style="height:4px;background:#1e2838;border-radius:99px;overflow:hidden">
+          <div id="pc-scan-bar" style="height:100%;width:0%;background:#40d0ff;border-radius:99px;transition:width .4s ease"></div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px">
+        <div style="background:#1e2838;border-radius:8px;padding:12px;text-align:center">
+          <div style="font-size:.62rem;color:#507090;margin-bottom:4px">已扫目录</div>
+          <div id="pc-scan-dirs" style="font-size:1.3rem;font-weight:700;color:#f0f6ff">0</div>
+        </div>
+        <div style="background:#1e2838;border-radius:8px;padding:12px;text-align:center">
+          <div style="font-size:.62rem;color:#507090;margin-bottom:4px">发现图片</div>
+          <div id="pc-scan-files" style="font-size:1.3rem;font-weight:700;color:#40d0ff">0</div>
+        </div>
+        <div style="background:#1e2838;border-radius:8px;padding:12px;text-align:center">
+          <div style="font-size:.62rem;color:#507090;margin-bottom:4px">写入DB</div>
+          <div id="pc-scan-sent" style="font-size:1.3rem;font-weight:700;color:#3ddc84">0</div>
+        </div>
+      </div>
+      <div style="background:#1e2838;border-radius:8px;padding:10px 12px;margin-bottom:18px;display:flex;align-items:center;gap:8px">
+        <span style="font-size:.75rem;color:#507090;flex-shrink:0">📁</span>
+        <div id="pc-scan-curdir" style="font-size:.7rem;color:#507090;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:monospace">初始化...</div>
+      </div>
+      <button id="pc-scan-cancel" style="width:100%;padding:9px;border-radius:7px;background:transparent;border:1px solid #2a3d55;color:#507090;cursor:pointer;font-size:.82rem">取消</button>
+    </div>`;
+    document.body.appendChild(pcMask);
+    document.getElementById('pc-scan-cancel').onclick = () => { pcMask.remove(); };
+
+    try {
+      const d = await fetch('/api/pc/scan', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({path: dirPath})}).then(r=>r.json());
+      if (d.error) { pcMask.remove(); showToast('扫描失败:' + d.error, 'error'); return; }
+      const tid = d.taskId;
+      let scanResult = {};
+      await new Promise(resolve => {
+        const poll = setInterval(async () => {
+          try {
+            if (!document.getElementById('scan-mask')) { clearInterval(poll); resolve(); return; }
+            const prog = await fetch('/api/photos/scan2/progress/' + tid).then(r=>r.json());
+            const pct  = prog.done ? 100 : Math.min(99, prog.dirs||0);
+            const bar  = document.getElementById('pc-scan-bar');
+            if (bar) bar.style.width = pct + '%';
+            const pctEl = document.getElementById('pc-scan-pct');
+            if (pctEl) pctEl.textContent = pct + '%';
+            const dirsEl = document.getElementById('pc-scan-dirs');
+            if (dirsEl) dirsEl.textContent = (prog.dirs||0).toLocaleString();
+            const filesEl = document.getElementById('pc-scan-files');
+            if (filesEl) filesEl.textContent = (prog.actual||0).toLocaleString();
+            const sentEl = document.getElementById('pc-scan-sent');
+            if (sentEl) sentEl.textContent = (prog.sent||0).toLocaleString();
+            const curEl = document.getElementById('pc-scan-curdir');
+            if (curEl && prog.currentDir) curEl.textContent = prog.currentDir.split('\\').slice(-2).join('\\');
+            if (prog.done) { scanResult = prog; clearInterval(poll); resolve(); }
+          } catch(e) { clearInterval(poll); resolve(); }
+        }, 800);
+      });
+
+      if (!document.getElementById('scan-mask')) return;
+      // 完成画面
+      const maskInner = pcMask.querySelector('div');
+      maskInner.innerHTML = `<div style="text-align:center">
+        <div style="font-size:2.5rem;margin-bottom:16px">✅</div>
+        <div style="font-size:1rem;font-weight:700;color:#f0f6ff;margin-bottom:20px">扫描完成</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px">
+          <div style="background:#1e2838;border-radius:8px;padding:14px;text-align:center">
+            <div style="font-size:.62rem;color:#507090;margin-bottom:4px">发现图片</div>
+            <div style="font-size:1.4rem;font-weight:700;color:#40d0ff">${(scanResult.actual||0).toLocaleString()}</div>
+          </div>
+          <div style="background:#1e2838;border-radius:8px;padding:14px;text-align:center">
+            <div style="font-size:.62rem;color:#507090;margin-bottom:4px">写入DB</div>
+            <div style="font-size:1.4rem;font-weight:700;color:#3ddc84">${(scanResult.sent||0).toLocaleString()}</div>
+          </div>
+        </div>
+        <button onclick="document.getElementById('scan-mask').remove()" style="width:100%;padding:10px;border-radius:7px;background:#40d0ff;color:#000;border:none;cursor:pointer;font-weight:700;font-size:.9rem">确定</button>
+      </div>`;
+
+      if (window.pcTree && scanResult.dirStats) {
+        const normP = (pp) => pp.replace(/\//g, '\\');
+        const sorted = Object.keys(scanResult.dirStats).sort((a,b)=>a.split(/[\\/]/).length-b.split(/[\\/]/).length);
+        for (const pp of sorted) {
+          const np = normP(pp); const st = scanResult.dirStats[pp];
+          if (st.total > 0 && st.done < st.total && window.pcTree.has(np)) await window.pcTree.expand(np);
+          // 从DB重新拉统计
+          try {
+            const dbSt = await fetch('/api/pc/dir-children?path=' + encodeURIComponent(np) + '&self=1').then(r=>r.json());
+            if (dbSt && dbSt.total !== undefined) {
+              window.pcTree.updateStats(np, dbSt.done||0, dbSt.total, dbSt.total-(dbSt.done||0));
+            } else {
+              window.pcTree.updateStats(np, st.done||0, st.total, st.total-(st.done||0));
+            }
+          } catch(e) {
+            window.pcTree.updateStats(np, st.done||0, st.total, st.total-(st.done||0));
+          }
+        }
+      }
+      if (state.pcMode && state.filter.pcPath) loadPcPhotos(state.filter.pcPath);
+    } catch(e) {
+      if (document.getElementById('scan-mask')) document.getElementById('scan-mask').remove();
+      showToast('扫描失败:' + e.message, 'error');
+    }
+    return;
+  }
+  const mask = document.createElement("div");
+  mask.id = "dispatch-mask";
+  mask.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-size:1rem;gap:12px";
+  mask.innerHTML = `<div style="font-size:2rem">📤</div><div>${reprocess?"重新派发":"派发"}中...</div><div style="font-size:.8rem;color:#909090">${path}</div><div id="dispatch-progress" style="margin-top:8px;color:#40d0ff">初始化...</div>`;
+  document.body.appendChild(mask);
+  try {
+    const d = await fetch("/api/photos/dispatch/dir2", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ dirPath: path, reprocess }),
+    }).then(r => r.json());
+
+    // 轮询进度
+    let result = {};
+    await new Promise(resolve => {
+      const poll = setInterval(async () => {
+        try {
+          const p = await fetch(`/api/photos/scan2/progress/${d.taskId}`).then(r => r.json());
+          const el = document.getElementById("dispatch-progress");
+          if (el) el.textContent = `扫描 ${p.scanned} 张，加入队列 ${p.added}，跳过 ${p.skipped}`;
+          if (p.done) { result = p; clearInterval(poll); resolve(); }
+        } catch(e) { clearInterval(poll); resolve(); }
+      }, 500);
+    });
+
+    // 显示结果
+    mask.innerHTML = `
+      <div style="background:#1e2838;border:1px solid #2a3d55;border-radius:12px;padding:24px 32px;min-width:280px;text-align:center">
+        <div style="font-size:1.1rem;font-weight:bold;margin-bottom:16px">✅ 派发完成</div>
+        <div style="margin-bottom:16px;color:#c8dff5;line-height:1.8">
+          扫描文件：<span style="color:#40d0ff">${result.scanned||0}</span> 张<br>
+          加入队列：<span style="color:#3ddc84">${result.added||0}</span> 张<br>
+          已完成跳过：<span style="color:#ffa500">${result.skipped||0}</span> 张
+        </div>
+        <button onclick="document.getElementById('dispatch-mask').remove()" style="padding:8px 24px;border-radius:6px;background:#40d0ff;color:#000;border:none;cursor:pointer">确定</button>
+      </div>`;
+
+    // 更新DirTree统计
+    await fetch("/api/dir-stats/recalc", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ path }),
+    });
+    const stats = await fetch(`/api/dir-stats?path=${encodeURIComponent(path)}`).then(r => r.json());
+    for (const s of stats) {
+      if (window.dirTree && window.dirTree.has(s.path)) {
+        window.dirTree.updateStats(s.path, s.done_files, s.total_files, s.pending_files);
+      }
+    }
+  } catch(e) {
+    if (document.body.contains(mask)) document.body.removeChild(mask);
+    showToast("派发失败: " + e.message, "error");
+  }
+}
+
 async function reprocessPhoto(id) {
   showToast('重新处理中...');
   try {
@@ -1028,9 +1378,10 @@ async function reprocessPhoto(id) {
 }
 
 async function deletePhoto(id) {
-  if (!confirm('确认从索引删除？（不删除原文件）')) return;
+  if (!confirm('确认彻底删除？（原文件、缩略图、数据库记录全部删除，不可恢复）')) return;
   try {
-    await fetch(`/api/photos/${id}`, { method: 'DELETE' });
+    const _dr = await fetch('/api/photos/delete-full', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({id}) });
+    if (!_dr.ok) throw new Error('删除失败');
     state.photos = state.photos.filter(p => p.id !== id);
     loadPhotos(true);
     showToast('已删除');
@@ -1079,3 +1430,123 @@ async function deletePhoto(id) {
 
   }
 })();
+
+
+
+// 全量加载目录节点（重新扫描后用，不懒加载）
+async function renderDirNodeFull(node, container, depth) {
+  const indent = depth * 12;
+  const icon   = depth === 0 ? '📁' : '📂';
+
+  const wrap = document.createElement('div');
+  const row  = document.createElement('div');
+  row.className    = 'sidebar-item dir-node';
+  row.dataset.path = node.path;
+  row.dataset.depth = depth;
+  row.style.cssText = `padding-left:${14+indent}px;font-size:${depth===0?'.83':'.78'}rem;display:flex;align-items:center;gap:4px;flex-wrap:nowrap;overflow:hidden`;
+
+  const toggleIcon = document.createElement('span');
+  toggleIcon.className   = 'dir-toggle-icon';
+  toggleIcon.textContent = node.hasChildren ? '▼' : '　';
+
+  const nameSpan = document.createElement('span');
+  nameSpan.textContent    = icon + ' ' + node.name;
+  nameSpan.style.flex     = '1';
+  nameSpan.style.overflow = 'hidden';
+  nameSpan.style.textOverflow = 'ellipsis';
+  nameSpan.style.whiteSpace   = 'nowrap';
+
+  const statsSpan = document.createElement('span');
+  statsSpan.style.cssText = 'font-size:.65rem;flex-shrink:0;margin-left:4px';
+  statsSpan.textContent   = node.count || '';
+
+  row.appendChild(toggleIcon);
+  row.appendChild(nameSpan);
+  row.appendChild(statsSpan);
+
+  const childContainer = document.createElement('div');
+  childContainer.style.display = 'block';
+
+  // 如果有子目录，递归加载
+  if (node.hasChildren) {
+    try {
+      const children = await fetch(`/api/dir-tree?source=nas&path=${encodeURIComponent(node.path)}`).then(r=>r.json());
+      for (const c of children) {
+        await renderDirNodeFull(c, childContainer, depth + 1);
+      }
+    } catch(e) {}
+  }
+
+  row.addEventListener('click', () => {
+    const isOpen = childContainer.style.display !== 'none';
+    childContainer.style.display  = isOpen ? 'none' : 'block';
+    toggleIcon.textContent         = isOpen ? '▶' : '▼';
+    document.querySelectorAll('.sidebar-item.dir-node').forEach(el => el.classList.remove('active'));
+    row.classList.add('active');
+    state.filter.dirPath  = node.path;
+    state.filter.year     = 0;
+    state.filter.month    = 0;
+    state.filter.favorite = false;
+    loadPhotos(true);
+    loadDirStatsLazy(node.path, statsSpan);
+  });
+
+  row.addEventListener('contextmenu', (e) => {
+    e.preventDefault(); e.stopPropagation();
+    ctxMenu.show(e.clientX, e.clientY, [
+      { label: node.name },
+      { sep: true },
+      { icon: '🔍', text: '查看此目录图片',   action: () => row.click() },
+      { icon: '▶',  text: '派发给PC处理',     action: () => dispatchDir(node.path, false) },
+      { icon: '🔄', text: '重新处理全部图片', action: () => dispatchDir(node.path, true) },
+      { sep: true },
+      { icon: '🔁', text: '重新扫描目录',     action: () => scanDir(node.path) },
+    ]);
+  });
+
+  setTimeout(() => loadDirStatsLazy(node.path, statsSpan), 300);
+
+  wrap.appendChild(row);
+  wrap.appendChild(childContainer);
+  container.appendChild(wrap);
+}
+
+async function deleteDir(dirPath) {
+  const r = await fetch('/api/photos/stats/by-dir?path=' + encodeURIComponent(dirPath));
+  const s = await r.json();
+  if (!confirm('确认删除整个目录？\n' + dirPath + '\n共 ' + (s.total||0) + ' 张图片\n原文件、缩略图、数据库记录全部删除，不可恢复！')) return;
+  const r2 = await fetch('/api/photos/delete-dir', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({dirPath})});
+  const d  = await r2.json();
+  if (d.deleted !== undefined) { showToast('已删除 ' + d.deleted + ' 张，目录已移除'); loadSidebar(); loadPhotos(true); }
+  else showToast('删除失败:' + (d.error||'未知'), 'error');
+}
+
+function toggleSlideshowCfg() {
+  const panel = document.getElementById('slideshow-cfg-panel');
+  if (!panel) return;
+  panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+}
+
+function updateSlideshowInterval(val) {
+  state.slideshow.interval = parseInt(val) * 1000;
+  document.getElementById('slideshow-interval-val').textContent = val + '秒';
+  if (state.slideshow.active) {
+    clearInterval(state.slideshow.timer);
+    state.slideshow.timer = setInterval(() => viewerNext(), state.slideshow.interval);
+  }
+}
+
+document.addEventListener('click', (e) => {
+  const panel = document.getElementById('slideshow-cfg-panel');
+  const btn   = document.getElementById('btn-slideshow-cfg');
+  if (panel && btn && !panel.contains(e.target) && !btn.contains(e.target)) {
+    panel.style.display = 'none';
+  }
+});
+
+function openGpsMap() {
+  const photo = state.photos[state.viewer.index];
+  if (!photo || !photo.exif_gps) return;
+  const [lat, lng] = photo.exif_gps.split(',');
+  window.open(`https://maps.google.com/maps?q=${lat},${lng}`, '_blank');
+}

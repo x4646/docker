@@ -24,3 +24,32 @@ data/pc_roots.json
 data/sync/*.db*
 data/sync/sync-config.json
 data/weather/
+# 备份
+*.bak
+*.bak.*
+*.bak2
+*.bak3
+*.bak4
+*.bak5
+*.bak6
+photo-viewer/public/js/app111.js
+photo-viewer/public/js/pc-dir-tree-override.js
+photo-viewer/fix_delete.js
+
+# 运行时配置/数据(含敏感信息)
+data/sync/sync-config.json
+data/weather/weather-config.json
+nas-sync/data/sync/sync-config.json
+
+# 备份文件
+*.bak
+*.bak.*
+photo-viewer/public/js/app111.js
+photo-viewer/public/js/pc-dir-tree-override.js
+photo-viewer/fix_delete.js
+photo-indexer/routes.js.bak*
+
+# 运行时配置(敏感/环境相关)
+data/sync/sync-config.json
+data/weather/weather-config.json
+nas-sync/data/sync/sync-config.json

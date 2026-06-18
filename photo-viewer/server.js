@@ -33,6 +33,7 @@ function proxyApi(req, res) {
   proxyReq.end();
 }
 
+app.get('/api/pc/file/*', (req, res) => res.redirect(`${config.INDEXER_URL}/api/pc/file/${req.params[0]}`));
 app.all('/api/*', proxyApi);
 app.get('/thumbs/:file',  (req, res) => res.redirect(`${config.INDEXER_URL}/thumbs/${req.params.file}`));
 app.get('/preview/:file', (req, res) => res.redirect(`${config.INDEXER_URL}/preview/${req.params.file}`));

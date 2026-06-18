@@ -6,6 +6,7 @@
 <title>Photo Viewer</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/dir-tree.css">
 </head>
 <body>
 
@@ -51,6 +52,13 @@
     <div style="display:flex;align-items:center;gap:8px">
       <span id="viewer-counter" style="font-size:.78rem;color:#909090"></span>
       <button class="viewer-btn slideshow-btn" id="btn-slideshow" onclick="toggleSlideshow()">▶ 幻灯片</button>
+      <div style="display:flex;align-items:center;gap:6px">
+        <span style="font-size:.72rem;color:#507090">间隔</span>
+        <input type="range" id="slideshow-interval" min="1" max="30" value="4" style="width:80px;accent-color:#40d0ff" oninput="updateSlideshowInterval(this.value)">
+        <span id="slideshow-interval-val" style="font-size:.72rem;color:#40d0ff;min-width:28px">4秒</span>
+        <input type="checkbox" id="slideshow-fullscreen" style="accent-color:#40d0ff" checked title="全屏">
+        <span style="font-size:.72rem;color:#507090">全屏</span>
+      </div>
       <button class="viewer-btn" onclick="resetViewerTransform()">⊡</button>
       <button class="viewer-btn" onclick="toggleFavCurrent()">🤍</button>
       <button class="viewer-btn" onclick="closeViewer()">✕</button>
@@ -70,6 +78,9 @@
       <div class="info-item"><span class="info-label">大小：</span><span class="info-value" id="viewer-size"></span></div>
       <div class="info-item"><span class="info-label">相机：</span><span class="info-value" id="viewer-camera"></span></div>
       <div class="info-item"><span class="info-label">时间：</span><span class="info-value" id="viewer-date"></span></div>
+      <div class="info-item" style="flex:1"><span class="info-label">路径：</span><span class="info-value" id="viewer-path" style="font-family:monospace;font-size:.72rem;color:#507090"></span></div>
+      <div class="info-item" style="flex:1"><span class="info-label">路径：</span><span class="info-value" id="viewer-path" style="font-family:monospace;font-size:.72rem;color:#507090"></span></div>
+      <div class="info-item"><span class="info-label">位置：</span><span class="info-value" id="viewer-gps" style="cursor:pointer;color:#40d0ff" onclick="openGpsMap()">-</span></div>
       <div class="info-item" style="flex:1"><span class="info-label">AI：</span><span class="info-value" id="viewer-ai" style="color:#909090"></span></div>
     </div>
     <div class="viewer-tags" id="viewer-tags"></div>
@@ -122,6 +133,7 @@
 </div>
 
 <script src="js/context-menu.js"></script>
+<script src="js/dir-tree.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>

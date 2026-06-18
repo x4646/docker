@@ -71,8 +71,6 @@ export class PhotoUseCase {
                   (this.photoRepo as any).updatePath(matched.path, full);
                 } else {
                   // 全新文件
-                  this.photoRepo.upsert({ path: full, size: stat.size, mtime: newMtime, status: "pending" });
-                  count++;
                 }
               }
             }
@@ -148,22 +146,53 @@ export class PhotoUseCase {
 
   async dispatchPendingByDir(dirPath: string): Promise<number> {
     const db      = (this.photoRepo as any).db;
-    const pending = db.prepare(
-      "SELECT * FROM photos WHERE path LIKE ? AND status = 'pending' ORDER BY created_at ASC LIMIT 50"
-    ).all(dirPath + "/%");
-    let sent = 0;
-    for (const photo of pending) {
+    const fs   = require("fs");
+    const path = require("path");
+    const crypto = require("crypto");
+    const EXTS = new Set([".jpg",".jpeg",".png",".heic",".webp",".gif",".bmp",".tiff",".raw"]);
+
+    // 遍历实际文件
+    const toDispatch: string[] = [];
+    const walk = (dir: string) => {
       try {
+        fs.readdirSync(dir).forEach((name: string) => {
+          if (name.startsWith(".") || name.startsWith("@")) return;
+          const full = path.join(dir, name);
+          try {
+            const stat = fs.statSync(full);
+            if (stat.isDirectory()) { walk(full); return; }
+            if (!EXTS.has(path.extname(name).toLowerCase())) return;
+            // 用size+ctime组合key查数据库
+            const ctime   = Math.floor(stat.ctimeMs / 1000);
+            const results = db.prepare("SELECT status FROM photos WHERE size=? AND ctime=?").all(stat.size, ctime);
+            const done    = results.find((r: any) => r.status === "done");
+            if (!done) toDispatch.push(full);
+          } catch(e) {}
+        });
+      } catch(e) {}
+    };
+    walk(dirPath);
+
+    // 派发给PC处理
+    let sent = 0;
+    for (const filePath of toDispatch) {
+      try {
+        // 先插入或更新数据库
+        const stat    = fs.statSync(filePath);
+        const ctime   = Math.floor(stat.ctimeMs / 1000);
+        const mtime   = Math.floor(stat.mtimeMs / 1000);
+        db.prepare("INSERT OR IGNORE INTO photos (path,size,mtime,ctime,status,created_at,updated_at) VALUES (?,?,?,?,'pending',strftime('%s','now'),strftime('%s','now'))").run(filePath, stat.size, mtime, ctime);
+        db.prepare("UPDATE photos SET status='pending' WHERE path=? AND status NOT IN ('done','processing')").run(filePath);
         await this.sendTask({
           type:      'photo_process',
-          task_id:   String(photo.id),
-          path:      photo.path,
+          task_id:   String(Date.now()) + "_" + sent,
+          path:      filePath,
           data_path: this.dataPath,
         });
-        db.prepare("UPDATE photos SET status='processing' WHERE path=?").run(photo.path);
+        db.prepare("UPDATE photos SET status='processing' WHERE path=?").run(filePath);
         sent++;
       } catch(e: any) {
-        this.logger.warn('推送失败', { path: photo.path });
+        this.logger.warn('推送失败', { path: filePath });
       }
     }
     return sent;

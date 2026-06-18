@@ -1,0 +1,109 @@
+/* ─── DirTree 通用目录树样式 ─────────────────────────── */
+
+.dt-node {
+  position: relative;
+}
+
+.dt-row {
+  display: flex;
+  align-items: center;
+  padding: 4px 8px 4px 0;
+  cursor: pointer;
+  font-size: .8rem;
+  color: var(--text, #c8dff5);
+  border-left: 2px solid transparent;
+  transition: background .12s, border-color .12s;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.dt-row:hover {
+  background: rgba(255, 255, 255, .04);
+}
+
+.dt-row.active {
+  background: rgba(64, 208, 255, .08);
+  border-left-color: #40d0ff;
+  color: #40d0ff;
+}
+
+/* 缩进竖线 */
+.dt-guide {
+  display: inline-block;
+  width: 16px;
+  height: 24px;
+  flex-shrink: 0;
+  position: relative;
+}
+
+.dt-guide::before {
+  content: '';
+  position: absolute;
+  left: 8px;
+  top: 0;
+  bottom: 0;
+  border-left: 1px solid rgba(255, 255, 255, .08);
+}
+
+/* +/- 切换按钮 */
+.dt-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  font-size: .9rem;
+  font-weight: bold;
+  color: #909090;
+  flex-shrink: 0;
+  cursor: pointer;
+  user-select: none;
+  border-radius: 2px;
+  transition: background .1s, color .1s;
+}
+
+.dt-toggle:hover {
+  background: rgba(64, 208, 255, .15);
+  color: #40d0ff;
+}
+
+/* 图标 */
+.dt-icon {
+  margin: 0 4px 0 2px;
+  flex-shrink: 0;
+}
+
+/* 名称 */
+.dt-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+/* 状态数字 */
+.dt-stats {
+  margin-left: 8px;
+  font-size: .68rem;
+  flex-shrink: 0;
+}
+
+.dt-stats-done {
+  color: #3ddc84;
+}
+
+.dt-stats-sep {
+  color: #507090;
+  margin: 0 1px;
+}
+
+.dt-stats-total {
+  color: #ffa500;
+}
+
+/* 子节点容器 */
+.dt-children {
+  /* 默认 display:none，由JS控制 */
+}
+.dt-stats-pending { color: #ffa500; margin-left: 4px; }
