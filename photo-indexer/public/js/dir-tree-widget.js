@@ -53,7 +53,10 @@ class DirTreeWidget {
           ${isRoot ? (this.source==='pc'?'💻':'🗄') : '📁'} ${this._esc(node.name)}
           <small class="dtw-stat" id="${nid}_stat" style="color:#507090;margin-left:8px;font-size:.72rem">…</small>
         </span>
-        <span class="dtw-actions" style="display:flex;gap:5px;flex-shrink:0">${actBtns}</span>
+        <span class="dtw-actions" style="display:flex;gap:5px;flex-shrink:0">
+          <button class="btn-sm" data-rowrefresh="${esc}" title="刷新此目录">🔄</button>
+          ${actBtns}
+        </span>
       </div>
       <div class="dtw-children" id="${nid}_ch" style="display:none"></div>
     </div>`;
@@ -120,6 +123,8 @@ class DirTreeWidget {
   // 事件委托
   bind() {
     this.container.addEventListener('click', (e) => {
+      const rr = e.target.closest('[data-rowrefresh]');
+      if (rr) { this._rowRefresh(rr.dataset.rowrefresh); return; }
       const tg = e.target.closest('.pc-toggle');
       if (tg) { this._toggle(tg); return; }
       const act = e.target.closest('[data-act]');
@@ -144,6 +149,48 @@ class DirTreeWidget {
   }
   clearFilter() {
     this.container.querySelectorAll(':scope > .dtw-node').forEach(n => n.style.display = '');
+  }
+  // 刷新指定路径的节点：重置loaded标志,若已展开则重新拉取子目录
+  async refreshNode(path) {
+    const fwd = path.replace(/\\/g, '/');
+    const nid = this._nid(fwd);
+    const tg = document.querySelector('[id="' + nid + '_tg"]');
+    const ch = document.getElementById(nid + '_ch');
+    if (!tg || !ch) return false; // 节点未渲染(可能还没展开到这一层)
+    const wasOpen = ch.style.display !== 'none';
+    tg.dataset.loaded = '0';
+    ch.innerHTML = '';
+    if (wasOpen) {
+      ch.style.display = 'none';
+      await this._toggle(tg); // 重新展开,触发重新拉取
+    }
+    this._loadStat(fwd);
+    return true;
+  }
+  // 单行刷新：重新拉取该节点的子目录并重新渲染(不管之前是否展开过)
+  async _rowRefresh(path) {
+    const fwd = path.replace(/\\/g, '/');
+    const nid = this._nid(fwd);
+    const tg = document.getElementById(nid + '_tg');
+    const ch = document.getElementById(nid + '_ch');
+    if (!tg || !ch) return;
+    // 找depth(从data-depth属性,row元素上)
+    const row = tg.closest('.dtw-row');
+    const depth = row ? parseInt(row.querySelector('.pc-toggle').dataset.depth || '0') : 0;
+    tg.textContent = '\u00b7';
+    let kids = [];
+    try { kids = await fetch(`/api/dir-tree?source=${this.source}&path=${encodeURIComponent(fwd)}`).then(r => r.json()); }
+    catch(e) {}
+    if (Array.isArray(kids) && kids.length) {
+      ch.innerHTML = kids.map(k => this._rowHtml(k, depth + 1)).join('');
+      kids.forEach(k => this._loadStat(k.path));
+    } else {
+      ch.innerHTML = `<div style="color:#507090;font-size:.7rem;padding:3px 0 3px ${(depth+1)*18}px">（无子目录）</div>`;
+    }
+    ch.style.display = 'block';
+    tg.dataset.loaded = '1';
+    tg.textContent = '\u2212';
+    this._loadStat(fwd);
   }
   refresh() { this.init(); }
 }

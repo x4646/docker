@@ -939,6 +939,315 @@ if (!app._piPatched) {
     }
   });
 
+  // ── 迁移失败记录表 ──
+  (() => {
+    const db = getDb();
+    try {
+      db.prepare(`CREATE TABLE IF NOT EXISTS migrate_failures (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        src_path TEXT NOT NULL,
+        dst_path TEXT NOT NULL,
+        error TEXT,
+        migrate_batch TEXT NOT NULL,
+        status TEXT NOT NULL DEFAULT 'pending',
+        created_at INTEGER NOT NULL DEFAULT (strftime('%s','now'))
+      )`).run();
+      db.prepare("CREATE INDEX IF NOT EXISTS idx_mf_batch ON migrate_failures(migrate_batch)").run();
+      db.prepare("CREATE INDEX IF NOT EXISTS idx_mf_status ON migrate_failures(status)").run();
+    } catch(e) { console.error('建表失败:', e.message); }
+  })();
+
+  // ── 迁移提交：成功的批量改DB path ──
+  // ── 单条重试：查DB拿src/dst，转PC复制，成功则状态retried ──
+  app.post('/api/pc/migrate-retry', async (req, res) => {
+    const { id } = req.body || {};
+    if (!id) return res.status(400).json({ error: '缺少id' });
+    const db = getDb();
+    const row = db.prepare("SELECT * FROM migrate_failures WHERE id = ?").get(id);
+    if (!row) return res.status(404).json({ error: '记录不存在' });
+    try {
+      const cfg = loadConfig();
+      const status = await httpGet(`http://${cfg.nas_ip}:${cfg.pipe_port}/api/status`);
+      if (!status || !status.online || !status.ip) return res.status(503).json({ error: 'PC端离线' });
+      const r = await httpPost(status.ip, 8080, '/migrate-retry-one', { srcNas: row.src_path, dstNas: row.dst_path }, 60000);
+      if (r && r.success) {
+        db.prepare("UPDATE migrate_failures SET status = 'retried' WHERE id = ?").run(id);
+        return res.json({ success: true });
+      }
+      // 失败：更新error保存最新原因
+      if (r && r.error) {
+        db.prepare("UPDATE migrate_failures SET error = ? WHERE id = ?").run(r.error, id);
+      }
+      return res.json({ success: false, newError: (r && r.error) || '未知' });
+    } catch(e) { res.status(500).json({ error: e.message }); }
+  });
+
+  // ── 确认完结：更新DB path + 状态resolved ──
+  app.post('/api/pc/migrate-confirm', (req, res) => {
+    const { id } = req.body || {};
+    if (!id) return res.status(400).json({ error: '缺少id' });
+    const db = getDb();
+    const row = db.prepare("SELECT * FROM migrate_failures WHERE id = ?").get(id);
+    if (!row) return res.status(404).json({ error: '记录不存在' });
+    if (row.status !== 'retried') return res.status(400).json({ error: '该记录未重试成功，不能确认' });
+    try {
+      const tx = db.transaction(() => {
+        const dstDir = row.dst_path.substring(0, row.dst_path.lastIndexOf('/'));
+        const r = db.prepare("UPDATE photos SET path = ?, dir = ? WHERE path = ?").run(row.dst_path, dstDir, row.src_path);
+        db.prepare("UPDATE migrate_failures SET status = 'resolved' WHERE id = ?").run(id);
+        return r.changes;
+      });
+      const changed = tx();
+      res.json({ ok: true, photosUpdated: changed });
+    } catch(e) { res.status(500).json({ error: e.message }); }
+  });
+
+  // ── NAS内部目录迁移：校验冲突 ──
+  // ── NAS目录操作：新建文件夹(为后续删除/重命名等操作预留同样的接口风格) ──
+  app.post('/api/nas-dir/mkdir', (req, res) => {
+    const { parentPath, name } = req.body || {};
+    if (!parentPath || !name) return res.status(400).json({ error: '缺少parentPath或name' });
+    if (/[\\/:*?"<>|]/.test(name)) return res.status(400).json({ error: '文件夹名包含非法字符' });
+    const parent = parentPath.replace(/\\/g,'/').replace(/\/$/,'');
+    const newPath = parent + '/' + name;
+    if (fs.existsSync(newPath)) return res.status(400).json({ error: '该文件夹已存在' });
+    try {
+      fs.mkdirSync(newPath, { recursive: false });
+      res.json({ ok: true, path: newPath });
+    } catch(e) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  // ── NAS目录操作：删除(非空目录需二次确认,confirm=true才真正执行) ──
+  app.post('/api/nas-dir/delete', (req, res) => {
+    const { path: targetPath, confirm } = req.body || {};
+    if (!targetPath) return res.status(400).json({ error: '缺少path' });
+    const p = targetPath.replace(/\\/g,'/').replace(/\/$/,'');
+    if (!fs.existsSync(p)) return res.status(400).json({ error: '目录不存在' });
+    if (!fs.statSync(p).isDirectory()) return res.status(400).json({ error: '不是目录' });
+
+    // 统计内容数量
+    let fileCount = 0, dirCount = 0;
+    function walk(d) {
+      let ents; try { ents = fs.readdirSync(d, {withFileTypes:true}); } catch(e) { return; }
+      for (const e of ents) {
+        if (e.isDirectory()) { dirCount++; walk(d + '/' + e.name); }
+        else fileCount++;
+      }
+    }
+    walk(p);
+
+    if ((fileCount > 0 || dirCount > 0) && !confirm) {
+      return res.json({ ok: true, needConfirm: true, fileCount, dirCount });
+    }
+
+    try {
+      // 1. 删磁盘文件
+      fs.rmSync(p, { recursive: true, force: true });
+
+      // 2. 删DB记录 + 缩略图/预览图
+      const db = getDb();
+      const rows = db.prepare("SELECT thumb_path, preview_path FROM photos WHERE REPLACE(path,'\\','/') LIKE ?").all(p + '/%');
+      // 删缩略图文件
+      const DATA_PATH = '/data/photos';
+      for (const r of rows) {
+        try {
+          if (r.thumb_path) {
+            const tf = DATA_PATH + '/thumbs/' + r.thumb_path.split('/').pop();
+            if (fs.existsSync(tf)) fs.unlinkSync(tf);
+          }
+          if (r.preview_path) {
+            const pf = DATA_PATH + '/preview/' + r.preview_path.split('/').pop();
+            if (fs.existsSync(pf)) fs.unlinkSync(pf);
+          }
+        } catch(e2) {}
+      }
+      // 删DB记录
+      const del = db.prepare("DELETE FROM photos WHERE REPLACE(path,'\\','/') LIKE ?");
+      const result = del.run(p + '/%');
+
+      res.json({ ok: true, deleted: true, fileCount, dirCount, dbDeleted: result.changes });
+    } catch(e) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  // ── NAS目录操作：重命名 ──
+  app.post('/api/nas-dir/rename', (req, res) => {
+    const { targetPath, newName } = req.body || {};
+    if (!targetPath || !newName) return res.status(400).json({ error: '缺少targetPath或newName' });
+    if (/[\\/:\*?"<>|]/.test(newName)) return res.status(400).json({ error: '名称包含非法字符' });
+    const p = targetPath.replace(/\\/g,'/').replace(/\/$/,'');
+    const parent = p.substring(0, p.lastIndexOf('/'));
+    const newPath = parent + '/' + newName.trim();
+    if (!fs.existsSync(p)) return res.status(400).json({ error: '目录不存在' });
+    if (fs.existsSync(newPath)) return res.status(400).json({ error: '同名目录已存在' });
+    try {
+      fs.renameSync(p, newPath);
+      // 同步更新DB里所有相关path
+      const db = getDb();
+      const rows = db.prepare("SELECT id, path FROM photos WHERE REPLACE(path,'\\','/') LIKE ?").all(p + '/%');
+      if (rows.length > 0) {
+        const upd = db.prepare("UPDATE photos SET path = ?, dir = ? WHERE id = ?");
+        const tx = db.transaction(() => {
+          for (const r of rows) {
+            const fwd = r.path.replace(/\\/g,'/');
+            const np = newPath + fwd.slice(p.length);
+            upd.run(np, np.substring(0, np.lastIndexOf('/')), r.id);
+          }
+        });
+        tx();
+      }
+      res.json({ ok: true, oldPath: p, newPath, dbUpdated: rows.length });
+    } catch(e) { res.status(500).json({ error: e.message }); }
+  });
+
+  app.post('/api/nas-migrate-check', (req, res) => {
+    const { srcPath, dstRoot } = req.body || {};
+    if (!srcPath || !dstRoot) return res.status(400).json({ error: '缺少srcPath或dstRoot' });
+    const src = srcPath.replace(/\\/g,'/').replace(/\/$/,'');
+    const dstR = dstRoot.replace(/\\/g,'/').replace(/\/$/,'');
+    const folderName = src.split('/').filter(Boolean).pop();
+    const dst = dstR + '/' + folderName;
+    if (!fs.existsSync(src)) return res.json({ ok: false, error: '源目录不存在' });
+    if (fs.existsSync(dst)) return res.json({ ok: true, hasConflict: true, dst, conflictReason: '目标位置已存在同名目录: ' + dst });
+    // 统计源目录文件数(用于显示)
+    let total = 0;
+    function count(d) {
+      let ents; try { ents = fs.readdirSync(d, {withFileTypes:true}); } catch(e) { return; }
+      for (const e of ents) {
+        if (e.isDirectory()) count(d + '/' + e.name);
+        else total++;
+      }
+    }
+    count(src);
+    res.json({ ok: true, hasConflict: false, dst, total });
+  });
+
+  // ── NAS内部目录迁移：执行mv + 改DB ──
+  app.post('/api/nas-migrate', (req, res) => {
+    const { srcPath, dstRoot } = req.body || {};
+    if (!srcPath || !dstRoot) return res.status(400).json({ error: '缺少srcPath或dstRoot' });
+    const src = srcPath.replace(/\\/g,'/').replace(/\/$/,'');
+    const dstR = dstRoot.replace(/\\/g,'/').replace(/\/$/,'');
+    const folderName = src.split('/').filter(Boolean).pop();
+    const dst = dstR + '/' + folderName;
+    if (!fs.existsSync(src)) return res.status(400).json({ error: '源目录不存在' });
+    if (fs.existsSync(dst)) return res.status(400).json({ error: '目标已存在,请先处理冲突' });
+
+    const db = getDb();
+    const batchId = 'nasmv_' + Date.now();
+    try {
+      // 1. mv(原子操作)
+      fs.mkdirSync(dstR, { recursive: true });
+      fs.renameSync(src, dst);
+    } catch(e) {
+      // mv失败：整体记一条失败
+      try {
+        db.prepare("INSERT INTO migrate_failures (src_path, dst_path, error, migrate_batch) VALUES (?, ?, ?, ?)")
+          .run(src, dst, 'mv失败: ' + e.message, batchId);
+      } catch(e2) {}
+      return res.status(500).json({ error: 'mv失败: ' + e.message, batch: batchId });
+    }
+
+    // 2. mv成功：批量改DB(前缀替换)
+    try {
+      const rows = db.prepare("SELECT id, path FROM photos WHERE REPLACE(path,'\\','/') LIKE ?").all(src + '/%');
+      const upd = db.prepare("UPDATE photos SET path = ?, dir = ? WHERE id = ?");
+      let updated = 0;
+      const tx = db.transaction(() => {
+        for (const r of rows) {
+          const fwd = r.path.replace(/\\/g,'/');
+          const newPath = dst + fwd.slice(src.length);
+          const newDir = newPath.substring(0, newPath.lastIndexOf('/'));
+          upd.run(newPath, newDir, r.id);
+          updated++;
+        }
+      });
+      tx();
+      res.json({ ok: true, moved: true, dst, dbUpdated: updated, total: rows.length });
+    } catch(e) {
+      // DB更新失败,但文件已经移动成功了,记一条失败让用户知道要手动处理DB
+      try {
+        db.prepare("INSERT INTO migrate_failures (src_path, dst_path, error, migrate_batch) VALUES (?, ?, ?, ?)")
+          .run(src, dst, '文件已移动但DB更新失败: ' + e.message, batchId);
+      } catch(e2) {}
+      res.status(500).json({ error: 'DB更新失败(文件已移动): ' + e.message, batch: batchId });
+    }
+  });
+
+  app.post('/api/migrate-commit', (req, res) => {
+    const { updates } = req.body || {};
+    if (!Array.isArray(updates) || !updates.length) return res.json({ ok: true, updated: 0 });
+    const db = getDb();
+    const upd = db.prepare("UPDATE photos SET path = ?, dir = ? WHERE path = ?");
+    let updated = 0;
+    try {
+      const tx = db.transaction((items) => {
+        for (const it of items) {
+          const dstDir = it.dst.substring(0, it.dst.lastIndexOf('/'));
+          const r = upd.run(it.dst, dstDir, it.src);
+          updated += r.changes;
+        }
+      });
+      tx(updates);
+      res.json({ ok: true, updated });
+    } catch(e) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  // ── 记录迁移失败 ──
+  app.post('/api/migrate-failures', (req, res) => {
+    const { batch, failures } = req.body || {};
+    if (!batch || !Array.isArray(failures) || !failures.length) return res.json({ ok: true, inserted: 0 });
+    const db = getDb();
+    const ins = db.prepare("INSERT INTO migrate_failures (src_path, dst_path, error, migrate_batch) VALUES (?, ?, ?, ?)");
+    let n = 0;
+    try {
+      const tx = db.transaction((items) => {
+        for (const f of items) { ins.run(f.src, f.dst, f.error || '', batch); n++; }
+      });
+      tx(failures);
+      res.json({ ok: true, inserted: n });
+    } catch(e) { res.status(500).json({ error: e.message }); }
+  });
+
+  // ── 查询失败记录(状态pending的) ──
+  app.get('/api/migrate-failures', (req, res) => {
+    const db = getDb();
+    const status = req.query.status || 'pending';
+    const rows = db.prepare("SELECT * FROM migrate_failures WHERE status = ? ORDER BY created_at DESC LIMIT 500").all(status);
+    res.json(rows);
+  });
+
+  // ── 失败记录数量(用于按钮上的N) ──
+  app.get('/api/migrate-failures/count', (req, res) => {
+    const db = getDb();
+    const r = db.prepare("SELECT COUNT(*) AS n FROM migrate_failures WHERE status = 'pending'").get();
+    res.json({ count: r.n || 0 });
+  });
+
+  // ── 标记记录已完结/放弃/重置 ──
+  app.post('/api/migrate-failures/update', (req, res) => {
+    const { id, status } = req.body || {};
+    if (!id || !status) return res.status(400).json({ error: '缺少id或status' });
+    const db = getDb();
+    const r = db.prepare("UPDATE migrate_failures SET status = ? WHERE id = ?").run(status, id);
+    res.json({ ok: true, changed: r.changes });
+  });
+
+  // ── 删除记录(放弃时直接清掉) ──
+  app.post('/api/migrate-failures/delete', (req, res) => {
+    const { ids } = req.body || {};
+    if (!Array.isArray(ids) || !ids.length) return res.json({ ok: true, deleted: 0 });
+    const db = getDb();
+    const ph = ids.map(()=>'?').join(',');
+    const r = db.prepare(`DELETE FROM migrate_failures WHERE id IN (${ph})`).run(...ids);
+    res.json({ ok: true, deleted: r.changes });
+  });
+
   app.get('/api/pc/all-dirs', (req, res) => {
     const db = getDb();
     // 拉所有PC记录，按"文件所在目录"聚合统计

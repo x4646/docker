@@ -477,7 +477,7 @@ async function loadSidebar() {
         pcContainer.appendChild(el);
         return;
       }
-      window.pcTree = new DirTree({
+      window.pcTree = new DirTree({ source: "pc",
         container: pcContainer,
         onSelect: (path) => {
           state.filter.dirPath  = '';
@@ -501,7 +501,7 @@ async function loadSidebar() {
           ]);
         },
         childrenFn: async (path) => {
-          const items = await fetch('/api/pc/dir-children?path=' + encodeURIComponent(path)).then(r => r.json());
+          const items = await fetch('/api/dir-tree?source=pc&path=' + encodeURIComponent(path)).then(r => r.json());
           if (!items || items.error) return [];
           return items.map(i => ({
             path: i.path,

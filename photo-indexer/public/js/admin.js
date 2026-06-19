@@ -362,7 +362,8 @@ async function loadPcRoots() {
     <button class="btn-sm" style="border-color:#ffa500;color:#ffa500" onclick="batchCleanOrphan()">🧹 批量清理</button>
     <button class="btn-sm" style="border-color:#3ddc84;color:#3ddc84" onclick="batchProcessPc()">⚙ 批量处理</button>
     <button class="btn-sm" style="border-color:#ff5567;color:#ff5567" onclick="killAllWorkers()">⛔ 停止</button>
-    <button class="btn-sm" style="margin-left:auto;border-color:#a78bfa;color:#a78bfa" onclick="openMigrateModal()">📦 迁移到NAS</button>
+    <button class="btn-sm" id="mig-fail-btn" style="margin-left:auto;border-color:#ff5567;color:#ff5567;display:none" onclick="openMigrateFailuresModal()">⚠️ 迁移失败 (<span id="mig-fail-count">0</span>)</button>
+    <button class="btn-sm" style="border-color:#a78bfa;color:#a78bfa" onclick="openMigrateModal()">📦 迁移到NAS</button>
     <button class="btn-sm" onclick="loadPcRoots()">🔄 刷新</button>
     <button class="btn btn-primary" onclick="openPcBrowser()">＋ 添加</button>
   </div>
@@ -394,6 +395,7 @@ async function loadPcRoots() {
   });
   pcTreeWidget.bind();
   pcTreeWidget.init();
+  refreshMigFailCount();
 }
 
 // 加载某行的统计到 _stat
@@ -1182,10 +1184,35 @@ function migNodeHtml(node, depth, side) {
     <div style="display:flex;align-items:center;gap:4px;padding:4px 0">
       ${guides}
       <span class="pc-toggle" onclick="migToggle('${esc}','${side}','${nid}',${depth})" data-loaded="0" id="${nid}_tg">+</span>
-      <span onclick="migSelect('${esc}','${side}')" style="cursor:pointer;font-size:.82rem;color:#c8dff5;flex:1;word-break:break-all" id="${nid}_nm">${depth===0?(side==='src'?'💻':'🗄'):'📁'} ${escHtml(node.name)}</span>
+      <span onclick="migSelect('${esc}','${side}')" oncontextmenu="${side==='dst'?'migCtxMenu(event,\''+esc+'\',\''+nid+'\','+depth+');return false;':''}" style="cursor:pointer;font-size:.82rem;color:#c8dff5;flex:1;word-break:break-all" id="${nid}_nm">${depth===0?(side==='src'?'💻':'🗄'):'📁'} ${escHtml(node.name)}</span>
+      <button class="btn-sm" onclick="migRowRefresh('${esc}','${side}','${nid}',${depth})" title="刷新此目录" style="padding:2px 6px;font-size:.7rem">🔄</button>
     </div>
     <div class="mig-children" id="${nid}_ch" style="display:none"></div>
   </div>`;
+}
+
+// 强制刷新单个节点(不管loaded状态,重新拉取子目录)
+async function migRowRefresh(path, side, nid, depth) {
+  const tg = document.getElementById(nid + '_tg');
+  const ch = document.getElementById(nid + '_ch');
+  if (!tg || !ch) return;
+  tg.textContent = '\u00b7';
+  let items = [];
+  try {
+    if (side === 'src') {
+      const r = await fetch('/api/pc/browse?path=' + encodeURIComponent(path)).then(r=>r.json());
+      items = (Array.isArray(r)?r:[]).filter(it => it.type === 'dir').map(d=>({name:d.name,path:d.path}));
+    } else {
+      const r = await fetch('/api/nas/ls?path=' + encodeURIComponent(path)).then(r=>r.json());
+      items = (r.dirs||[]);
+    }
+  } catch(e) {}
+  ch.innerHTML = items.length
+    ? items.map(d => migNodeHtml(d, depth+1, side)).join('')
+    : '<div style="color:#507090;font-size:.7rem;padding:2px 0 2px ' + ((depth+1)*18) + 'px">（无子目录）</div>';
+  ch.style.display = 'block';
+  tg.dataset.loaded = '1';
+  tg.textContent = '\u2212';
 }
 
 async function migToggle(path, side, nid, depth) {
@@ -1313,5 +1340,273 @@ async function migRefreshProgress() {
     const goBtn = document.getElementById('mig-go');
     if (goBtn) goBtn.disabled = false;
     loadPcRoots();
+    refreshMigFailCount();
+    // 整树重建 + 自动展开到迁移目标,确保新文件夹一定能看到
+    if (window.nasTreeWidget && st.dst) {
+      const targetPath = st.dst.replace(/\\/g,'/');
+      nasTreeWidget.refresh();
+      setTimeout(() => expandToPath(nasTreeWidget, targetPath), 600); // 等init的fetch完成
+    }
   }
+}
+
+// 整树重建后,沿路径逐层自动展开,直到目标路径
+async function expandToPath(widget, targetPath) {
+  const parts = targetPath.replace(/^\//,'').split('/').filter(Boolean);
+  let cur = '';
+  for (let i = 0; i < parts.length; i++) {
+    cur = cur ? cur + '/' + parts[i] : '/' + parts[i];
+    const nid = widget._nid(cur);
+    const tg = document.getElementById(nid + '_tg');
+    if (!tg) break; // 这一层还没渲染出来(可能根列表里没有这条),停止往下展开
+    if (tg.dataset.loaded === '0') {
+      await widget._toggle(tg); // 展开这一层
+    } else {
+      // 已加载过,确保是展开状态
+      const ch = document.getElementById(nid + '_ch');
+      if (ch && ch.style.display === 'none') await widget._toggle(tg);
+    }
+  }
+  // 高亮滚动到最终目标节点
+  const finalNid = widget._nid(targetPath);
+  const finalRow = document.querySelector('[data-path="' + targetPath.replace(/"/g,'\\"') + '"] .dtw-row');
+  if (finalRow) {
+    finalRow.scrollIntoView({behavior:'smooth', block:'center'});
+    finalRow.style.background = 'rgba(61,220,132,.15)';
+    setTimeout(() => { finalRow.style.background = ''; }, 2000);
+  }
+}
+
+
+// ── 迁移失败管理 ─────────────────────────────────────
+async function refreshMigFailCount() {
+  try {
+    const r = await fetch('/api/migrate-failures/count').then(r=>r.json());
+    const btn = document.getElementById('mig-fail-btn');
+    const span = document.getElementById('mig-fail-count');
+    if (!btn || !span) return;
+    if (r.count > 0) {
+      span.textContent = r.count;
+      btn.style.display = '';
+    } else {
+      btn.style.display = 'none';
+    }
+  } catch(e) {}
+}
+
+async function openMigrateFailuresModal() {
+  const modal = document.createElement('div');
+  modal.id = 'mig-fail-modal';
+  modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.78);z-index:9999;display:flex;align-items:center;justify-content:center';
+  modal.innerHTML = `<div style="background:#161d28;border:1px solid #2a3d55;border-radius:14px;padding:22px 26px;width:820px;max-width:94vw;max-height:88vh;display:flex;flex-direction:column">
+    <div style="font-size:1rem;font-weight:700;color:#f0f6ff;margin-bottom:14px">⚠️ 迁移失败记录</div>
+    <div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #2a3d55;margin-bottom:8px">
+      <input type="checkbox" id="mf-check-all" onclick="mfToggleAll(this)">
+      <span style="font-size:.78rem;color:#507090">全选</span>
+      <button class="btn-sm" style="border-color:#ffa500;color:#ffa500" onclick="mfBatchRetry()">🔄 批量重试</button>
+      <button class="btn-sm" style="border-color:#ff5567;color:#ff5567" onclick="mfBatchDiscard()">🗑 批量放弃</button>
+      <button class="btn-sm" style="margin-left:auto" onclick="mfLoadList()">🔄 刷新</button>
+    </div>
+    <div id="mf-list" style="flex:1;overflow:auto;font-size:.8rem">加载中...</div>
+    <button id="mf-close" style="width:100%;padding:10px;border-radius:7px;background:#2a3d55;color:#c8dff5;border:none;cursor:pointer;font-weight:700;margin-top:14px">关闭</button>
+  </div>`;
+  document.body.appendChild(modal);
+  document.getElementById('mf-close').onclick = () => { modal.remove(); refreshMigFailCount(); loadPcRoots(); };
+  mfLoadList();
+}
+
+async function mfLoadList() {
+  const list = document.getElementById('mf-list');
+  if (!list) return;
+  list.innerHTML = '加载中...';
+  let rows = [];
+  try { rows = await fetch('/api/migrate-failures?status=pending').then(r=>r.json()); }
+  catch(e) { list.innerHTML = '<span style="color:#ff5567">加载失败</span>'; return; }
+  if (!rows.length) {
+    // 看有没有retried的(已重试待确认)
+    let retried = [];
+    try { retried = await fetch('/api/migrate-failures?status=retried').then(r=>r.json()); } catch(e) {}
+    if (!retried.length) { list.innerHTML = '<div style="color:#3ddc84;padding:20px;text-align:center">✅ 暂无失败记录</div>'; return; }
+    rows = retried;
+  } else {
+    // 同时拉retried显示在下面
+    try {
+      const retried = await fetch('/api/migrate-failures?status=retried').then(r=>r.json());
+      rows = rows.concat(retried);
+    } catch(e) {}
+  }
+  list.innerHTML = rows.map(r => mfRowHtml(r)).join('');
+}
+
+function mfRowHtml(r) {
+  const statusColor = r.status === 'pending' ? '#ff5567' : '#3ddc84';
+  const statusText = r.status === 'pending' ? '⏳ 待处理' : '✓ 已重试成功';
+  const actions = r.status === 'pending'
+    ? `<button class="btn-sm" style="border-color:#ffa500;color:#ffa500" onclick="mfRetry(${r.id})">🔄 重试</button>
+       <button class="btn-sm danger" onclick="mfDiscard(${r.id})">🗑 放弃</button>`
+    : `<button class="btn-sm" style="border-color:#3ddc84;color:#3ddc84" onclick="mfConfirm(${r.id})">✅ 确认完结</button>
+       <button class="btn-sm" onclick="mfReset(${r.id})">↶ 重置</button>`;
+  return `<div class="mf-row" data-id="${r.id}" style="border-bottom:1px solid #1e2838;padding:10px 0">
+    <div style="display:flex;align-items:flex-start;gap:8px">
+      <input type="checkbox" class="mf-check" value="${r.id}" style="margin-top:4px">
+      <div style="flex:1;min-width:0">
+        <div style="font-size:.74rem;color:#c8dff5;font-family:monospace;word-break:break-all">📂 ${escHtml(r.src_path)}</div>
+        <div style="font-size:.72rem;color:#40d0ff;font-family:monospace;word-break:break-all">→ ${escHtml(r.dst_path)}</div>
+        <div style="font-size:.7rem;color:#ff5567;margin-top:3px">${escHtml(r.error || '无原因')}</div>
+        <div style="font-size:.68rem;color:#507090;margin-top:2px">批次: ${r.migrate_batch} · 状态: <span style="color:${statusColor}">${statusText}</span></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0">${actions}</div>
+    </div>
+  </div>`;
+}
+
+function mfToggleAll(cb) {
+  document.querySelectorAll('#mf-list .mf-check').forEach(c => c.checked = cb.checked);
+}
+
+async function mfRetry(id) {
+  try {
+    const r = await fetch('/api/pc/migrate-retry', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id})}).then(r=>r.json());
+    if (r.error) showToast('重试失败: ' + r.error, 'error');
+    else if (r.success) showToast('重试成功，请确认完结', 'success');
+    else showToast('重试又失败: ' + (r.newError || '未知'), 'error');
+    mfLoadList();
+  } catch(e) { showToast('失败: ' + e.message, 'error'); }
+}
+
+async function mfConfirm(id) {
+  if (!confirm('确认完结：更新DB路径并标记resolved？')) return;
+  try {
+    const r = await fetch('/api/pc/migrate-confirm', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id})}).then(r=>r.json());
+    if (r.error) showToast('失败: ' + r.error, 'error');
+    else showToast('已完结', 'success');
+    mfLoadList();
+  } catch(e) { showToast('失败: ' + e.message, 'error'); }
+}
+
+async function mfDiscard(id) {
+  if (!confirm('放弃这条记录？将从表中删除')) return;
+  try {
+    await fetch('/api/migrate-failures/delete', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ids:[id]})});
+    showToast('已放弃', 'success');
+    mfLoadList();
+  } catch(e) { showToast('失败: ' + e.message, 'error'); }
+}
+
+async function mfReset(id) {
+  try {
+    await fetch('/api/migrate-failures/update', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id, status:'pending'})});
+    mfLoadList();
+  } catch(e) {}
+}
+
+async function mfBatchRetry() {
+  const ids = [...document.querySelectorAll('#mf-list .mf-check:checked')].map(c => parseInt(c.value));
+  if (!ids.length) { showToast('请先勾选', 'error'); return; }
+  for (const id of ids) {
+    try { await fetch('/api/pc/migrate-retry', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id})}); } catch(e) {}
+  }
+  showToast(`批量重试完成 ${ids.length} 条`, 'success');
+  mfLoadList();
+}
+
+async function mfBatchDiscard() {
+  const ids = [...document.querySelectorAll('#mf-list .mf-check:checked')].map(c => parseInt(c.value));
+  if (!ids.length) { showToast('请先勾选', 'error'); return; }
+  if (!confirm(`批量放弃 ${ids.length} 条记录？`)) return;
+  await fetch('/api/migrate-failures/delete', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ids})});
+  showToast('已放弃', 'success');
+  mfLoadList();
+}
+
+
+// ── NAS迁移目标树右键菜单 ─────────────────────────
+function migCtxMenu(e, path, nid, depth) {
+  e.preventDefault();
+  // 移除已有菜单
+  document.querySelectorAll('.mig-ctx-menu').forEach(el => el.remove());
+  const menu = document.createElement('div');
+  menu.className = 'mig-ctx-menu';
+  menu.style.cssText = `position:fixed;top:${e.clientY}px;left:${e.clientX}px;background:#1e2838;border:1px solid #2a3d55;border-radius:8px;padding:4px 0;z-index:99999;min-width:150px;box-shadow:0 4px 16px rgba(0,0,0,.5)`;
+  menu.innerHTML = `
+    <div class="mig-ctx-item" onclick="migMkdir('${path.replace(/'/g,"\\'")}','${nid}',${depth})" style="padding:8px 16px;cursor:pointer;font-size:.82rem;color:#c8dff5" onmouseover="this.style.background='#2a3d55'" onmouseout="this.style.background='transparent'">📁 新建文件夹</div>
+    <div style="border-top:1px solid #2a3d55;margin:4px 0"></div>
+    <div class="mig-ctx-item" onclick="migRename('${path.replace(/'/g,"\\'")}','${nid}',${depth})" style="padding:8px 16px;cursor:pointer;font-size:.82rem;color:#ffa500" onmouseover="this.style.background='#2a3d55'" onmouseout="this.style.background='transparent'">✏️ 重命名</div>
+    <div style="border-top:1px solid #2a3d55;margin:4px 0"></div>
+    <div class="mig-ctx-item" onclick="migDeleteDir('${path.replace(/'/g,"\\'")}','${nid}',${depth})" style="padding:8px 16px;cursor:pointer;font-size:.82rem;color:#ff5567" onmouseover="this.style.background='#2a3d55'" onmouseout="this.style.background='transparent'">🗑 删除此目录</div>
+  `;
+  document.body.appendChild(menu);
+  // 点其他地方关闭
+  const close = (ev) => { if (!menu.contains(ev.target)) { menu.remove(); document.removeEventListener('click', close); } };
+  setTimeout(() => document.addEventListener('click', close), 10);
+}
+
+async function migMkdir(parentPath, nid, depth) {
+  document.querySelectorAll('.mig-ctx-menu').forEach(el => el.remove());
+  const name = prompt('新文件夹名称：');
+  if (!name || !name.trim()) return;
+  try {
+    const r = await fetch('/api/nas-dir/mkdir', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ parentPath, name: name.trim() })
+    }).then(r=>r.json());
+    if (r.error) { showToast('创建失败: ' + r.error, 'error'); return; }
+    showToast('✅ 已创建: ' + name.trim(), 'success');
+    // 刷新这个节点的子目录
+    migRowRefresh(parentPath, 'dst', nid, depth);
+  } catch(e) { showToast('失败: ' + e.message, 'error'); }
+}
+
+async function migDeleteDir(path, nid, depth) {
+  document.querySelectorAll('.mig-ctx-menu').forEach(el => el.remove());
+  // 先查询内容数量
+  try {
+    const r = await fetch('/api/nas-dir/delete', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ path })
+    }).then(r=>r.json());
+    if (r.error) { showToast('失败: ' + r.error, 'error'); return; }
+    if (r.needConfirm) {
+      if (!confirm(`该目录包含 ${r.fileCount} 个文件、${r.dirCount} 个子目录，确定删除？
+
+⚠️ 此操作不可恢复！`)) return;
+      // 二次确认后真正删除
+      const r2 = await fetch('/api/nas-dir/delete', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ path, confirm: true })
+      }).then(r=>r.json());
+      if (r2.error) { showToast('删除失败: ' + r2.error, 'error'); return; }
+    }
+    showToast('✅ 已删除: ' + path.split('/').pop(), 'success');
+    // 刷新父节点
+    const parts = path.replace(/\/$/,'').split('/').filter(Boolean);
+    if (parts.length > 1) {
+      const parentPath = '/' + parts.slice(0,-1).join('/');
+      const parentNid = 'mig_dst_' + btoa(unescape(encodeURIComponent(parentPath))).replace(/[^a-zA-Z0-9]/g,'');
+      migRowRefresh(parentPath, 'dst', parentNid, depth - 1);
+    }
+  } catch(e) { showToast('失败: ' + e.message, 'error'); }
+}
+
+
+async function migRename(path, nid, depth) {
+  document.querySelectorAll('.mig-ctx-menu').forEach(el => el.remove());
+  const oldName = path.replace(/\/$/,'').split('/').filter(Boolean).pop();
+  const newName = prompt('重命名为：', oldName);
+  if (!newName || !newName.trim() || newName.trim() === oldName) return;
+  try {
+    const r = await fetch('/api/nas-dir/rename', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ targetPath: path, newName: newName.trim() })
+    }).then(r=>r.json());
+    if (r.error) { showToast('重命名失败: ' + r.error, 'error'); return; }
+    showToast('✅ 已重命名，DB更新' + r.dbUpdated + '条', 'success');
+    // 刷新父节点
+    const parts = path.replace(/\/$/,'').split('/').filter(Boolean);
+    if (parts.length > 1) {
+      const parentPath = '/' + parts.slice(0,-1).join('/');
+      const parentNid = 'mig_dst_' + btoa(unescape(encodeURIComponent(parentPath))).replace(/[^a-zA-Z0-9]/g,'');
+      migRowRefresh(parentPath, 'dst', parentNid, depth - 1);
+    }
+  } catch(e) { showToast('失败: ' + e.message, 'error'); }
 }

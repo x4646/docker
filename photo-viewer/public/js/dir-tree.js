@@ -151,7 +151,7 @@ class DirTree {
       if (this.childrenFn) {
         children = await this.childrenFn(parentPath);
       } else {
-        const url = `${this.apiBase}/api/dir-tree?source=nas&path=${encodeURIComponent(parentPath)}`;
+        const url = `${this.apiBase}/api/dir-tree?source=${this.source||"nas"}&path=${encodeURIComponent(parentPath)}`;
         children = await fetch(url).then(r => r.json());
       }
       parent.childContainer.innerHTML = '';
