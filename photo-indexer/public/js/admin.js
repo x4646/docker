@@ -1018,7 +1018,6 @@ async function loadNasDirs() {
     rootsFn: () => fetch('/api/watch-dirs').then(r=>r.json()).then(ds=>ds.map(d=>({name:d.path.replace(/\/$/,'').split('/').filter(Boolean).pop(), path:d.path}))),
     actions: [
       { label:'打MD5', icon:'🔑', color:'#40d0ff', fn: dtwWriteMd5 },
-      { label:'清理', icon:'🧹', color:'#ffa500', fn: dtwCleanOrphan },
       { label:'处理', icon:'⚙', color:'#3ddc84', fn: dtwProcess },
     ]
   });
@@ -1027,7 +1026,6 @@ async function loadNasDirs() {
 }
 // NAS批量操作（读nasTreeWidget勾选）
 function batchWriteMd5Nas() { _batchRun(nasTreeWidget, dtwWriteMd5); }
-function batchCleanOrphanNas() { _batchRun(nasTreeWidget, dtwCleanOrphan); }
 function batchProcessNas() { _batchRun(nasTreeWidget, dtwProcess); }
 async function _batchRun(widget, fn) {
   if (!widget) return;

@@ -837,6 +837,21 @@ if (!app._piPatched) {
     }
 
     const normParent = parentPath.replace(/\\/g,'/').replace(/\/$/,'');
+    const hasPhotosOnly = req.query.hasPhotos === '1';
+
+    // hasPhotos模式：只返回DB里有图片记录的子目录(viewer用)
+    if (hasPhotosOnly) {
+      const all = db.prepare("SELECT DISTINCT REPLACE(path,'\\','/') AS p FROM photos WHERE REPLACE(path,'\\','/') LIKE ?").all(normParent + '/%');
+      const childSet = new Set();
+      for (const row of all) {
+        const rest = row.p.slice(normParent.length + 1);
+        const slash = rest.indexOf('/');
+        if (slash < 0) continue;
+        childSet.add(rest.slice(0, slash));
+      }
+      const dirs = [...childSet].map(name => ({ name, path: normParent + '/' + name, hasChildren: true })).sort((a,b)=>a.name.localeCompare(b.name));
+      return res.json(dirs);
+    }
 
     // 1. 先查DB：这个目录下有没有记录
     const dbChild = db.prepare("SELECT DISTINCT REPLACE(path,'\\','/') AS p FROM photos WHERE REPLACE(path,'\\','/') LIKE ? LIMIT 1").get(normParent + '/%');
@@ -1101,6 +1116,41 @@ if (!app._piPatched) {
       }
       res.json({ ok: true, oldPath: p, newPath, dbUpdated: rows.length });
     } catch(e) { res.status(500).json({ error: e.message }); }
+  });
+
+  // ── NAS清理孤立记录(检查/share/下文件是否存在,不存在则删DB记录+缩略图) ──
+  app.post('/api/nas/clean-orphan', (req, res) => {
+    const { path: dirPath } = req.body || {};
+    if (!dirPath) return res.status(400).json({ error: '缺少path' });
+    const dir = dirPath.replace(/\\/g,'/').replace(/\/$/,'');
+    const db = getDb();
+    const rows = db.prepare("SELECT id, path, thumb_path, preview_path FROM photos WHERE REPLACE(path,'\\','/') LIKE ?").all(dir + '/%');
+    let total = rows.length, orphan = 0, deleted = 0;
+    const DATA_PATH = '/data/photos';
+    const delStmt = db.prepare('DELETE FROM photos WHERE id = ?');
+    const tx = db.transaction(() => {
+      for (const r of rows) {
+        const fwd = r.path.replace(/\\/g,'/');
+        if (!fs.existsSync(fwd)) {
+          orphan++;
+          // 删缩略图
+          try {
+            if (r.thumb_path) {
+              const tf = DATA_PATH + '/thumbs/' + r.thumb_path.split('/').pop();
+              if (fs.existsSync(tf)) fs.unlinkSync(tf);
+            }
+            if (r.preview_path) {
+              const pf = DATA_PATH + '/preview/' + r.preview_path.split('/').pop();
+              if (fs.existsSync(pf)) fs.unlinkSync(pf);
+            }
+          } catch(e2) {}
+          delStmt.run(r.id);
+          deleted++;
+        }
+      }
+    });
+    tx();
+    res.json({ ok: true, total, orphan, deleted });
   });
 
   app.post('/api/nas-migrate-check', (req, res) => {

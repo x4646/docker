@@ -25,10 +25,10 @@
 <div style="display:flex;margin-top:56px;min-height:calc(100vh - 56px)">
 
   <!-- 侧边栏 -->
-  <div class="sidebar" id="sidebar" style="width:240px;flex-shrink:0;position:sticky;top:56px;height:calc(100vh - 56px);overflow-y:auto;background:var(--surface);border-right:1px solid var(--border)">
-    <div id="sidebar-resizer" style="position:absolute;right:0;top:0;bottom:0;width:4px;cursor:col-resize;z-index:10"></div>
+  <div class="sidebar" id="sidebar">
   </div>
 
+  <div id="sidebar-resizer" style="position:fixed;left:260px;top:56px;bottom:0;width:6px;cursor:col-resize;z-index:200;background:transparent"></div>
   <!-- 主内容 -->
   <div style="flex:1;min-width:0;overflow:hidden">
     <div class="stats-bar">
@@ -134,6 +134,8 @@
 
 <script src="js/context-menu.js"></script>
 <script src="js/dir-tree.js"></script>
+<script src="js/dir-tree-widget.js"></script>
 <script src="js/app.js"></script>
+  <button id="sidebar-toggle" onclick="toggleSidebar()" style="position:fixed;left:260px;top:64px;z-index:200;width:18px;height:48px;background:#1e2838;border:1px solid #2a3d55;border-left:none;border-radius:0 6px 6px 0;cursor:pointer;color:#507090;font-size:.7rem;padding:0;display:flex;align-items:center;justify-content:center;transition:left .25s ease" title="折叠/展开">◀</button>
 </body>
 </html>
