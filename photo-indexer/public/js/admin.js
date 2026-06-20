@@ -1138,9 +1138,12 @@ function openMigrateModal() {
         <div id="mig-tree-dst" style="flex:1;overflow:auto;border:1px solid #2a3d55;border-radius:8px;padding:6px;min-height:240px"></div>
       </div>
     </div>
-    <div id="mig-progress" style="display:none;margin-top:12px;padding:12px;background:#0f1620;border-radius:8px"></div>
-    <div style="display:flex;gap:8px;margin-top:14px">
-      <button id="mig-go" style="flex:1;padding:9px;border-radius:7px;background:#3ddc84;color:#000;border:none;cursor:pointer;font-weight:700">校验并迁移</button>
+    <div id="mig-check-result" style="margin-top:8px;font-size:.78rem;max-height:80px;overflow-y:auto"></div>
+    <div id="mig-pipeline-log" style="margin-top:4px;max-height:120px;overflow-y:auto;font-size:.78rem"></div>
+    <div style="display:flex;gap:8px;margin-top:14px;align-items:center">
+      <button onclick="migToggleAll(true)" class="btn-sm" style="font-size:.72rem">全选</button>
+      <button onclick="migToggleAll(false)" class="btn-sm" style="font-size:.72rem">取消</button>
+      <button id="mig-go" style="flex:1;padding:9px;border-radius:7px;background:#3ddc84;color:#000;border:none;cursor:pointer;font-weight:700">开始</button>
       <button id="mig-close" class="btn-sm danger">关闭</button>
     </div>
   </div>`;
@@ -1149,7 +1152,7 @@ function openMigrateModal() {
     if (_migStatusTimer) { clearInterval(_migStatusTimer); _migStatusTimer = null; }
     modal.remove();
   };
-  document.getElementById('mig-go').onclick = () => migGo();
+  document.getElementById('mig-go').onclick = () => migStartPipeline();
   migTreeInit('src');
   migTreeInit('dst');
 }
@@ -1182,11 +1185,244 @@ function migNodeHtml(node, depth, side) {
     <div style="display:flex;align-items:center;gap:4px;padding:4px 0">
       ${guides}
       <span class="pc-toggle" onclick="migToggle('${esc}','${side}','${nid}',${depth})" data-loaded="0" id="${nid}_tg">+</span>
-      <span onclick="migSelect('${esc}','${side}')" oncontextmenu="${side==='dst'?'migCtxMenu(event,\''+esc+'\',\''+nid+'\','+depth+');return false;':''}" style="cursor:pointer;font-size:.82rem;color:#c8dff5;flex:1;word-break:break-all" id="${nid}_nm">${depth===0?(side==='src'?'💻':'🗄'):'📁'} ${escHtml(node.name)}</span>
+      ${side==='src'?'<input type="checkbox" class="mig-src-check" value="'+esc+'" style="flex-shrink:0;cursor:pointer;width:14px;height:14px">':''}
+      <span onclick="${side==='src'?'migSrcToggleCheck(event,\''+esc+'\')':"migSelect('"+esc+"','"+side+"')"}" oncontextmenu="${side==='dst'?'migCtxMenu(event,\''+esc+'\',\''+nid+'\','+depth+');return false;':''}" style="cursor:pointer;font-size:.82rem;color:#c8dff5;flex:1;word-break:break-all" id="${nid}_nm">${depth===0?(side==='src'?'💻':'🗄'):'📁'} ${escHtml(node.name)}</span>
       <button class="btn-sm" onclick="migRowRefresh('${esc}','${side}','${nid}',${depth})" title="刷新此目录" style="padding:2px 6px;font-size:.7rem">🔄</button>
     </div>
     <div class="mig-children" id="${nid}_ch" style="display:none"></div>
   </div>`;
+}
+
+// 点目录名切换checkbox
+function migSrcToggleCheck(e, path) {
+  const checks = document.querySelectorAll('#mig-tree-src .mig-src-check');
+  for (const cb of checks) {
+    if (cb.value === path) { cb.checked = !cb.checked; break; }
+  }
+}
+
+// 获取源树所有勾选路径
+function migGetChecked() {
+  return [...document.querySelectorAll('#mig-tree-src .mig-src-check:checked')].map(c => c.value);
+}
+
+// 全选/取消全选
+function migToggleAll(checked) {
+  document.querySelectorAll('#mig-tree-src .mig-src-check').forEach(c => c.checked = checked);
+}
+
+// 批量校验
+async function migBatchCheck() {
+  const srcs = migGetChecked();
+  if (!srcs.length) { showToast('请先勾选要迁移的目录', 'error'); return; }
+  if (!_migDst) { showToast('请先选择目标目录', 'error'); return; }
+  const resultEl = document.getElementById('mig-check-result');
+  resultEl.innerHTML = '<span style="color:#507090">校验中...</span>';
+  let html = '';
+  let allOk = true;
+  for (const src of srcs) {
+    try {
+      const r = await fetch('/api/nas-migrate-check', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ srcPath: src, dstRoot: _migDst })
+      }).then(r=>r.json());
+      if (!r.ok) {
+        html += `<div style="color:#ff5567">❌ ${src.split('/').pop()} — ${r.error}</div>`;
+        allOk = false;
+      } else if (r.hasConflict) {
+        html += `<div style="color:#ffa500">⚠️ ${src.split('/').pop()} — 目标已存在同名目录</div>`;
+        allOk = false;
+      } else {
+        html += `<div style="color:#3ddc84">✅ ${src.split('/').pop()} — 共${r.total||0}个文件，无冲突</div>`;
+      }
+    } catch(e) {
+      html += `<div style="color:#ff5567">❌ ${src.split('/').pop()} — ${e.message}</div>`;
+      allOk = false;
+    }
+  }
+  resultEl.innerHTML = html;
+  // 校验全通过才启用迁移按钮
+  const goBtn = document.getElementById('mig-go');
+  if (goBtn) { goBtn.disabled = !allOk; goBtn.style.opacity = allOk ? '1' : '0.5'; }
+}
+
+// 流水线：校验→迁移→打MD5→处理（逐个目录串行）
+async function migStartPipeline() {
+  console.log("[pipeline] start", migGetChecked(), _migDst);
+  const srcs = migGetChecked();
+  if (!srcs.length) { showToast('请先勾选要迁移的目录', 'error'); return; }
+  if (!_migDst) { showToast('请先选择目标目录', 'error'); return; }
+  const goBtn = document.getElementById('mig-go');
+  if (goBtn) goBtn.disabled = true;
+  const logEl = document.getElementById('mig-pipeline-log');
+  logEl.innerHTML = '';
+
+  // 弹出进度模态
+  document.getElementById('mig-progress-modal')?.remove();
+  const progModal = document.createElement('div');
+  progModal.id = 'mig-progress-modal';
+  progModal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:10000;display:flex;align-items:center;justify-content:center';
+  progModal.innerHTML = `<div style="background:#1e2838;border:1px solid #2a3d55;border-radius:12px;padding:24px 32px;min-width:420px;max-width:560px;width:90%">
+    <div style="font-size:1rem;font-weight:700;color:#f0f6ff;margin-bottom:16px">📦 迁移流水线</div>
+    <div style="margin-bottom:12px;padding:12px;background:#0f1620;border-radius:8px">
+      <div style="font-size:.72rem;color:#507090;margin-bottom:4px">当前任务</div>
+      <div id="mprog-cur-name" style="font-size:.88rem;color:#40d0ff;font-weight:700;margin-bottom:6px">初始化...</div>
+      <div id="mprog-cur-step" style="font-size:.78rem;color:#c8dff5">等待中</div>
+      <div style="margin-top:8px;height:4px;background:#1a2433;border-radius:99px;overflow:hidden">
+        <div id="mprog-bar" style="height:100%;width:0%;background:#40d0ff;border-radius:99px;transition:width .3s ease"></div>
+      </div>
+      <div id="mprog-count" style="font-size:.7rem;color:#507090;margin-top:4px">0 / 0</div>
+    </div>
+    <div style="font-size:.72rem;color:#507090;margin-bottom:6px">任务列表</div>
+    <div id="mprog-list" style="max-height:200px;overflow-y:auto;font-size:.78rem"></div>
+  </div>`;
+  document.body.appendChild(progModal);
+
+  // 更新进度模态的辅助函数
+  const mprogSetCur = (name, step, color='#c8dff5') => {
+    const el = document.getElementById('mprog-cur-name');
+    const stepEl = document.getElementById('mprog-cur-step');
+    if (el) el.textContent = name;
+    if (stepEl) { stepEl.textContent = step; stepEl.style.color = color; }
+  };
+  const mprogSetBar = (cur, total) => {
+    const bar = document.getElementById('mprog-bar');
+    const cnt = document.getElementById('mprog-count');
+    const pct = total > 0 ? Math.round(cur/total*100) : 0;
+    if (bar) bar.style.width = pct + '%';
+    if (cnt) cnt.textContent = cur + ' / ' + total + ' 个文件';
+  };
+  const mprogAddItem = (name, status, color) => {
+    const list = document.getElementById('mprog-list');
+    if (!list) return;
+    const id = 'mprog-item-' + btoa(unescape(encodeURIComponent(name))).replace(/[^a-zA-Z0-9]/g,'').slice(0,16);
+    const existing = document.getElementById(id);
+    if (existing) { existing.innerHTML = `<span style="color:${color}">${status}</span> ${name}`; return; }
+    const div = document.createElement('div');
+    div.id = id;
+    div.style.cssText = 'padding:4px 0;border-bottom:1px solid #1a2433';
+    div.innerHTML = `<span style="color:${color}">${status}</span> ${name}`;
+    list.appendChild(div);
+  };
+
+  for (const src of srcs) {
+    const name = src.split('/').pop();
+    const dst = _migDst + '/' + name;
+    const lineId = 'mig-line-' + btoa(unescape(encodeURIComponent(src))).replace(/[^a-zA-Z0-9]/g,'').slice(0,16);
+    logEl.innerHTML += `<div id="${lineId}" style="padding:4px 0;border-bottom:1px solid #1a2433;font-size:.8rem">
+      <span style="color:#c8dff5">📁 ${name}</span>
+      <span id="${lineId}_status" style="margin-left:8px;color:#507090">等待中...</span>
+    </div>`;
+
+    const setStatus = (msg, color='#507090') => {
+      const el = document.getElementById(lineId + '_status');
+      if (el) el.innerHTML = `<span style="color:${color}">${msg}</span>`;
+    };
+
+    // Step0: 校验
+    const isPcSrc = /^[A-Za-z]:/.test(src);
+    mprogSetCur(name, '🔍 校验中...', '#507090'); mprogAddItem(name, '⏳', '#507090');
+    setStatus('🔍 校验中...', '#507090');
+    try {
+      const checkApi = isPcSrc ? '/api/pc/migrate-check' : '/api/nas-migrate-check';
+      const chk = await fetch(checkApi, {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ srcPath: src, dstRoot: _migDst })
+      }).then(r=>r.json());
+      if (!chk.ok) { setStatus('❌ 校验失败: ' + chk.error, '#ff5567'); continue; }
+      if (chk.hasConflict) { setStatus('⚠️ 冲突: ' + chk.conflictReason, '#ffa500'); continue; }
+      setStatus('✅ 校验通过 共' + (chk.total||0) + '个文件', '#3ddc84'); mprogSetBar(0, chk.total||0);
+    } catch(e) { setStatus('❌ 校验异常: ' + e.message, '#ff5567'); continue; }
+
+    // Step1: 迁移
+    setStatus('📦 迁移中...', '#40d0ff');
+    try {
+      if (isPcSrc) {
+        // PC→NAS：启动后轮询等完成，确保串行
+        setStatus('📦 启动迁移...', '#40d0ff');
+        const startR = await fetch('/api/pc/migrate', {
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ srcPath: src, dstRoot: _migDst })
+        }).then(r=>r.json());
+        if (!startR.ok) throw new Error(startR.error || '迁移失败');
+        // 轮询直到done
+        await new Promise((resolve, reject) => {
+          const poll = setInterval(async () => {
+            try {
+              const st = await fetch('/api/pc/migrate-status', {
+                method:'POST', headers:{'Content-Type':'application/json'}, body:'{}'
+              }).then(r=>r.json());
+              if (st.error) { clearInterval(poll); reject(new Error(st.error)); return; }
+              if (st.done) { clearInterval(poll); setTimeout(resolve, 800); return; }
+              setStatus('📦 迁移中... ' + (st.copied||0) + '/' + (st.total||0), '#40d0ff'); mprogSetCur(name, '📦 迁移中... ' + (st.copied||0) + '/' + (st.total||0), '#40d0ff'); mprogSetBar(st.copied||0, st.total||0);
+            } catch(e) { clearInterval(poll); reject(e); }
+          }, 1500);
+        });
+      } else {
+        // NAS→NAS：直接mv
+        const r = await fetch('/api/nas-migrate', {
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ srcPath: src, dstRoot: _migDst })
+        }).then(r=>r.json());
+        if (!r.ok) throw new Error(r.error || '迁移失败');
+      }
+      setStatus('✅ 迁移完成', '#3ddc84'); mprogSetCur(name, '✅ 迁移完成', '#3ddc84');
+    } catch(e) {
+      setStatus('❌ 迁移失败: ' + e.message, '#ff5567');
+      await fetch('/api/migrate-failures', { method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify([{ src_path:src, dst_path:dst, error:e.message, migrate_batch:'pipeline_'+Date.now(), step:'migrate' }])
+      }).catch(()=>{});
+      continue; // 迁移失败跳到下一个
+    }
+
+    // Step2: 打MD5
+    setStatus('🔑 打MD5中...', '#ffa500'); mprogSetCur(name, '🔑 打MD5中...', '#ffa500');
+    try {
+      const r = await fetch('/api/pc/write-md5', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ path: dst })
+      }).then(r=>r.json());
+      if (r.error) throw new Error(r.error);
+      setStatus('✅ MD5完成', '#3ddc84'); mprogSetCur(name, '✅ MD5完成', '#3ddc84');
+    } catch(e) {
+      setStatus('⚠️ MD5失败: ' + e.message + ' (已迁移)', '#ffa500');
+      await fetch('/api/migrate-failures', { method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify([{ src_path:src, dst_path:dst, error:e.message, migrate_batch:'pipeline_'+Date.now(), step:'md5' }])
+      }).catch(()=>{});
+      continue;
+    }
+
+    // Step3: 处理
+    setStatus('⚙️ 处理中...', '#a78bfa'); mprogSetCur(name, '⚙️ 处理中...', '#a78bfa');
+    try {
+      const r = await fetch('/api/pc/process-dir', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ path: dst })
+      }).then(r=>r.json());
+      if (r.error) throw new Error(r.error);
+      setStatus('✅ 全部完成', '#3ddc84'); mprogSetCur(name, '✅ 全部完成', '#3ddc84'); mprogAddItem(name, '✅', '#3ddc84');
+    } catch(e) {
+      setStatus('⚠️ 处理失败: ' + e.message + ' (已迁移+MD5)', '#ffa500');
+      await fetch('/api/migrate-failures', { method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify([{ src_path:src, dst_path:dst, error:e.message, migrate_batch:'pipeline_'+Date.now(), step:'process' }])
+      }).catch(()=>{});
+    }
+  }
+
+  if (goBtn) goBtn.disabled = false;
+  refreshMigFailCount();
+  loadPcRoots();
+  if (window.nasTreeWidget) nasTreeWidget.refresh();
+  // 关闭进度模态，显示完成
+  const pm = document.getElementById('mig-progress-modal');
+  if (pm) {
+    const curStep = pm.querySelector('#mprog-cur-step');
+    if (curStep) { curStep.textContent = '✅ 全部完成'; curStep.style.color = '#3ddc84'; }
+    const bar = pm.querySelector('#mprog-bar');
+    if (bar) { bar.style.width = '100%'; bar.style.background = '#3ddc84'; }
+    setTimeout(() => pm.remove(), 2000);
+  }
+  showToast('流水线执行完成', 'success');
 }
 
 // 强制刷新单个节点(不管loaded状态,重新拉取子目录)

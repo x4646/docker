@@ -386,3 +386,15 @@ body { background:var(--bg); color:var(--text); font-family:'Noto Sans SC',sans-
   padding: 0 !important;
   border: none !important;
 }
+
+/* 目录树操作按钮 */
+.btn-sm { padding:5px 12px; border-radius:5px; border:1px solid #2a3d55; background:#1e2838; color:#c8dff5; font-size:.75rem; cursor:pointer; transition:all .15s; }
+.btn-sm:hover { border-color:#40d0ff; color:#40d0ff; }
+.btn-sm.danger:hover { border-color:#ff5567; color:#ff5567; }
+.btn-sm.success { border-color:#3ddc84; color:#3ddc84; }
+
+/* 目录树操作按钮 */
+.btn-sm { padding:5px 12px; border-radius:5px; border:1px solid #2a3d55; background:#1e2838; color:#c8dff5; font-size:.75rem; cursor:pointer; transition:all .15s; }
+.btn-sm:hover { border-color:#40d0ff; color:#40d0ff; }
+.btn-sm.danger:hover { border-color:#ff5567; color:#ff5567; }
+.btn-sm.success { border-color:#3ddc84; color:#3ddc84; }

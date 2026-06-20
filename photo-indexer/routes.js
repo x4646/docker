@@ -803,7 +803,7 @@ if (!app._piPatched) {
     let dir = req.query.path || '/share';
     try {
       const entries = fs.readdirSync(dir, { withFileTypes: true });
-      const HIDE = /^(CACHEDEV\d+_DATA|CE_CACHEDEV\d+_DATA|\.|@|homes|Public|Web|Multimedia|Download|Recordings|Network Recycle Bin)/;
+      const HIDE = /^(CACHEDEV\d+_DATA|CE_CACHEDEV\d+_DATA|HD[A-Z]+_DATA|external|NFSv=4|\.|@|homes|Public|Web|Multimedia|Download|Recordings|Network Recycle Bin)/;
       const dirs = entries
         .filter(e => (e.isDirectory() || e.isSymbolicLink()) && !HIDE.test(e.name))
         .map(e => ({ name: e.name, path: (dir.replace(/\/$/,'')) + '/' + e.name }))
@@ -826,7 +826,7 @@ if (!app._piPatched) {
       } else {
         // NAS根：/share下SMB共享层(过滤物理层)
         try {
-          const HIDE = /^(CACHEDEV\d+_DATA|CE_CACHEDEV\d+_DATA|\.|@|homes|Public|Web|Multimedia|Download|Recordings|Network Recycle Bin)/;
+          const HIDE = /^(CACHEDEV\d+_DATA|CE_CACHEDEV\d+_DATA|HD[A-Z]+_DATA|external|NFSv=4|\.|@|homes|Public|Web|Multimedia|Download|Recordings|Network Recycle Bin)/;
           const entries = fs.readdirSync('/share', { withFileTypes: true });
           const dirs = entries.filter(e => (e.isDirectory()||e.isSymbolicLink()) && !HIDE.test(e.name))
             .map(e => ({ name: e.name, path: '/share/' + e.name, hasChildren: true }))
