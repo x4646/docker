@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>日语词汇记忆库</title>
+    <style>
+        body { margin: 0; font-family: sans-serif; background: #f4f4f4; }
+        .sidebar { width: 240px; height: 100vh; background: #333; color: #fff; position: fixed; left: 0; top: 0; overflow-y: auto; }
+        .sidebar h2 { text-align: center; font-size: 18px; }
+        .sidebar ul { list-style: none; padding: 0; }
+        .sidebar li { border-bottom: 1px solid #444; }
+        .sidebar li a { display: block; padding: 12px; color: #ddd; text-decoration: none; cursor: pointer; }
+        .sidebar li a:hover, .sidebar li a.active { background: #555; color: #fff; }
+        
+        .content { margin-left: 260px; padding: 20px; }
+        
+        table { width: 100%; border-collapse: collapse; background: #fff; margin-top: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; vertical-align: middle; }
+        th { background: #f2f2f2; }
+        .btn-toggle { cursor: pointer; user-select: none; border: 1px dashed #aaa; background: #fafafa; padding: 2px 5px; border-radius: 4px; font-size: 12px; }
+        .blur { filter: blur(5px); }
+        .type-filters { display:flex; flex-wrap:wrap; gap:6px; margin:12px 0; }
+        .type-filter { cursor:pointer; border:1px solid #ccc; background:#fff; padding:6px 10px; border-radius:16px; }
+        .type-filter.active { background:#e57373; color:#fff; border-color:#e57373; }
+        .btn-batch { cursor:pointer; border:1px dashed #aaa; background:#fafafa; padding:4px 7px; border-radius:4px; font-size:12px; }
+        .origin-text { font-size: 13px; color: #888; font-style: italic; }
+        .btn-manage { background: #5d4037; color: #fff; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; }
+
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); align-items: center; justify-content: center; z-index: 1000; }
+        .modal-content { background: #fff; padding: 20px; border-radius: 8px; width: 300px; text-align: center; }
+        .modal-title { font-size: 18px; font-weight: bold; margin-bottom: 20px; }
+        .modal-label { display: block; margin: 10px 0 5px; font-size: 12px; color: #888; }
+        .modal-badge { background: #eee; padding: 5px 10px; border-radius: 4px; font-size: 14px; }
+        .modal-actions button { display: block; width: 100%; margin: 8px 0; padding: 10px; border: none; border-radius: 4px; cursor: pointer; color: #fff; font-size: 14px; }
+        .btn-count { background: #2196F3; }
+        .btn-remember { background: #4CAF50; }
+        .btn-forget { background: #f44336; }
+        .btn-close { background: #9E9E9E; }
+    
+        /* 手机端适配 */
+        @media (max-width: 700px) {
+            body { font-size: 15px; }
+            .sidebar { position: relative; width: 100%; height: auto; max-height: 42vh; overflow-y: auto; }
+            .sidebar h2 { margin: 0; padding: 12px 8px; }
+            .content { margin-left: 0; padding: 12px; overflow-x: hidden; }
+            h1 { font-size: 22px; }
+            table { display: block; overflow-x: auto; white-space: nowrap; font-size: 13px; }
+            th, td { padding: 8px 6px; }
+            .card { padding: 12px; margin: 10px 0; }
+            .section-category { font-size: 20px; margin: 18px 0 12px; }
+            .section-title { font-size: 18px; }
+            .explain-text { line-height: 1.7; }
+            .btn-toggle, .btn-manage { min-height: 34px; padding: 6px 8px; }
+            .modal-content { width: calc(100vw - 40px); max-width: 360px; }
+            .nav-group-title { padding: 12px 16px; }
+            .sub-nav-list li a { padding: 11px 16px 11px 28px; }
+        }            .btn-speak { cursor:pointer; border:0; background:transparent; padding:3px 6px; font-size:16px; }
+    </style>
+</head>
+<body>
+
+<div class="sidebar">
+    <h2>词汇行目录</h2>
+    <ul id="nav-list"></ul>
+</div>
+
+<div class="content" id="content-area">
+    <h1>请选择左侧词汇分类...</h1>
+</div>
+
+<div class="modal-overlay" id="modal-overlay">
+    <div class="modal-content">
+        <div class="modal-title" id="modal-title"></div>
+        <div class="modal-info">
+            <span class="modal-label">难度</span>
+            <div class="modal-badge" id="modal-difficulty"></div>
+            <span class="modal-label">背诵次数</span>
+            <div class="modal-badge" id="modal-count"></div>
+            <span class="modal-label">当前状态</span>
+            <div class="modal-badge" id="modal-memorized"></div>
+        </div>
+        <div class="modal-actions">
+            <button class="btn-count" onclick="modalIncreaseCount()">背诵次数 +1</button>
+            <button class="btn-remember" onclick="modalMark('remember')">记住了</button>
+            <button class="btn-forget" onclick="modalMark('forget')">没记住</button>
+            <button class="btn-close" onclick="closeModal()">关闭</button>
+        </div>
+    </div>
+</div>
+
+<script src="data/vocab_all.js"></script>
+
+<script>
+    const dataStore = window.dataContent || {};
+    const navList = document.getElementById('nav-list');
+    const contentArea = document.getElementById('content-area');
+
+    // 筛选词汇数据
+    const vocabStore = {};
+    for (const key in dataStore) {
+        if (dataStore[key].type === 'vocab') vocabStore[key] = dataStore[key];
+    }
+    let currentVocabKey = null;
+
+    function speakJapanese(text) { if (!window.speechSynthesis) { alert("当前浏览器不支持日语朗读"); return; } window.speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(text); u.lang = "ja-JP"; u.rate = 0.85; window.speechSynthesis.speak(u); }
+
+    function getState(wordKey) {
+        const states = JSON.parse(localStorage.getItem('vocabMemory')) || {};
+        return states[wordKey] || { difficulty: 1, reviewCount: 0, memorized: false };
+    }
+    function setState(wordKey, state) {
+        const states = JSON.parse(localStorage.getItem('vocabMemory')) || {};
+        states[wordKey] = state;
+        localStorage.setItem('vocabMemory', JSON.stringify(states));
+    }
+
+    // 词汇目录：一级目录
+    Object.keys(vocabStore).forEach(key => {
+        const file = vocabStore[key];
+        const li = document.createElement('li');
+        const a = document.createElement('a');
+        a.textContent = key;
+        a.onclick = () => render(key, a);
+        li.appendChild(a);
+        navList.appendChild(li);
+    });
+
+    function render(key, activeLink) {
+        currentVocabKey = key;
+        document.querySelectorAll('.sidebar a').forEach(a => a.classList.remove('active'));
+        if(activeLink) activeLink.classList.add('active');
+        const file = vocabStore[key];
+        contentArea.innerHTML = `<h1>${file.title}</h1>`;
+        contentArea.innerHTML += `
+            
+            <div id="type-filters" class="type-filters"></div>
+            <table>
+                <thead><tr><th>汉字 <button class="btn-batch" onclick="toggleAllKanji()">全部隐/显</button></th><th>假名 (可隐藏)</th><th>音调</th><th>词性</th><th>释义 (可隐藏)</th><th>记忆技巧/词源</th><th>管理</th></tr></thead>
+                <tbody id="vocab-body"></tbody>
+            </table>
+        `;
+        renderTypeFilters(file.words);
+        renderRows(file.words);
+    }
+
+    function renderTypeFilters(words) {
+        const box = document.getElementById("type-filters");
+        const types = ["全部", ...new Set(words.map(w => w.type).filter(Boolean))];
+        box.innerHTML = types.map((type, i) => `<button class="type-filter${i === 0 ? " active" : ""}" data-type="${type}" onclick="filterByType(this)">${type}</button>`).join("");
+    }
+    function filterByType(button) {
+        document.querySelectorAll(".type-filter").forEach(b => b.classList.remove("active"));
+        button.classList.add("active");
+        const type = button.dataset.type;
+        const words = vocabStore[currentVocabKey].words;
+        renderRows(type === "全部" ? words : words.filter(w => w.type === type));
+    }
+
+    function renderRows(words) {
+        const tbody = document.getElementById('vocab-body');
+        tbody.innerHTML = '';
+        words.forEach(word => {
+            const wordKey = word.kanji + word.kana;
+            const state = getState(wordKey);
+            const isMemorized = state.memorized;
+            const kanaClass = isMemorized ? '' : 'blur';
+            const meanClass = isMemorized ? '' : 'blur';
+            const origin = word.origin ? `<div class="origin-text">${word.origin}</div>` : '';
+            tbody.innerHTML += `
+                <tr>
+                    <td><span class="kanji-text">${word.kanji}</span> <button class="btn-toggle" onclick="toggleKanji(this)">隐/显</button></td>
+                    <td><span id="kana-${wordKey}" class="${kanaClass}">${word.kana}</span> <button class="btn-speak" onclick="speakJapanese(this.dataset.text)" data-text="${word.kana}" aria-label="朗读">🔊</button><button class="btn-toggle" onclick="toggleDisplay('${wordKey}', 'kana')">隐/显</button></td>
+                    <td>${word.tone}</td>
+                    <td>${word.type}</td>
+                    <td><span id="mean-${wordKey}" class="${meanClass}">${word.mean}</span><button class="btn-toggle" onclick="toggleDisplay('${wordKey}', 'mean')">隐/显</button></td>
+                    <td>${origin}</td>
+                    <td><button class="btn-manage" onclick="openModal('${wordKey}')">管理</button></td>
+                </tr>
+            `;
+        });
+    }
+
+    function toggleKanji(button) {
+        button.previousElementSibling.classList.toggle("blur");
+    }
+    function toggleAllKanji() {
+        const items = document.querySelectorAll(".kanji-text");
+        const shouldHide = Array.from(items).some(item => !item.classList.contains("blur"));
+        items.forEach(item => item.classList.toggle("blur", shouldHide));
+    }
+
+    function toggleDisplay(wordKey, type) { document.getElementById(`${type}-${wordKey}`).classList.toggle('blur'); }
+
+    let currentModalWordKey = null;
+    function openModal(wordKey) {
+        currentModalWordKey = wordKey;
+        let word = '';
+        for(const key in vocabStore) {
+            const found = vocabStore[key].words.find(w => (w.kanji + w.kana) === wordKey);
+            if(found) { word = found; break; }
+        }
+        document.getElementById('modal-title').innerText = `${word.kanji} (${word.kana})`;
+        updateModalState();
+        document.getElementById('modal-overlay').style.display = 'flex';
+    }
+    function closeModal() { document.getElementById('modal-overlay').style.display = 'none'; currentModalWordKey = null; }
+    function updateModalState() {
+        const state = getState(currentModalWordKey);
+        document.getElementById('modal-difficulty').innerText = '⭐'.repeat(state.difficulty);
+        document.getElementById('modal-count').innerText = state.reviewCount;
+        document.getElementById('modal-memorized').innerText = state.memorized ? '已记住' : '未记住';
+    }
+    function modalIncreaseCount() {
+        let state = getState(currentModalWordKey); state.reviewCount++; setState(currentModalWordKey, state); updateModalState(); refreshCurrentTable();
+    }
+    function modalMark(action) {
+        let state = getState(currentModalWordKey);
+        if (action === 'remember') { state.memorized = true; state.difficulty = Math.max(state.difficulty - 1, 1); }
+        else { state.memorized = false; state.difficulty = Math.min(state.difficulty + 1, 5); }
+        setState(currentModalWordKey, state); updateModalState(); refreshCurrentTable();
+    }
+    function refreshCurrentTable() {
+        if (currentVocabKey && document.getElementById('vocab-body')) {
+            renderRows(vocabStore[currentVocabKey].words);
+        }
+    }
+
+    const firstKey = Object.keys(vocabStore)[0];
+    if(firstKey) render(firstKey);
+</script>
+</body>
+</html>

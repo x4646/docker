@@ -64,7 +64,8 @@ function reviewTemplate() {
     (["grammar", "pattern", "idiom"].indexOf(item.category) !== -1 ? " long" : "") + '" data-act="flipReview">' +
     '<div class="flash-face front">' + item.kanji + "</div>" +
     '<div class="flash-face back"><div class="kana">' + (item.kana || "") + "</div>" +
-    '<div class="cn">' + item.cn + "</div><div class=\"en\">" + item.en + "</div></div>" +
+    '<div class="cn">' + item.cn + "</div><div class=\"en\">" + item.en + "</div>" +
+    playBtnHtml(item.id, item.kana, item.kanji, false) + "</div>" +
     "</div></div>" +
     '<div class="flash-hint">点击卡片翻面看释义，再选一个记忆程度</div>' +
     rateRow;
@@ -84,6 +85,7 @@ function loadReviewQueue() {
     params.push((cfg.field === "pos" ? "pos" : "group") + "=" + encodeURIComponent(state.reviewFilter));
   }
   if (state.reviewLevel !== "all") params.push("level=" + encodeURIComponent(state.reviewLevel));
+  if (state.jlptScope !== "all") params.push("jlptScope=" + encodeURIComponent(state.jlptScope));
   api("GET", "/review/due?" + params.join("&")).then(function (items) {
     state.reviewQueue = items;
     state.reviewLoading = false;

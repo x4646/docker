@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>日语语法新思维</title>
+    <style>
+        body { margin: 0; font-family: sans-serif; background: #f4f4f4; }
+        .sidebar { width: 260px; height: 100vh; background: #333; color: #fff; position: fixed; left: 0; top: 0; overflow-y: auto; }
+        .sidebar h2 { text-align: center; font-size: 18px; }
+        
+        /* 一级目录样式 */
+        .nav-group-title { padding: 10px 20px; font-size: 16px; font-weight: bold; cursor: pointer; background: #444; border-bottom: 1px solid #333; }
+        .nav-group-title:hover { background: #555; }
+        .nav-group-title.active { background: #e57373; }
+        
+        /* 二级目录样式 */
+        .sub-nav-list { list-style: none; padding: 0; display: none; margin: 0; }
+        .sub-nav-list.show { display: block; }
+        .sub-nav-list li a { display: block; padding: 10px 20px 10px 40px; color: #bbb; text-decoration: none; cursor: pointer; font-size: 14px; border-bottom: 1px solid #444; }
+        .sub-nav-list li a:hover, .sub-nav-list li a.active { background: #555; color: #fff; }
+        
+        .content { margin-left: 280px; padding: 20px; }
+        h1 { border-bottom: 2px solid #ccc; padding-bottom: 10px; }
+        
+        .section-category { font-size: 24px; font-weight: bold; background: #e57373; color: #fff; padding: 10px; margin: 30px 0 20px; border-radius: 5px; text-align: center; scroll-margin-top: 20px; }
+        
+        .card { background: #fff; margin: 15px 0; padding: 15px; border-left: 5px solid #e57373; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .section-title { font-size: 20px; font-weight: bold; margin-bottom: 10px; color: #333; }
+        .explain-text { margin: 10px 0; line-height: 1.6; color: #555; }
+        .example-box { background: #f9f9f9; padding: 10px; border-left: 4px solid #ccc; margin-top: 10px; }
+        .example-box p { margin: 5px 0; }
+    
+        /* 手机端适配 */
+        @media (max-width: 700px) {
+            body { font-size: 15px; }
+            .sidebar { position: relative; width: 100%; height: auto; max-height: 42vh; overflow-y: auto; }
+            .sidebar h2 { margin: 0; padding: 12px 8px; }
+            .content { margin-left: 0; padding: 12px; overflow-x: hidden; }
+            h1 { font-size: 22px; }
+            table { display: block; overflow-x: auto; white-space: nowrap; font-size: 13px; }
+            th, td { padding: 8px 6px; }
+            .card { padding: 12px; margin: 10px 0; }
+            .section-category { font-size: 20px; margin: 18px 0 12px; }
+            .section-title { font-size: 18px; }
+            .explain-text { line-height: 1.7; }
+            .btn-toggle, .btn-manage { min-height: 34px; padding: 6px 8px; }
+            .modal-content { width: calc(100vw - 40px); max-width: 360px; }
+            .nav-group-title { padding: 12px 16px; }
+            .sub-nav-list li a { padding: 11px 16px 11px 28px; }
+        }            .btn-speak { cursor:pointer; border:0; background:transparent; padding:3px 6px; font-size:16px; }
+    </style>
+</head>
+<body>
+
+<div class="sidebar">
+    <h2>语法行目录</h2>
+    <div id="nav-container"></div>
+</div>
+
+<div class="content" id="content-area">
+    <h1>请选择左侧语法板块...</h1>
+</div>
+
+<script src="data/grammar_all.js"></script>
+
+<script>
+    function speakJapanese(text) { if (!window.speechSynthesis) { alert("当前浏览器不支持日语朗读"); return; } window.speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(text); u.lang = "ja-JP"; u.rate = 0.85; window.speechSynthesis.speak(u); }
+
+    const dataStore = window.dataContent || {};
+    const navContainer = document.getElementById('nav-container');
+    const contentArea = document.getElementById('content-area');
+
+    // 筛选语法数据
+    const grammarStore = {};
+    for (const key in dataStore) {
+        if (dataStore[key].type === 'grammar') grammarStore[key] = dataStore[key];
+    }
+
+    // 生成多级目录
+    Object.keys(grammarStore).forEach(groupKey => {
+        const file = grammarStore[groupKey];
+        
+        // 一级目录
+        const groupDiv = document.createElement('div');
+        groupDiv.className = 'nav-group-title';
+        groupDiv.textContent = groupKey;
+        groupDiv.onclick = () => {
+            groupDiv.classList.toggle('active');
+            subNav.classList.toggle('show');
+        };
+        navContainer.appendChild(groupDiv);
+        
+        // 二级目录容器
+        const subNav = document.createElement('ul');
+        subNav.className = 'sub-nav-list';
+        navContainer.appendChild(subNav);
+        
+        // 遍历二级分类
+        if (file.sections) {
+            file.sections.forEach(section => {
+                const li = document.createElement('li');
+                const a = document.createElement('a');
+                a.textContent = section.category;
+                // 点击二级目录，跳转到锚点
+                a.onclick = () => {
+                    document.querySelectorAll('.sub-nav-list a').forEach(x => x.classList.remove('active'));
+                    a.classList.add('active');
+                    
+                    // 如果页面内容还没渲染，先渲染
+                    if (!document.getElementById('cat-' + section.category)) {
+                        renderContent(groupKey);
+                    }
+                    // 滚动到对应位置
+                    document.getElementById('cat-' + section.category).scrollIntoView({behavior: 'auto', block: 'start'});
+                };
+                li.appendChild(a);
+                subNav.appendChild(li);
+            });
+        }
+    });
+
+    // 首次加载自动展开并渲染第一个板块
+    function renderContent(groupKey) {
+        const file = grammarStore[groupKey];
+        let html = `<h1>${file.title}</h1>`;
+        file.sections.forEach(section => {
+            html += `<div class="section-category" id="cat-${section.category}">${section.category}</div>`;
+            section.items.forEach(item => {
+                html += `
+                    <div class="card">
+                        <div class="section-title">${item.point} <button class="btn-speak" onclick="speakJapanese('${item.point}')" aria-label="朗读语法点">🔊</button></div>
+                        <div class="explain-text">${item.explain}</div>
+                        <div class="example-box">
+                            <p><b>例句：</b>${item.example}</p>
+                            <p><b>译文：</b>${item.translation}</p>
+                        </div>
+                    </div>
+                `;
+            });
+        });
+        contentArea.innerHTML = html;
+    }
+
+    // 启动时自动展开第一个一级目录
+    if (Object.keys(grammarStore).length > 0) {
+        const firstKey = Object.keys(grammarStore)[0];
+        const firstGroup = navContainer.children[0];
+        const firstSubNav = navContainer.children[1];
+        
+        if (firstGroup) firstGroup.classList.add('active');
+        if (firstSubNav) firstSubNav.classList.add('show');
+        
+        renderContent(firstKey);
+    }
+</script>
+</body>
+</html>

@@ -54,8 +54,23 @@ function buildWordRow(w, examples) {
     group: w.func_group || "",
     level: w.level || "N5",
     freqTag: w.freq_tag || "",
-    custom: !!w.is_custom
+    freqScore: w.freq_score || 0,
+    custom: !!w.is_custom,
+    // 是否命中官方JLPT词表/语法表——1=level是官方等级，可信；0=超纲/未收录内容，level 不一定准
+    isJlpt: !!w.is_jlpt,
+    // 安宁《词源+联想记忆法》导入的记忆技巧/声调，vocab 分类才有，其它分类恒为空
+    etymologyNote: w.etymology_note || "",
+    pitchAccent: w.pitch_accent || ""
   };
+}
+
+// jlptScope 三态筛选：jlpt=只要官方范围内的，extra=只要超纲的，其它(不传/all)=不筛选
+// 统一在这里解析，配合下面 whereParts.push 惯例拼 SQL 片段
+function jlptScopeClause(scope, prefix) {
+  var col = (prefix || "") + "is_jlpt";
+  if (scope === "jlpt") return col + " = 1";
+  if (scope === "extra") return col + " = 0";
+  return null;
 }
 
 // 批量拼装词条行——一次查完所有例句，而不是每行一次查询
@@ -88,6 +103,7 @@ function parseDataFilter(catRowRaw) {
 // ---- 分类：首页用，只有分类信息 + 实时统计的条数，不带任何词条内容 ----
 router.get("/categories", function (req, res) {
   var level = req.query.level || null;
+  var jlptClause = jlptScopeClause(req.query.jlptScope);
   var rows = db.prepare("SELECT * FROM categories ORDER BY rowid").all();
   var categories = rows.map(function (c) {
     var filter = parseDataFilter(c);
@@ -95,6 +111,7 @@ router.get("/categories", function (req, res) {
     var whereParts = [filter.field + " IN (" + placeholders + ")"];
     var params = filter.values.slice();
     if (level) { whereParts.push("level = ?"); params.push(level); }
+    if (jlptClause) whereParts.push(jlptClause);
     var n = db.prepare("SELECT COUNT(*) AS n FROM words WHERE " + whereParts.join(" AND ")).get(params).n;
     return catRow(c, n);
   });
@@ -146,6 +163,8 @@ router.get("/words", function (req, res) {
   if (pos) { whereParts.push("pos = ?"); params.push(pos); }
   if (group) { whereParts.push("func_group = ?"); params.push(group); }
   if (freq) { whereParts.push("freq_tag = ?"); params.push(freq); }
+  var jlptClause = jlptScopeClause(req.query.jlptScope);
+  if (jlptClause) whereParts.push(jlptClause);
   params.push(limit);
 
   var wordRows = db.prepare(
@@ -277,6 +296,11 @@ router.put("/settings", function (req, res) {
   res.json({ ok: true });
 });
 
+// 每天最多引入这么多张全新卡——不设这个上限的话，到期项一旦占满 limit 新词就完全挤不进来，
+// 到期项少的日子又会一次性涌入几百个新词，两头都不科学（对照 Anki 等主流 SRS 的惯例做法）。
+// 用 progress.reps=1 且 last_review 是今天来判断"今天新引入了几张"，不用额外加字段
+var DEFAULT_DAILY_NEW_CAP = 20;
+
 // ---- 复习：FSRS 排期 ----
 // 到期条目 = (progress.due <= 现在) 或者 (从没复习过、还没有progress记录的词，算作New，立刻可学)
 router.get("/review/due", function (req, res) {
@@ -286,6 +310,7 @@ router.get("/review/due", function (req, res) {
   var level = req.query.level || null;
   var freq = req.query.freq || null;
   var limit = Math.min(parseInt(req.query.limit, 10) || 20, 200);
+  var newCap = Math.min(parseInt(req.query.newCap, 10) || DEFAULT_DAILY_NEW_CAP, 200);
   var nowIso = new Date().toISOString();
 
   // category 参数是 tab id（vocab/grammar/pattern/idiom），要经过 data_filter 转译成真实字段查询，
@@ -303,6 +328,8 @@ router.get("/review/due", function (req, res) {
   if (group) { whereParts.push("w.func_group = ?"); scopeParams.push(group); }
   if (level) { whereParts.push("w.level = ?"); scopeParams.push(level); }
   if (freq) { whereParts.push("w.freq_tag = ?"); scopeParams.push(freq); }
+  var jlptClause = jlptScopeClause(req.query.jlptScope, "w.");
+  if (jlptClause) whereParts.push(jlptClause);
   var scopeWhere = whereParts.length ? whereParts.join(" AND ") : "1=1";
 
   var dueRows = db.prepare(
@@ -312,12 +339,17 @@ router.get("/review/due", function (req, res) {
     "ORDER BY p.due ASC LIMIT ?"
   ).all([nowIso].concat(scopeParams, [limit]));
 
-  var newRows = db.prepare(
+  var todayNewCount = db.prepare(
+    "SELECT COUNT(*) AS n FROM progress WHERE reps = 1 AND date(last_review) = date('now')"
+  ).get().n;
+  var newBudget = Math.max(0, Math.min(newCap - todayNewCount, limit));
+
+  var newRows = newBudget > 0 ? db.prepare(
     "SELECT w.* FROM words w " +
     "LEFT JOIN progress p ON p.word_id = w.id " +
     "WHERE p.word_id IS NULL AND " + scopeWhere + " " +
     "ORDER BY w.id LIMIT ?"
-  ).all(scopeParams.concat([limit]));
+  ).all(scopeParams.concat([newBudget])) : [];
 
   var items = wordRowsBulk(dueRows).map(function (row, i) {
     return Object.assign(row, { isNew: false, due: dueRows[i].p_due });
@@ -331,8 +363,13 @@ router.get("/review/due", function (req, res) {
 // 首页"今日待复习 N 条"卡片用的统计
 router.get("/review/stats", function (req, res) {
   var nowIso = new Date().toISOString();
-  var due = db.prepare("SELECT COUNT(*) AS n FROM progress WHERE due <= ?").get(nowIso).n;
-  var brandNew = db.prepare("SELECT COUNT(*) AS n FROM words w LEFT JOIN progress p ON p.word_id = w.id WHERE p.word_id IS NULL").get().n;
+  var jlptClause = jlptScopeClause(req.query.jlptScope, "w.");
+  var dueWhere = jlptClause
+    ? " JOIN words w ON w.id = progress.word_id WHERE progress.due <= ? AND " + jlptClause
+    : " WHERE due <= ?";
+  var due = db.prepare("SELECT COUNT(*) AS n FROM progress" + dueWhere).get(nowIso).n;
+  var newWhere = "WHERE p.word_id IS NULL" + (jlptClause ? " AND " + jlptClause : "");
+  var brandNew = db.prepare("SELECT COUNT(*) AS n FROM words w LEFT JOIN progress p ON p.word_id = w.id " + newWhere).get().n;
   res.json({ due: due, new: brandNew, total: due + brandNew });
 });
 
@@ -375,6 +412,8 @@ router.get("/mistakes", function (req, res) {
     whereCat = "AND w." + filter.field + " IN (" + placeholders + ")";
     params = filter.values.slice();
   }
+  var mistakesJlptClause = jlptScopeClause(req.query.jlptScope, "w.");
+  if (mistakesJlptClause) whereCat += " AND " + mistakesJlptClause;
   var rows = db.prepare(
     "SELECT w.*, latest.rating FROM words w " +
     "JOIN (" +

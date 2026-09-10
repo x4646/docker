@@ -25,15 +25,18 @@ var FILTER_CONFIG = {
 };
 
 // 频度筛选：所有分类通用（对应 words.freq_tag），没打过频度标签的词条不受这个筛选影响
-var FREQ_ORDER = ["高频", "中频", "低频"];
+// 频度改成1-5分（5=超高频常用，1=几乎不用），比之前"高/中/低"三档更细
+var FREQ_ORDER = ["5", "4", "3", "2", "1"];
+var FREQ_LABEL = { "5": "5分·超高频", "4": "4分", "3": "3分", "2": "2分", "1": "1分·罕用" };
 
 // 通用筛选 chip 行：始终显示固定顺序表里的全部候选值 + "全部"，不再依赖已加载的词条数据来算"哪些值实际出现过"
 // （以前要扫全量 WORDS 才能算，现在词条按分类/等级懒加载，没有全量数据可扫了）
-function filterChipRow(activeValueGetSet, actionName, order) {
+function filterChipRow(activeValueGetSet, actionName, order, labelMap) {
   var active = activeValueGetSet.get();
   var chips = ['<button class="chip ' + (active === "all" ? "active" : "") + '" data-act="' + actionName + '" data-arg="all">全部</button>']
     .concat(order.map(function (p) {
-      return '<button class="chip ' + (active === p ? "active" : "") + '" data-act="' + actionName + '" data-arg="' + p + '">' + p + "</button>";
+      var label = labelMap && labelMap[p] ? labelMap[p] : p;
+      return '<button class="chip ' + (active === p ? "active" : "") + '" data-act="' + actionName + '" data-arg="' + p + '">' + label + "</button>";
     }));
   return '<div class="chip-row" style="margin-bottom:8px">' + chips.join("") + "</div>";
 }
@@ -80,6 +83,7 @@ var state = {
   screen: "home",
   level: "N5",
   theme: "light",
+  uiScale: 1,
   speechRate: 0.9,
   expandedId: null,
   learnCategory: "vocab",
@@ -90,10 +94,11 @@ var state = {
   batchWordsCache: {}, // { batchId: [...词条] }，进某一批时按 id 列表懒加载
   selectingBatch: false,
   posFilter: "all", // 词汇分类选词建批次时的词性筛选，只在 category === "vocab" 时用得上
-  freqFilter: "all", // 选词建批次时的频度筛选（高频/中频/低频/全部），对应 words.freq_tag
+  freqFilter: "all", // 选词建批次时的频度筛选（1-5分/全部），对应 words.freq_score
   batchedFilter: "all", // 选词建批次时按"是否已收录进某个批次"筛：全部/未收录/已收录
   filtersOpen: false, // 筛选面板默认折叠，点开才展开，省地方
   batchesOpen: false, // 已建批次列表默认折叠，点开才展开
+  settingsOpen: false, // 明暗度/语速/手动添加，收在侧边的悬浮设置面板，默认折叠
   levelFilter: [], // 选词建批次时的等级筛选，可勾选多个；空数组 = 不限等级（"全部"）
   visibleLimit: 150, // 选词建批次列表一次最多渲染这么多行，避免筛选"全部"时一次性建上万个DOM节点卡死；筛选变化时重置
   pendingSelection: [],
@@ -127,7 +132,11 @@ var state = {
   reviewLoading: false,
   reviewCategory: "all", // 复习范围：按大类筛，"all" = 不限分类
   reviewFilter: "all", // 复习范围：分类内再按词性/语法功能分类筛（跟词汇/语法页共用 FILTER_CONFIG）
-  reviewLevel: "all" // 复习范围：再按等级筛，跟分类/词性是三个独立维度（/review/due 后端本来就支持不限等级，不受懒加载限制）
+  reviewLevel: "all", // 复习范围：再按等级筛，跟分类/词性是三个独立维度（/review/due 后端本来就支持不限等级，不受懒加载限制）
+  // JLPT范围三态筛选：jlpt=只看官方JLPT范围内容，extra=只看超纲内容，all=不限——影响词汇/语法列表和复习队列
+  // 默认就是 jlpt：数据库里全量语料含大量超纲/低质内容，首页条数/学习入口默认只应体现精简后的真实JLPT范围，
+  // 避免"全部"的虚高总数误导用户对语料规模的判断，"全部"仍可在设置里手动切回
+  jlptScope: "jlpt"
 };
 
 function api(method, path, body) {
@@ -166,12 +175,13 @@ function computeFeedback(input, answer) {
 // level 可以是单个等级字符串，也可以是等级数组（多选，会用逗号拼给后端）或空数组（不限等级）
 function getScopedWords(category, level) {
   var levelKey = Array.isArray(level) ? level.slice().sort().join(",") : level;
-  var key = category + "|" + levelKey;
+  var key = category + "|" + levelKey + "|" + state.jlptScope;
   var cached = state.wordsCache[key];
   if (cached !== undefined) return cached;
   state.wordsCache[key] = null;
   var qs = "/words?category=" + encodeURIComponent(category);
   if (levelKey) qs += "&level=" + encodeURIComponent(levelKey);
+  if (state.jlptScope !== "all") qs += "&jlptScope=" + encodeURIComponent(state.jlptScope);
   api("GET", qs)
     .then(function (list) { state.wordsCache[key] = list; render(); })
     .catch(function () { state.wordsCache[key] = []; render(); });
@@ -183,19 +193,38 @@ function invalidateWordsCache(category) {
   Object.keys(state.wordsCache).forEach(function (k) {
     if (k.indexOf(category + "|") === 0) delete state.wordsCache[k];
   });
-  delete state.allWordsCache[category];
+  Object.keys(state.allWordsCache).forEach(function (k) {
+    if (k.indexOf(category + "|") === 0) delete state.allWordsCache[k];
+  });
+}
+
+// 切换 JLPT 范围三态：清掉所有按分类/等级缓存的词条（缓存键里带了 scope，理论上不用清也不会串数据，
+// 但一次性清空能省内存，也确保马上重新拉取当前 scope 下的数据），批次内容（按id拉）不受影响不用清
+function setJlptScope(scope) {
+  if (scope === state.jlptScope) return;
+  state.jlptScope = scope;
+  state.wordsCache = {};
+  state.allWordsCache = {};
+  state.expandedId = null;
+  saveLocalSetting("jlptScope", scope);
+  loadCategories().then(render);
+  refreshHomeStats();
+  loadReviewQueue();
 }
 
 // ---- 选词建批次页专用：整个分类一次性全量拉回来缓存在浏览器里，之后等级/词性/频度/收录状态
 // 筛选全部在本地做，不用每切一次筛选条件就打一次网络请求——点击筛选 chip 是纯本地重渲染，秒切换，
 // 只有第一次进某个分类时要等一次网络请求（后台异步，加载完 render() 自动刷新，不卡交互） ----
 function getAllScopedWords(category) {
-  var cached = state.allWordsCache[category];
+  var key = category + "|" + state.jlptScope;
+  var cached = state.allWordsCache[key];
   if (cached !== undefined) return cached;
-  state.allWordsCache[category] = null;
-  api("GET", "/words?category=" + encodeURIComponent(category) + "&limit=30000")
-    .then(function (list) { state.allWordsCache[category] = list; render(); })
-    .catch(function () { state.allWordsCache[category] = []; render(); });
+  state.allWordsCache[key] = null;
+  var qs = "/words?category=" + encodeURIComponent(category) + "&limit=30000";
+  if (state.jlptScope !== "all") qs += "&jlptScope=" + encodeURIComponent(state.jlptScope);
+  api("GET", qs)
+    .then(function (list) { state.allWordsCache[key] = list; render(); })
+    .catch(function () { state.allWordsCache[key] = []; render(); });
   return null;
 }
 
@@ -210,10 +239,9 @@ function getBatchWords(batch) {
   return null;
 }
 
+// "返回首页"按钮去掉了——底部tab栏本来就有"首页"入口，重复了
 function backRow() {
-  return '<button class="back-row" data-act="home">' +
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>' +
-    "返回首页</button>";
+  return "";
 }
 
 var lastRenderedKey = null;
@@ -245,10 +273,35 @@ function shellTemplate() {
     '<input type="range" class="rate-slider" data-range-act="setRate" min="0.5" max="1.5" step="0.1" value="' + state.speechRate + '" />' +
     '<span class="mono rate-value">' + state.speechRate.toFixed(1) + "x</span></div>";
 
+  // 明暗度/语速/手动添加，平时只留一个小圆点在右侧边缘，点开才悬浮出设置面板，不占正文空间
+  var scalePct = Math.round(state.uiScale * 100);
+  var uiScaleRow = '<div class="scale-control">' +
+    '<button class="scale-btn" data-act="uiScaleDown" ' + (state.uiScale <= UI_SCALE_MIN ? "disabled" : "") + '>－</button>' +
+    '<span class="scale-value mono" data-act="uiScaleReset" title="点击重置为100%">' + scalePct + "%</span>" +
+    '<button class="scale-btn" data-act="uiScaleUp" ' + (state.uiScale >= UI_SCALE_MAX ? "disabled" : "") + ">＋</button></div>";
+
+  var jlptScopeOpts = [
+    { id: "all", label: "全部内容" },
+    { id: "jlpt", label: "仅JLPT范围" },
+    { id: "extra", label: "仅超纲内容" }
+  ];
+  var jlptScopeSwitch = '<div class="jlpt-scope-switch">' + jlptScopeOpts.map(function (o) {
+    return '<button class="jlpt-scope-btn ' + (state.jlptScope === o.id ? "active" : "") + '" data-act="setJlptScope" data-arg="' + o.id + '">' + o.label + "</button>";
+  }).join("") + "</div>";
+
+  var settingsPanel = state.settingsOpen
+    ? ('<div class="dock-panel settings-dock-panel">' +
+       '<div class="theme-switch">' + themeBtns + "</div>" + rateSlider + uiScaleRow +
+       '<div class="settings-label">词汇/语法范围</div>' + jlptScopeSwitch +
+       '<button class="add-btn" data-act="openAdd">+ 手动添加</button></div>')
+    : "";
+  var settingsDock = '<div class="side-dock settings-dock">' +
+    '<button class="dock-toggle ' + (state.settingsOpen ? "active" : "") + '" data-act="toggleSettingsOpen">⚙</button>' +
+    settingsPanel + "</div>";
+
   return '<div class="app-header"><div class="mark">日々<span class="dot">・</span>学び</div>' +
     '<div class="streak">已连续学习 <b class="mono">12</b> 天</div></div>' +
-    '<div class="toolbar"><div class="theme-switch">' + themeBtns + "</div>" + rateSlider +
-    '<button class="add-btn" data-act="openAdd">+ 手动添加</button></div>' +
+    settingsDock +
     '<div class="app-content">' + screenWrap + "</div>" +
     '<div class="tab-bar">' +
     '<button class="tab-btn ' + (state.screen === "home" ? "active" : "") + '" data-act="home"><div class="tab-glyph">家</div><div class="tab-label">首页</div></button>' +
@@ -327,11 +380,16 @@ function speakJapanese(text) {
   } catch (e) {}
 }
 
+function playBtnHtml(id, kana, kanji, pulsing) {
+  return '<button class="play-btn ' + (pulsing ? "pulsing" : "") + '" data-act="playWord" data-arg="' + id + '" data-speak="' + (kana || kanji) + '">' +
+    '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>标准朗读</button>';
+}
+
 function onAction(e) {
   var act = e.currentTarget.getAttribute("data-act");
   if (act === "closeAddOverlay" && e.target !== e.currentTarget) return;
   var arg = e.currentTarget.getAttribute("data-arg");
-  if (act === "playWord") { handle(act, arg, e.currentTarget.getAttribute("data-speak")); return; }
+  if (act === "playWord") { e.stopPropagation(); handle(act, arg, e.currentTarget.getAttribute("data-speak")); return; }
   handle(act, arg);
 }
 
@@ -362,7 +420,7 @@ function handle(act, arg, extra) {
     case "setReviewLevel": state.reviewLevel = arg; loadReviewQueue(); return;
     case "mistakes": enterMistakes(); return;
     case "pickLevel": pickLevel(arg); return;
-    case "pickCat": state.screen = "learn"; state.learnCategory = arg; state.learnBatch = null; state.selectingBatch = false; state.pendingRemoval = []; state.posFilter = "all"; state.freqFilter = "all"; state.batchedFilter = "all"; state.levelFilter = []; state.visibleLimit = 150; break;
+    case "pickCat": state.screen = "learn"; state.learnCategory = arg; state.learnBatch = null; state.selectingBatch = false; state.pendingRemoval = []; state.posFilter = "all"; state.freqFilter = "all"; state.batchedFilter = "all"; state.levelFilter = []; state.visibleLimit = 150; saveLocalSetting("learnCategory", arg); break;
     case "pickBatch": state.learnBatch = parseInt(arg, 10); state.pendingRemoval = []; break;
     case "backToBatches": state.learnBatch = null; state.pendingRemoval = []; break;
     case "setPosFilter": state.posFilter = arg; state.visibleLimit = 150; break;
@@ -370,6 +428,7 @@ function handle(act, arg, extra) {
     case "setBatchedFilter": state.batchedFilter = arg; state.visibleLimit = 150; break;
     case "toggleFiltersOpen": state.filtersOpen = !state.filtersOpen; break;
     case "toggleBatchesOpen": state.batchesOpen = !state.batchesOpen; break;
+    case "toggleSettingsOpen": state.settingsOpen = !state.settingsOpen; break;
     case "loadMoreVisible": state.visibleLimit += 300; break;
     case "toggleLevelFilter":
       if (arg === "all") { state.levelFilter = []; }
@@ -419,7 +478,7 @@ function handle(act, arg, extra) {
       pulse("playPulse", 900);
       return;
     case "flip": state.flashFlipped = !state.flashFlipped; break;
-    case "rate": state.qIndex += 1; state.flashFlipped = false; break;
+    case "rate": submitTestRating(arg); return;
     case "playShadow":
       speakJapanese("きょうはてんきがいいです");
       pulse("shadowPlaying", 1200);
@@ -427,6 +486,10 @@ function handle(act, arg, extra) {
     case "toggleRecord": doToggleRecord(); return;
     case "resetShadow": state.shadowResult = null; break;
     case "setTheme": setTheme(arg); break;
+    case "setJlptScope": setJlptScope(arg); break;
+    case "uiScaleUp": setUiScale(state.uiScale + UI_SCALE_STEP); break;
+    case "uiScaleDown": setUiScale(state.uiScale - UI_SCALE_STEP); break;
+    case "uiScaleReset": setUiScale(1); break;
     case "openAdd": state.showAddModal = true; state.addError = null; state.enrichNote = false; break;
     case "closeAdd": case "closeAddOverlay": state.showAddModal = false; state.addError = null; break;
     case "stubEnrich": state.enrichNote = true; break;
@@ -458,36 +521,74 @@ function pickLevel(id) {
   state.flashFlipped = false;
   state.batchesCache = {};
   render();
-  api("PUT", "/settings", { level: id }).catch(function () {});
+  saveLocalSetting("level", id);
 }
 
 function setTheme(id) {
   state.theme = id;
   document.documentElement.setAttribute("data-theme", id);
-  api("PUT", "/settings", { theme: id }).catch(function () {});
+  saveLocalSetting("theme", id);
 }
 
 function setSpeechRate(v) {
   state.speechRate = v;
-  api("PUT", "/settings", { speechRate: v }).catch(function () {});
+  saveLocalSetting("speechRate", v);
+}
+
+// UI 放大缩小：改 html 根字号，配合全站 rem 单位整体缩放（不需要改任何组件样式）。
+// 纯前端偏好，跟主题/语速不同——不需要跨设备同步，存本机 localStorage 就够，读取失败也不影响功能
+var UI_SCALE_MIN = 0.8, UI_SCALE_MAX = 1.5, UI_SCALE_STEP = 0.1;
+function applyUiScale() {
+  document.documentElement.style.fontSize = (state.uiScale * 100) + "%";
+}
+function setUiScale(v) {
+  var clamped = Math.min(UI_SCALE_MAX, Math.max(UI_SCALE_MIN, Math.round(v * 10) / 10));
+  state.uiScale = clamped;
+  applyUiScale();
+  try { localStorage.setItem("jlpter_ui_scale", String(clamped)); } catch (e) {}
+}
+function loadUiScale() {
+  try {
+    var saved = parseFloat(localStorage.getItem("jlpter_ui_scale"));
+    if (saved && saved >= UI_SCALE_MIN && saved <= UI_SCALE_MAX) state.uiScale = saved;
+  } catch (e) {}
+  applyUiScale();
+}
+
+// 明暗度/语速/等级/学习分类这几项设置改成存本机 localStorage，不再存后端数据库——
+// 每个浏览器/设备保留各自独立的设置，不跨设备同步（跟上面的 UI 缩放是同一套思路）
+var LOCAL_SETTINGS_PREFIX = "jlpter_setting_";
+function saveLocalSetting(key, value) {
+  try { localStorage.setItem(LOCAL_SETTINGS_PREFIX + key, JSON.stringify(value)); } catch (e) {}
+}
+function readLocalSetting(key) {
+  try {
+    var raw = localStorage.getItem(LOCAL_SETTINGS_PREFIX + key);
+    return raw === null ? undefined : JSON.parse(raw);
+  } catch (e) { return undefined; }
 }
 
 function loadSettings() {
-  return api("GET", "/settings").then(function (s) {
-    if (s.theme) state.theme = s.theme;
-    if (typeof s.speechRate === "number") state.speechRate = s.speechRate;
-    if (s.level) state.level = s.level;
-    if (s.learnCategory) state.learnCategory = s.learnCategory;
-    state.levelFilter = [];
-    document.documentElement.setAttribute("data-theme", state.theme);
-  }).catch(function () {
-    document.documentElement.setAttribute("data-theme", state.theme);
-  });
+  var theme = readLocalSetting("theme");
+  var speechRate = readLocalSetting("speechRate");
+  var level = readLocalSetting("level");
+  var learnCategory = readLocalSetting("learnCategory");
+  var jlptScope = readLocalSetting("jlptScope");
+  if (theme) state.theme = theme;
+  if (typeof speechRate === "number") state.speechRate = speechRate;
+  if (level) state.level = level;
+  if (learnCategory) state.learnCategory = learnCategory;
+  if (jlptScope === "jlpt" || jlptScope === "extra" || jlptScope === "all") state.jlptScope = jlptScope;
+  state.levelFilter = [];
+  document.documentElement.setAttribute("data-theme", state.theme);
+  return Promise.resolve();
 }
 
 // 首页只需要分类信息 + 条数，不带任何词条内容——这是"秒开"的关键，跟之前一次性拉全量语料的 loadCorpus() 换掉了
 function loadCategories() {
-  return api("GET", "/categories").then(function (data) {
+  var qs = "/categories";
+  if (state.jlptScope !== "all") qs += "?jlptScope=" + encodeURIComponent(state.jlptScope);
+  return api("GET", qs).then(function (data) {
     CATEGORIES = data || [];
   }).catch(function (err) {
     document.getElementById("root").innerHTML =
@@ -498,9 +599,10 @@ function loadCategories() {
 }
 
 function refreshHomeStats() {
+  var scopeQs = state.jlptScope !== "all" ? "?jlptScope=" + encodeURIComponent(state.jlptScope) : "";
   Promise.all([
-    api("GET", "/review/stats"),
-    api("GET", "/mistakes")
+    api("GET", "/review/stats" + scopeQs),
+    api("GET", "/mistakes" + scopeQs)
   ]).then(function (results) {
     state.homeStats = {
       due: results[0].due, new: results[0].new, total: results[0].total,

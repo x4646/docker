@@ -151,6 +151,12 @@ CREATE TABLE IF NOT EXISTS material_entries (
   // category 继续是历史上写入的原始分类，ling_type 才是决定"该展示在哪个 tab"的依据，
   // 这样以后调整展示归类只用改 words.ling_type / categories.data_filter，不用碰前端代码
   if (cols.indexOf("ling_type") === -1) add.push("ALTER TABLE words ADD COLUMN ling_type TEXT");
+  // freq_tag(高/中/低)三档太粗——改成1-5分的freq_score，5=超高频常用，1=几乎不用；
+  // freq_tag 先留着不删，前端还没切过去，切完之后可以单独清理
+  if (cols.indexOf("freq_score") === -1) add.push("ALTER TABLE words ADD COLUMN freq_score INTEGER");
+  // is_jlpt：用官方JLPT词表/语法表校准过——1=命中官方范围（level 字段是官方等级，可信），
+  // 0=没命中（大概率是历史数据混入的"超纲"内容，level 字段不一定准，前端应显示"超纲"而不是等级）
+  if (cols.indexOf("is_jlpt") === -1) add.push("ALTER TABLE words ADD COLUMN is_jlpt INTEGER DEFAULT 0");
   add.forEach(function (sql) { db.exec(sql); });
   if (add.length) console.log("[svc-jp] migrated words table, added columns:", add.length);
 })();

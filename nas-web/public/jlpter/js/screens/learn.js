@@ -22,14 +22,15 @@ function wordRowsTemplate(items, opts) {
         : ((w.needsExample || w.needsExample2) ? '<div class="example-missing">例句待补充</div>' : "");
       detail = '<div class="word-detail">' +
         (w.en ? ('<div class="row"><span class="k">英文</span><span>' + w.en + "</span></div>") : "") +
+        (w.etymologyNote ? ('<div class="mnemonic-box"><div class="mnemonic-label">记忆技巧</div>' + w.etymologyNote + "</div>") : "") +
         exampleBlock +
-        '<button class="play-btn ' + (pulsing ? "pulsing" : "") + '" data-act="playWord" data-arg="' + w.id + '" data-speak="' + (w.kana || w.kanji) + '">' +
-        '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>标准朗读</button>' +
+        playBtnHtml(w.id, w.kana, w.kanji, pulsing) +
         "</div>";
     }
     var head = '<div class="word-head" data-act="toggleWord" data-arg="' + w.id + '">' +
       '<div><span class="word-jp">' + jpHead + "</span>" +
       (w.pos ? ('<span class="word-pos">' + w.pos + "</span>") : "") +
+      (w.isJlpt ? ('<span class="jlpt-badge in-scope">' + (w.level || "JLPT") + "</span>") : '<span class="jlpt-badge extra-scope">超纲</span>') +
       (w.custom ? '<span class="custom-badge">自定义</span>' : "") +
       '<div class="word-cn">' + (w.cn || "（未填写中文）") + "</div></div></div>";
 
@@ -63,7 +64,7 @@ function currentSelectableItems() {
   if (state.levelFilter.length > 0) out = out.filter(function (w) { return state.levelFilter.indexOf(w.level) !== -1; });
   var filterCfg = FILTER_CONFIG[cat.id];
   if (filterCfg && state.posFilter !== "all") out = out.filter(function (w) { return w[filterCfg.field] === state.posFilter; });
-  if (state.freqFilter !== "all") out = out.filter(function (w) { return w.freqTag === state.freqFilter; });
+  if (state.freqFilter !== "all") out = out.filter(function (w) { return String(w.freqScore) === state.freqFilter; });
   return out;
 }
 
@@ -83,22 +84,17 @@ function loadBatches(catId) {
 function batchListTemplate(cat, items, batches) {
   var used = batchedIdSet(batches);
 
-  // 已建批次：默认折叠成一行摘要，点开才展开瓷砖列表——批次一多就很占地方，平时用不着老看着
-  var batchesToggle = "";
+  // 已建批次：收在侧边坞里，平时只是个圆按钮，点开才悬浮出列表——瓷砖网格在窄悬浮框里挤成一团不好看，
+  // 改成竖排列表，每行一个批次，跟词条行同一套视觉语言
   var batchTilesPanel = "";
-  if (batches.length > 0) {
-    batchesToggle = '<button class="collapse-toggle" data-act="toggleBatchesOpen">' +
-      (state.batchesOpen ? "▾" : "▸") + " 已建 " + batches.length + " 批</button>";
-    if (state.batchesOpen) {
-      var tiles = batches.map(function (b, idx) {
-        var label = b.name ? b.name : ("第 " + (idx + 1) + " 批");
-        return '<div class="tile" data-act="pickBatch" data-arg="' + b.id + '">' +
-          '<div class="glyph" style="background:var(--indigo-tint);color:var(--indigo)">' + (idx + 1) + "</div>" +
-          '<div class="name">' + label + "</div>" +
-          '<div class="count mono">' + b.count + " 条</div></div>";
-      }).join("");
-      batchTilesPanel = '<div class="tile-grid" style="margin-top:8px">' + tiles + "</div>";
-    }
+  if (batches.length > 0 && state.batchesOpen) {
+    var tiles = batches.map(function (b, idx) {
+      var label = b.name ? b.name : ("第 " + (idx + 1) + " 批");
+      return '<div class="dock-list-row" data-act="pickBatch" data-arg="' + b.id + '">' +
+        '<div class="glyph" style="background:var(--indigo-tint);color:var(--indigo)">' + (idx + 1) + "</div>" +
+        '<div class="dock-list-body"><div class="name">' + label + '</div><div class="count mono">' + b.count + " 条</div></div></div>";
+    }).join("");
+    batchTilesPanel = '<div class="dock-panel batches-dock-panel">' + tiles + "</div>";
   }
 
   // 词条多的分类（词汇按词性、语法/句型按功能分类）加一排筛选方便挑词；其它分类条目不多，不显示
@@ -110,10 +106,10 @@ function batchListTemplate(cat, items, batches) {
       "setPosFilter", filterCfg.order
     );
   }
-  // 频度筛选：所有分类通用，没打过标签的词条不受影响（筛"全部"时照常显示）
+  // 频度筛选：1-5分，所有分类通用，没打过分的词条不受影响（筛"全部"时照常显示）
   var freqRow = filterChipRow(
     { get: function () { return state.freqFilter; }, set: function (v) { state.freqFilter = v; } },
-    "setFreqFilter", FREQ_ORDER
+    "setFreqFilter", FREQ_ORDER, FREQ_LABEL
   );
   // 收录状态筛选：看哪些词已经被收进批次了、哪些还没有——不影响勾选逻辑，纯粹是个查看用的筛选维度
   var batchedRow = filterChipRow(
@@ -124,19 +120,17 @@ function batchListTemplate(cat, items, batches) {
   // 等级筛选：现在整分类已经全量缓存在浏览器里了，勾选只是本地过滤，不再触发网络请求
   var levelRow = levelFilterCheckboxRow(state.levelFilter);
 
-  // 筛选面板整体默认折叠，收起来只留一行"筛选 ▸"，点开才展开四排筛选 chip——平时不用天天盯着这些筛选项
+  // 筛选面板收在侧边坞里，平时只留一个圆按钮，点开才悬浮出四排筛选 chip 盖在正文上——不用天天盯着这些筛选项
   var activeFilterCount = (state.levelFilter.length > 0 ? 1 : 0) + (state.posFilter !== "all" ? 1 : 0) +
     (state.freqFilter !== "all" ? 1 : 0) + (state.batchedFilter !== "all" ? 1 : 0);
-  var filtersToggle = '<button class="collapse-toggle" data-act="toggleFiltersOpen">' +
-    (state.filtersOpen ? "▾" : "▸") + " 筛选" + (activeFilterCount > 0 ? "（" + activeFilterCount + "）" : "") + "</button>";
   var filtersPanel = state.filtersOpen
-    ? ('<div style="margin-top:8px">' + levelRow + filterRow + freqRow + batchedRow + "</div>")
+    ? ('<div class="dock-panel filters-dock-panel">' + levelRow + filterRow + freqRow + batchedRow + "</div>")
     : "";
 
   var visible = items;
   if (state.levelFilter.length > 0) visible = visible.filter(function (w) { return state.levelFilter.indexOf(w.level) !== -1; });
   if (filterCfg && state.posFilter !== "all") visible = visible.filter(function (w) { return w[filterCfg.field] === state.posFilter; });
-  if (state.freqFilter !== "all") visible = visible.filter(function (w) { return w.freqTag === state.freqFilter; });
+  if (state.freqFilter !== "all") visible = visible.filter(function (w) { return String(w.freqScore) === state.freqFilter; });
   if (state.batchedFilter === "已收录") visible = visible.filter(function (w) { return !!used[String(w.id)]; });
   else if (state.batchedFilter === "未收录") visible = visible.filter(function (w) { return !used[String(w.id)]; });
 
@@ -171,11 +165,15 @@ function batchListTemplate(cat, items, batches) {
     var jpHead = w.kana ? ("<ruby>" + w.kanji + "<rt>" + w.kana + "</rt></ruby>") : w.kanji;
     var cls = "select-row" + (checked ? " checked" : "") + (isUsed ? " used-row" : "");
     var checkAct = isUsed ? "" : ' data-act="toggleSelect" data-arg="' + id + '"';
+    var pulsing = state.wordPlayPulseId === id;
     var detail = expanded
       ? ((w.pos ? ('<span class="word-pos">' + w.pos + "</span>") : "") +
-         (w.freqTag ? ('<span class="word-pos">' + w.freqTag + "</span>") : "") +
+         (w.freqScore ? ('<span class="word-pos">' + w.freqScore + "分</span>") : "") +
+         (w.isJlpt ? ('<span class="jlpt-badge in-scope">' + (w.level || "JLPT") + "</span>") : '<span class="jlpt-badge extra-scope">超纲</span>') +
          (isUsed ? '<span class="used-badge">已收录</span>' : "") +
-         '<div class="word-cn">' + (w.cn || "") + "</div>")
+         '<div class="word-cn">' + (w.cn || "") + "</div>" +
+         (w.etymologyNote ? ('<div class="mnemonic-box"><div class="mnemonic-label">记忆技巧</div>' + w.etymologyNote + "</div>") : "") +
+         playBtnHtml(w.id, w.kana, w.kanji, pulsing))
       : "";
     return '<div class="' + cls + '">' +
       '<div class="select-box"' + checkAct + '>' + (checked ? "✓" : "") + "</div>" +
@@ -187,20 +185,31 @@ function batchListTemplate(cat, items, batches) {
 
   // 创建批次的按钮是页面上最先出现的可交互元素，不被筛选行/已建批次挤到中间——列表可能有上百条，
   // 用户先勾选完想立刻点，不用先滚过一堆筛选UI
-  var header = backRow() +
-    '<button class="primary-btn" data-act="confirmSelectBatch"' + confirmDisabled + ">创建批次（" + state.pendingSelection.length + " 条）</button>" +
-    '<div><h1 class="screen-title">' + cat.name + "</h1><p class=\"screen-sub\">共 " + items.length + " 条 · 已选 " + state.pendingSelection.length +
-    " · 当前筛选 " + visible.length + " 条（可选 " + selectableVisible.length + "）</p></div>" +
-    '<div style="display:flex; gap:10px; margin-top:6px">' + filtersToggle + batchesToggle + "</div>" +
-    filtersPanel + batchTilesPanel;
+  // 创建批次/筛选/已建批次这三个操作都收进屏幕右侧的悬浮坞——创建批次直接点按钮就触发，
+  // 筛选和已建批次点开才悬浮出面板，平时都只是贴边的小圆按钮，不占正文空间。
+  // 外面套一层零高度的 sticky 锚点，让这坨按钮滚动时跟着"钉"在可视区右上角，而不是被内容推走
+  var dock = '<div class="side-dock-anchor"><div class="side-dock learn-dock">' +
+    '<button class="dock-toggle" data-act="confirmSelectBatch"' + confirmDisabled + ' title="创建批次">建' +
+    (state.pendingSelection.length > 0 ? ('<span class="dock-badge">' + state.pendingSelection.length + "</span>") : "") + "</button>" +
+    '<button class="dock-toggle ' + (state.filtersOpen ? "active" : "") + '" data-act="toggleFiltersOpen" title="筛选">筛' +
+    (activeFilterCount > 0 ? ('<span class="dock-badge">' + activeFilterCount + "</span>") : "") + "</button>" + filtersPanel +
+    (batches.length > 0
+      ? ('<button class="dock-toggle ' + (state.batchesOpen ? "active" : "") + '" data-act="toggleBatchesOpen" title="已建批次">批' +
+         '<span class="dock-badge">' + batches.length + "</span></button>" + batchTilesPanel)
+      : "") +
+    "</div></div>";
 
+  var header = '<div class="screen-head-dock-gap"><h1 class="screen-title">' + cat.name + "</h1><p class=\"screen-sub\">共 " + items.length + " 条 · 已选 " + state.pendingSelection.length +
+    " · 当前筛选 " + visible.length + " 条（可选 " + selectableVisible.length + "）</p></div>";
+
+  // 全选行跟标题一起放进 sticky-top，滚动列表时它跟标题一样钉在顶部，不会被滚出屏幕
   if (visible.length === 0) {
-    return '<div class="sticky-top">' + header + "</div>" +
+    return dock + '<div class="sticky-top">' + header + "</div>" +
       '<div class="empty-state">这个筛选条件下没有词条</div>';
   }
 
-  return '<div class="sticky-top">' + header + "</div>" +
-    '<div style="display:flex; flex-direction:column; gap:8px; margin-top:10px">' + selectAllRow + rows + "</div>" + loadMoreRow;
+  return dock + '<div class="sticky-top">' + header + selectAllRow + "</div>" +
+    '<div style="display:flex; flex-direction:column; gap:8px; margin-top:10px">' + rows + "</div>" + loadMoreRow;
 }
 
 function learnTemplate() {
