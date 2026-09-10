@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>媒体管理</title>
+
+<link rel="stylesheet" href="/common/css/dir-tree.css">
+<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="/common/css/file-browser.css">
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="nav-logo">🖼 媒体管理</div>
+  <div class="nav-tabs">
+    <button class="nav-tab"        id="tab-dirs"      onclick="switchTab('dirs')" active>📁 NAS目录</button>
+    <button class="nav-tab"        id="tab-pc"        onclick="switchTab('pc')">💻 PC目录</button>
+    <button class="nav-tab"        id="tab-playlists" onclick="switchTab('playlists')">🎵 播放列表</button>
+    <button class="nav-tab"        id="tab-settings"  onclick="switchTab('settings')">⚙️ 设置</button>
+    <button class="nav-tab"        id="tab-roles"     onclick="switchTab('roles')">👤 角色管理</button>
+  </div>
+</nav>
+
+<div class="main">
+  <!-- 目录页 -->
+  <div id="page-dirs">
+    <div class="card">
+      <div class="card-title">
+        📁 监控目录
+        <button class="btn btn-primary" onclick="openAddDirBrowser()">＋ 添加目录</button>
+      </div>
+      <div class="dir-list" id="dir-list"></div>
+    </div>
+  </div>
+
+
+  <!-- PC目录页 -->
+  <div id="page-pc" style="display:none">
+    <div class="card">
+      <div id="pc-root-list"></div>
+    </div>
+  </div>
+
+  
+  <!-- 播放列表页 -->
+  <div id="page-playlists" style="display:none">
+    <div class="card">
+      <div class="card-title">
+        🎵 播放列表
+        <button class="btn btn-primary" onclick="openAddPlaylistModal()">＋ 新建列表</button>
+      </div>
+      <div class="playlist-list" id="playlist-list"></div>
+    </div>
+  </div>
+
+  <!-- 设置页 -->
+  <div id="page-settings" style="display:none">
+    <div class="card" style="margin-bottom:12px">
+      <div class="card-title">🌐 系统配置</div>
+      <div class="form-group">
+        <label class="form-label">NAS IP地址</label>
+        <input class="form-input" id="cfg-nas-ip" placeholder="192.168.0.3">
+      </div>
+      <div class="form-group">
+        <label class="form-label">NAS SMB主机名</label>
+        <input class="form-input" id="cfg-smb-host" placeholder="whfnas">
+      </div>
+      <div class="form-group">
+        <label class="form-label">nas-pipe端口</label>
+        <input class="form-input" id="cfg-pipe-port" placeholder="3030">
+      </div>
+      <div class="form-group">
+        <label class="form-label">svc-photo端口</label>
+        <input class="form-input" id="cfg-indexer-port" placeholder="3050">
+      </div>
+      <div class="form-group">
+        <label class="form-label">nas-sync端口</label>
+        <input class="form-input" id="cfg-sync-port" placeholder="3040">
+      </div>
+      <button class="btn btn-primary" onclick="saveSysConfig()">保存配置</button>
+    </div>
+<div class="card">
+      <div class="card-title">⚙️ 文件浏览器根目录</div>
+      <div id="browser-roots-list"></div>
+      <div style="margin-top:12px;display:flex;gap:8px">
+        <button class="btn btn-primary" onclick="openAddRootBrowser()">＋ 添加NAS根目录</button>
+      </div>
+    </div>
+    <div class="card" style="margin-top:12px">
+      <div class="card-title">🎵 音乐设置</div>
+      <div class="form-group">
+        <label class="form-label">播放模式</label>
+        <select class="form-input" id="music-mode">
+          <option value="shuffle">🔀 随机</option>
+          <option value="order">▶ 顺序</option>
+          <option value="repeat">🔁 单曲循环</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">音量</label>
+        <input type="range" min="0" max="1" step="0.05" id="music-volume" style="width:200px;accent-color:#40d0ff">
+        <span id="music-volume-val" style="font-size:.8rem;color:#507090;margin-left:8px">60%</span>
+      </div>
+      <div class="form-group">
+        <label class="form-label">
+          <input type="checkbox" id="music-autoplay" style="margin-right:6px">
+          进入看图模式自动播放
+        </label>
+      </div>
+      <button class="btn btn-primary" onclick="saveMusicSettings()">保存</button>
+    </div>
+  <div class="card" style="margin-top:12px">
+    <div class="card-title">🏷 标签词表管理</div>
+    <div id="tag-vocab-status" style="font-size:.78rem;color:#8fa8c4;margin-bottom:8px">加载中...</div>
+    <textarea id="tag-vocab-json" placeholder='{"标签1":"english desc"}' style="width:100%;height:200px;background:#182535;border:1px solid #263548;border-radius:6px;color:#f0f6ff;padding:10px;font-family:monospace;font-size:.8rem"></textarea>
+    <button class="btn btn-primary" style="margin-top:10px" onclick="importTagVocab()">导入词表(覆盖现有)</button>
+  </div>
+  </div>
+</div>
+  <div id="page-roles" style="display:none">
+    <div class="card">
+      <div class="card-title">👤 角色管理</div>
+      <div style="font-size:.78rem;color:#8fa8c4;margin-bottom:12px">每个角色登录viewer时,只能看到勾选的根目录。角色之间不需要密码,是轻量身份切换。</div>
+      <div id="roles-list"></div>
+      <div style="margin-top:12px"><button class="btn btn-primary" onclick="openCreateRole()">＋ 新建角色</button></div>
+    </div>
+  </div>
+
+<!-- 新建播放列表 Modal -->
+<div class="modal-overlay" id="pl-modal">
+  <div class="modal">
+    <div class="modal-title">新建播放列表</div>
+    <div class="form-group">
+      <label class="form-label">列表名称</label>
+      <input class="form-input" id="pl-name" placeholder="例：看图BGM">
+    </div>
+    <div class="modal-actions">
+      <button class="btn-primary" onclick="confirmAddPlaylist()">创建</button>
+      <button class="btn-cancel"  onclick="closePlModal()">取消</button>
+    </div>
+  </div>
+</div>
+
+<!-- 编辑播放列表 Modal -->
+<div class="modal-overlay" id="edit-pl-modal">
+  <div class="modal" style="max-width:700px">
+    <div class="modal-title" id="edit-pl-title">编辑播放列表</div>
+    <div style="margin-bottom:10px;display:flex;gap:8px">
+      <button class="btn btn-primary" onclick="openSongPicker()">＋ 添加音乐</button>
+      <button class="btn-sm" onclick="closeEditPlModal()">关闭</button>
+    </div>
+    <div class="song-list" id="song-list"></div>
+  </div>
+</div>
+
+<!-- 歌曲选择器 -->
+<div class="modal-overlay" id="song-picker-modal">
+  <div class="modal" style="max-width:900px;width:92%">
+    <div class="modal-title" id="song-picker-title">添加歌曲</div>
+    <div style="margin-bottom:10px">
+      <input id="song-search" placeholder="🔍 搜索歌名(搜索全部音乐)" style="width:100%;background:#182535;border:1px solid #263548;border-radius:6px;color:#f0f6ff;padding:8px 12px;font-size:.85rem" oninput="filterPickerSongs()">
+    </div>
+    <div style="display:flex;gap:12px;height:400px">
+      <div style="width:260px;display:flex;flex-direction:column;border:1px solid #263548;border-radius:8px;overflow:hidden">
+        <div style="padding:8px 12px;font-size:.74rem;color:#507090;border-bottom:1px solid #263548">音乐目录</div>
+        <div id="song-picker-tree" style="flex:1;overflow:auto;padding:6px"></div>
+        <label style="padding:8px 12px;font-size:.74rem;color:#8fa8c4;border-top:1px solid #263548;cursor:pointer">
+          <input type="checkbox" id="song-picker-recursive" onchange="loadPickerSongs()" style="margin-right:6px">含子目录
+        </label>
+      </div>
+      <div style="flex:1;display:flex;flex-direction:column;border:1px solid #263548;border-radius:8px;overflow:hidden">
+        <div style="padding:8px 12px;font-size:.74rem;color:#507090;border-bottom:1px solid #263548;display:flex;justify-content:space-between">
+          <span id="song-picker-dir">/share/Media/音乐</span>
+          <span><a onclick="pickerSelectAll(true)" style="color:#40d0ff;cursor:pointer">全选</a> · <a onclick="pickerSelectAll(false)" style="color:#40d0ff;cursor:pointer">清空</a></span>
+        </div>
+        <div id="song-picker-list" style="flex:1;overflow:auto;padding:4px"></div>
+      </div>
+    </div>
+    <div class="modal-actions" style="margin-top:12px;display:flex;justify-content:space-between;align-items:center">
+      <span style="font-size:.8rem;color:#40d0ff">已选 <span id="song-picker-count">0</span> 首</span>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-primary" onclick="confirmAddSongs()">添加到歌单</button>
+        <button class="btn-cancel" onclick="closeSongPicker()">取消</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="/common/api-fetch.js"></script>
+<script src="/common/progress-modal.js"></script>
+<script src="/common/file-browser.js"></script>
+<script src="/common/local-cache.js"></script>
+<script src="/common/dir-tree-widget.js"></script>
+<script src="/common/dir-tree-actions.js"></script> 
+<script src="js/error_list_page.js"></script>
+<script src="js/admin.js"></script>
+
+</body>
+</html>

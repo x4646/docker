@@ -1,0 +1,458 @@
+:root{
+  --bg:#0b1219; --surface:#141d29; --surface2:#182535;
+  --border:#2a3d55; --accent:#40d0ff;
+  --text:#f0f6ff; --text2:#8aa8c8; --text3:#507090;
+  --danger:#ff5567;
+}
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--bg); color:var(--text);
+  font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif;
+  -webkit-tap-highlight-color:transparent;
+}
+button,input{font-family:inherit}
+
+/* ── 顶栏 ── */
+.hd{
+  display:flex; align-items:center; gap:10px;
+  padding:0 14px; height:52px;
+  background:var(--surface); border-bottom:1px solid var(--border);
+  position:sticky; top:0; z-index:50;
+}
+.hd-title{font-size:.95rem; font-weight:700; color:var(--accent); white-space:nowrap}
+.hd-stats{font-size:.72rem; color:var(--text3); white-space:nowrap}
+.hd-spacer{flex:1}
+.hd-search{
+  width:200px; padding:6px 10px;
+  background:var(--bg); border:1px solid var(--border); border-radius:6px;
+  color:var(--text); font-size:.78rem;
+}
+.hd-search:focus{outline:none; border-color:var(--accent)}
+.hd-btn{
+  padding:6px 12px; border-radius:6px; cursor:pointer; white-space:nowrap;
+  background:transparent; border:1px solid var(--border);
+  color:var(--text2); font-size:.76rem; text-decoration:none;
+  display:inline-flex; align-items:center;
+}
+.hd-btn:hover{border-color:var(--accent); color:var(--accent)}
+.hd-btn.on{background:var(--accent); color:#04121c; border-color:var(--accent)}
+
+/* ── 筛选栏 ── */
+.filters{
+  display:flex; align-items:center; gap:6px; flex-wrap:wrap;
+  padding:8px 14px; background:var(--surface);
+  border-bottom:1px solid var(--border);
+  position:sticky; top:52px; z-index:49;
+}
+/* 排序区(2026-08-13加, 独立在筛选栏下面, 不算筛选条件) */
+.filter-modal{ display:contents; }   /* 2026-08-13: 桌面端隐身, 移动端媒体查询里会重新定义成真正的模态容器 */
+.sort-bar{
+  display:flex; align-items:center; gap:6px; flex-wrap:wrap;
+  padding:6px 14px; background:var(--surface);
+  border-bottom:1px solid var(--border);
+  position:sticky; top:96px; z-index:48;
+}
+.sort-chip{ transition:transform .18s ease; will-change:transform; cursor:grab; }
+.sort-chip.dragging{ opacity:.55; cursor:grabbing; transform:scale(1.06); box-shadow:0 3px 10px rgba(0,0,0,.4); }
+.sort-chip b{ margin-right:2px; opacity:.75; }
+
+.chip{
+  padding:4px 11px; border-radius:12px; cursor:pointer; user-select:none;
+  background:rgba(64,208,255,.08); border:1px solid rgba(64,208,255,.28);
+  font-size:.72rem; color:var(--accent);
+}
+.chip.on{background:var(--accent); color:#04121c; border-color:var(--accent); font-weight:700}
+.chip.dim{opacity:.4}
+.chip.ghost{background:transparent; border-style:dashed; color:var(--text2)}
+.chip small{color:var(--text3); margin-left:4px}
+.chip.on small{color:rgba(4,18,28,.6)}
+.sep{width:1px; height:18px; background:var(--border); margin:0 3px}
+
+/* ── 更多筛选面板(文件名/文件夹名/大小/时长/标签) ── */
+.more-filters{
+  display:none; flex-direction:column; gap:10px;
+  padding:12px 14px; background:var(--surface);
+  border-bottom:1px solid var(--border);
+  max-height:320px; overflow-y:auto;   /* 2026-08-13: 限高+可滚动 */
+  scrollbar-width:none;                /* Firefox: 隐藏滚动条但保留可滚动 */
+  -ms-overflow-style:none;             /* 旧版Edge/IE */
+}
+.more-filters::-webkit-scrollbar{ display:none; }   /* Chrome/Safari/新版Edge */
+.more-filters.show{ display:flex; }
+/* ── 筛选面板高度拖拽调整(2026-08-13加, 兄弟节点而非子节点, 原因同dirs-resizer) ── */
+.mf-height-resizer{
+  display:none; height:6px; cursor:row-resize;
+  background:transparent; transition:background .15s;
+  z-index:20;   /* 2026-08-13: 漏加了z-index, 导致被main内容盖住, 点击穿透过去了(实测验证过) */
+}
+.mf-height-resizer.show{ display:block; }
+.mf-height-resizer:hover, .mf-height-resizer.active{ background:#40d0ff; }
+.mf-row{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.mf-row label{ font-size:.72rem; color:var(--text3); min-width:60px; flex-shrink:0; }
+.mf-input{
+  padding:6px 10px; border-radius:6px; width:180px;
+  background:var(--bg); border:1px solid var(--border);
+  color:var(--text); font-size:.78rem; outline:none;
+}
+.mf-input:focus{ border-color:var(--accent); }
+.mf-tagbar{ display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+.mf-tagbar .chip{ opacity:.85; }
+.mf-tagbar .chip:hover{ opacity:1; }
+.mf-empty{ font-size:.72rem; color:var(--text3); }
+
+/* ── 大小/时长/分辨率 水平三栏(2026-08-13加) ── */
+.mf-row-3col{ display:flex; gap:16px; align-items:flex-start; flex-wrap:wrap; }
+.mf-col{ flex:1; min-width:160px; }
+.mf-col-label{ font-size:.72rem; color:var(--text3); margin-bottom:6px; display:block; }
+.mf-col .mf-slider-single{ max-width:none; }
+
+/* ── 拍摄日期改用两个日期输入框(2026-08-16改, 原来是滑块) ── */
+/* 2026-08-17加: PC端进程存活指示灯(绿=活着, 灰=心跳超时无响应) */
+.agent-dot{
+  display:inline-block; width:8px; height:8px; border-radius:50%;
+  background:#666; margin-right:6px; vertical-align:middle;
+}
+.agent-dot.alive{ background:#3ecf6e; box-shadow:0 0 4px rgba(62,207,110,.6); }
+.mf-date-range{ display:flex; align-items:flex-end; gap:10px; }
+.mf-date-field{ display:flex; flex-direction:column; gap:4px; }
+.mf-date-field label{ font-size:.68rem; color:var(--text3); }
+.mf-date-field input[type=date]{
+  background:var(--surface2, #1c2733); color:var(--text1, #dce8f2);
+  border:1px solid var(--border, #2a3d55); border-radius:6px;
+  padding:5px 8px; font-size:.78rem; font-family:inherit;
+}
+.mf-date-sep{ color:var(--text3); font-size:.75rem; padding-bottom:8px; }
+
+/* ── 独立滑块(最小/最大分开, 带刻度, 2026-08-13重做) ── */
+.mf-slider-single{ width:100%; max-width:360px; }
+.mf-slider-single-head{
+  display:flex; justify-content:space-between; align-items:center;
+  font-size:.72rem; color:var(--text2); margin-bottom:4px;
+}
+.mf-slider-single-head span:last-child{ color:var(--accent); font-weight:700; }
+.mf-range-single{
+  width:100%; height:26px; margin:0;
+  -webkit-appearance:none; appearance:none; background:transparent; cursor:pointer;
+}
+.mf-range-single::-webkit-slider-runnable-track{
+  height:8px; border-radius:4px; background:rgba(255,255,255,.16);
+}
+.mf-range-single::-moz-range-track{
+  height:8px; border-radius:4px; background:rgba(255,255,255,.16); border:none;
+}
+.mf-range-single::-webkit-slider-thumb{
+  -webkit-appearance:none; margin-top:-8px;
+  width:24px; height:24px; border-radius:50%;
+  background:var(--accent); border:3px solid #04121c; cursor:pointer;
+  box-shadow:0 2px 5px rgba(0,0,0,.5);
+}
+.mf-range-single::-moz-range-thumb{
+  width:24px; height:24px; border-radius:50%; border:3px solid #04121c;
+  background:var(--accent); cursor:pointer; box-shadow:0 2px 5px rgba(0,0,0,.5);
+}
+.mf-ticks{ position:relative; height:16px; margin-top:2px; }
+.mf-tick{
+  position:absolute; top:0; transform:translateX(-50%);
+  font-size:.62rem; color:var(--text3); white-space:nowrap;
+}
+
+/* ── 布局 ── */
+.body{display:flex; align-items:flex-start; position:relative}
+.dirs{
+  width:230px; flex-shrink:0; display:none;
+  max-height:calc(100vh - 104px); overflow-y:auto;
+  border-right:1px solid var(--border); padding:8px 0;
+  position:sticky; top:104px;
+  min-width:160px; max-width:480px;
+}
+.dirs.show{display:block}
+/* ── 目录树拖拽调宽(2026-08-13加, 照搬照片页sidebar-resizer那套) ──
+   拖拽条是.dirs的兄弟节点(不是子节点!), 因为目录树组件渲染时会把
+   #dirs的innerHTML整个覆盖掉, 放里面会被清空; left位置靠JS动态跟随.dirs宽度 */
+.dirs-resizer{
+  position:fixed;   /* 2026-08-13: 改成fixed, 配合JS在scroll时持续同步位置, 因为.dirs是sticky定位,
+                        跟absolute相对静态祖先定位对不上, 滚动起来两者会错开(实测验证过) */
+  width:5px; cursor:col-resize;
+  background:transparent; transition:background .15s;
+  z-index:20;
+}
+.dirs-resizer:hover, .dirs-resizer.active{ background:#40d0ff; }
+.dir{
+  display:flex; align-items:center; gap:2px;
+  padding:5px 10px 5px 8px; font-size:.74rem; color:var(--text2);
+  white-space:nowrap; overflow:hidden;
+}
+.dir:hover{background:rgba(64,208,255,.06)}
+.dir.on{background:rgba(64,208,255,.16)}
+.dir.on .dn{color:var(--accent); font-weight:700}
+.dir small{color:var(--text3); margin-left:5px; font-size:.68rem}
+.dir .tw{
+  width:15px; flex-shrink:0; text-align:center;
+  color:var(--text3); cursor:pointer; font-size:.62rem; user-select:none;
+}
+.dir .tw:hover{color:var(--accent)}
+.dir .tw-leaf{cursor:default}
+.dir .dn{
+  flex:1; min-width:0; cursor:pointer;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.dir .dn:hover{color:var(--accent)}
+.dir-all{padding-left:10px; border-bottom:1px solid var(--border); margin-bottom:4px}
+.dir-all{cursor:pointer}
+.main{flex:1; min-width:0; padding:12px 14px 40px}
+
+/* ── 网格(瀑布流: CSS 多栏布局, 每张卡片按真实宽高比展示, 不留空白) ── */
+.grid{
+  column-width:220px; column-gap:10px;
+}
+.card{
+  position:relative;
+  background:var(--surface); border:1px solid var(--border); border-radius:8px;
+  overflow:hidden; display:flex; flex-direction:column;
+  break-inside:avoid; margin-bottom:10px;
+}
+.card:hover{border-color:var(--accent)}
+.card-thumb{
+  position:relative; cursor:pointer;
+  /* aspect-ratio 由 JS 按每个视频的真实 width/height 内联设置(cardHtml 里),
+     没有元数据(还没处理过)的视频兜底用 16/9, 不再统一固定死 */
+  aspect-ratio:16/9;
+  background:linear-gradient(135deg,#16202c,#1e2a3a);
+  display:flex; align-items:center; justify-content:center;
+}
+.card-thumb img{width:100%; height:100%; object-fit:cover; display:block}
+/* 连视频列表数据都还没拿到时的通用占位骨架(见app.js renderVideoSkeletonGrid), 加个微光扫过动画 */
+.video-skeleton-only .card-thumb{
+  background: linear-gradient(100deg, #16202c 30%, #223146 50%, #16202c 70%);
+  background-size: 200% 100%;
+  animation: video-skeleton 1.4s ease-in-out infinite;
+}
+@keyframes video-skeleton { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+.card-play{font-size:1.6rem; opacity:.55; transition:opacity .15s}
+.card-thumb:hover .card-play{opacity:1}
+/* 播放历史清理: 卡片/列表行左上角复选框(2026-08-13加) */
+.hist-check{
+  position:absolute; top:6px; left:6px; z-index:6;
+  width:22px; height:22px; border-radius:5px;
+  background:rgba(0,0,0,.65); color:#fff; font-size:1rem;
+  display:flex; align-items:center; justify-content:center;
+  cursor:pointer;
+}
+.hist-check.on{ background:var(--accent); color:#04121c; }
+.row{ position:relative; }
+.row .hist-check{ position:static; margin-right:6px; flex-shrink:0; }
+.card-ext{
+  position:absolute; top:6px; left:6px;
+  padding:1px 6px; border-radius:3px;
+  background:rgba(0,0,0,.7); font-size:.62rem; color:var(--accent);
+  text-transform:uppercase; letter-spacing:.5px;
+}
+.card-size{
+  position:absolute; bottom:6px; right:6px;
+  padding:1px 6px; border-radius:3px;
+  background:rgba(0,0,0,.7); font-size:.62rem; color:var(--text2);
+}
+.card-dur{
+  position:absolute; bottom:6px; left:6px;
+  padding:1px 6px; border-radius:3px;
+  background:rgba(0,0,0,.7); font-size:.62rem; color:#fff; font-weight:700;
+}
+/* 悬停轮播进度条 */
+.card-bar-i{
+  position:absolute; left:0; right:0; bottom:0; height:2px;
+  background:rgba(255,255,255,.12);
+}
+.card-bar-i i{
+  display:block; height:100%; width:0;
+  background:var(--accent); transition:width .18s linear;
+}
+.card-name{
+  padding:7px 9px 4px; font-size:.74rem; line-height:1.35;
+  word-break:break-all;
+  display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;
+}
+.card-dir{
+  padding:0 9px 6px; font-size:.64rem; color:var(--text3);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; cursor:pointer;
+}
+.card-dir:hover{color:var(--accent)}
+.card-bar{
+  display:flex; align-items:center; gap:3px;
+  padding:6px 8px; border-top:1px solid rgba(42,61,85,.6);
+}
+
+/* ── 列表视图(2026-08-13加, 仿Windows 11文件管理器) ── */
+.grid.list-mode{ column-count:1; column-width:unset; }
+.list-mode .card{ display:none; }
+.row{
+  display:flex; align-items:center; gap:10px;
+  padding:6px 10px; border-bottom:1px solid var(--border);
+  break-inside:avoid;
+}
+.row:hover{ background:rgba(255,255,255,.03); }
+.row-thumb{
+  width:96px; height:54px; flex-shrink:0; border-radius:4px; overflow:hidden;
+  background:linear-gradient(135deg,#16202c,#1e2a3a);
+  display:flex; align-items:center; justify-content:center; cursor:pointer;
+}
+.row-thumb img{ width:100%; height:100%; object-fit:cover; display:block; }
+.row-play{ font-size:1.1rem; opacity:.55; }
+.row-main{ flex:1; min-width:0; }
+.row-name{
+  font-size:.78rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.row-dir{
+  font-size:.66rem; color:var(--text3); white-space:nowrap; overflow:hidden;
+  text-overflow:ellipsis; cursor:pointer;
+}
+.row-dir:hover{ color:var(--accent); }
+.row-meta{
+  display:flex; gap:10px; font-size:.68rem; color:var(--text3);
+  flex-shrink:0; width:180px;
+}
+.row-bar{ display:flex; align-items:center; gap:3px; flex-shrink:0; }
+.rt{
+  flex:1; 
+text-align:center; padding:3px 0;
+  font-size:.62rem; color:var(--text3); cursor:pointer; border-radius:3px;
+  user-select:none;
+}
+.rt:hover{color:var(--accent); background:rgba(64,208,255,.1)}
+.rt.on{background:var(--accent); color:#04121c; font-weight:700}
+.fav{
+  padding:3px 6px; cursor:pointer; font-size:.85rem;
+  color:#3a4a5a; user-select:none;
+}
+.fav.on{color:var(--danger)}
+
+.more{padding:22px; text-align:center; color:var(--text3); font-size:.78rem}
+.more button{
+  padding:8px 22px; background:var(--surface2);
+  border:1px solid var(--border); border-radius:6px;
+  color:var(--text2); font-size:.78rem; cursor:pointer;
+}
+.more button:hover{border-color:var(--accent); color:var(--accent)}
+
+/* ── toast ── */
+.toast{
+  position:fixed; left:50%; bottom:34px; transform:translateX(-50%) translateY(20px);
+  padding:10px 22px; border-radius:8px;
+  background:var(--surface); border:1px solid var(--accent);
+  color:var(--accent); font-size:.8rem; font-weight:700;
+  opacity:0; pointer-events:none; transition:all .22s; z-index:9999;
+}
+.toast.show{opacity:1; transform:translateX(-50%) translateY(0)}
+
+/* ── 内嵌播放器 ── */
+.vp{display:none; position:fixed; inset:0; z-index:9000}
+.vp.show{display:block}
+.vp-mask{position:absolute; inset:0; background:rgba(0,0,0,.85)}
+.vp-box{
+  position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+  width:min(960px,96vw); max-height:92vh;
+  display:flex; flex-direction:column;
+  background:#000; border:1px solid var(--border); border-radius:8px; overflow:hidden;
+}
+.vp-head{
+  display:flex; align-items:center; justify-content:space-between; gap:10px;
+  padding:9px 12px; background:var(--surface);
+  font-size:.76rem; word-break:break-all;
+}
+.vp-x{cursor:pointer; color:var(--text2); padding:0 4px; flex-shrink:0}
+.vp-x:hover{color:var(--danger)}
+#vp-video{width:100%; max-height:72vh; background:#000; display:block}
+.vp-foot{
+  padding:9px 12px; background:var(--surface);
+  font-size:.72rem; color:var(--text2);
+  display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+}
+
+@media(max-width:700px){
+  .hd-search{width:110px}
+  .hd-title{display:none}
+  .hd-stats{display:none}
+  .grid{column-width:150px; column-gap:8px}
+  .card{margin-bottom:8px}
+  .dirs{
+    position:fixed; top:0; left:0; bottom:0; width:78vw; z-index:80;
+    background:var(--surface); max-height:100vh;
+  }
+  .card-name{font-size:.7rem}
+  .rt{font-size:.58rem}
+
+  /* ── 移动端模态化(2026-08-13加): 目录树背景遮罩 + 筛选/排序合并弹层 ── */
+  .dirs-resizer{ display:none; }   /* 手指拖拽调宽在触屏上没意义, 移动端目录树宽度固定78vw */
+  .mf-height-resizer{ display:none; }
+
+  .dirs-mask{
+    display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:79;
+  }
+  .dirs-mask.show{ display:block; }
+
+  .filter-mask{
+    display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:200;
+  }
+  .filter-mask.show{ display:block; }
+
+  .filter-modal{ display:none; }
+  .filter-modal.show{
+    display:flex; flex-direction:column;
+    position:fixed; left:4vw; right:4vw; top:8vh; bottom:8vh; z-index:201;
+    background:var(--surface); border-radius:14px; overflow:hidden;
+    box-shadow:0 10px 40px rgba(0,0,0,.5);
+  }
+  .filter-modal.show #sort-bar,
+  .filter-modal.show #history-toolbar,
+  .filter-modal.show #more-filters{
+    position:static !important; top:auto !important; z-index:auto !important;
+    max-height:none !important; border-bottom:1px solid var(--border);
+  }
+  .filter-modal.show #more-filters{
+    flex:1; overflow-y:auto; border-bottom:none;
+  }
+}
+
+/* 播放按钮组 */
+.card-btns{
+  position:absolute; top:6px; right:6px;
+  display:flex; gap:4px;
+}
+.cb{
+  padding:3px 9px; border-radius:3px; cursor:pointer; user-select:none;
+  font-size:.62rem; font-weight:700; letter-spacing:.5px;
+  backdrop-filter:blur(2px);
+}
+.cb-on{background:rgba(64,208,255,.88); color:#04121c}
+.cb-on:hover{background:#40d0ff}
+.cb-on.maybe{background:rgba(255,200,60,.85); color:#221a00}
+.cb-on.maybe:hover{background:#ffc83c}
+.cb-pot{background:rgba(20,30,42,.85); color:#c8dff5; border:1px solid rgba(138,168,200,.5)}
+.cb-pot:hover{background:#2a3d55; color:#fff; border-color:#8aa8c8}
+.card-thumb{cursor:default}
+
+/* 评分筛选 单选/多选 开关 */
+.chip.mode{background:transparent; border-style:dashed; border-color:#3d5570; color:#8aa8c8; margin-left:2px}
+.chip.mode:hover{border-color:var(--accent); color:var(--accent)}
+.chip.mode.multi{background:rgba(255,200,60,.12); border-style:solid; border-color:#ffc83c; color:#ffc83c}
+
+
+/* 成人/家庭 分类图标按钮(纯图标, 无文字) */
+.cat-btns{display:inline-flex; gap:6px; margin-left:4px}
+.cat-btn{
+  width:26px; height:26px; border-radius:50%; padding:0; cursor:pointer;
+  border:2px solid transparent; box-sizing:border-box;
+  opacity:.35; transition:opacity .15s, border-color .15s, transform .1s;
+}
+.cat-btn:hover{opacity:.7}
+.cat-btn.on{opacity:1}
+.cat-btn.on:active{transform:scale(.92)}
+/* 2026-08-16加: 第三态"全部"按钮, 复用同一套圆形基础样式, 中间显示文字而不是纯色块 */
+.cat-both{
+  background:var(--surface2, #1c2733); color:var(--text2, #9db3c8);
+  font-size:.6rem; font-weight:700; display:flex; align-items:center; justify-content:center;
+}
+.cat-both.on{border-color:#40d0ff; box-shadow:0 0 6px rgba(64,208,255,.6); color:#40d0ff}
+.cat-adult{background:#ff5fa8}
+.cat-adult.on{border-color:#ffb3d9; box-shadow:0 0 6px rgba(255,95,168,.6)}
+.cat-family{background:#f5f7fa}
+.cat-family.on{border-color:#8aa8c8; box-shadow:0 0 6px rgba(255,255,255,.5)}

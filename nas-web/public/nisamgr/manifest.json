@@ -1,0 +1,13 @@
+{
+  "name": "\u8d44\u4ea7\u7ba1\u7406\u53f0",
+  "short_name": "\u8d44\u4ea7\u7ba1\u7406\u53f0",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0B0F14",
+  "theme_color": "#0B0F14",
+  "icons": [
+    { "src": "icon-180.png", "sizes": "180x180", "type": "image/png", "purpose": "any" }
+  ]
+}

@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>视频库</title>
+<link rel="stylesheet" href="/common/css/dir-tree.css">
+<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/player.css">
+<link rel="stylesheet" href="css/config.css">
+</head>
+<body>
+
+<header class="hd">
+  <div class="hd-title">视频库</div>
+  <div class="hd-stats" id="stats">载入中…</div>
+  <div class="hd-spacer"></div>
+  <input id="q" class="hd-search" placeholder="搜索文件名…" autocomplete="off">
+  <button class="hd-btn" id="btn-dirs" onclick="toggleDirs()">目录</button>
+  <button class="hd-btn" id="btn-viewmode" onclick="toggleViewMode()" title="切换缩略图/列表视图">▦/☰</button>
+  <button class="hd-btn" id="btn-shuffle" onclick="onShuffleClick()" title="重新随机排序一次">🎲 换一批</button>
+  <span class="cat-btns">
+    <button class="cat-btn cat-both" id="btn-cat-both" onclick="toggleCategory('both')" title="全部">全</button>
+    <button class="cat-btn cat-adult" id="btn-cat-adult" onclick="toggleCategory('adult')" title="成人内容"></button>
+    <button class="cat-btn cat-family" id="btn-cat-family" onclick="toggleCategory('family')" title="家庭内容"></button>
+  </span>
+  <button class="hd-btn" onclick="VCfg.open()" title="设置">&#9881;</button>
+  <a class="hd-btn" href="/videoer/convert.html" title="查看转换队列">🎬 转换队列</a>
+  <a class="hd-btn" href="/viewer/">照片</a>
+  <span id="build-ver" style="font-size:.62rem;color:var(--text3);margin-left:6px;opacity:.6" title="每次部署补丁后这里的编号会变, 用来确认页面真的拿到了最新代码">build-20260813-05</span>
+</header>
+
+<div class="filters" id="filters"></div>
+<div class="filter-mask" id="filter-mask" onclick="toggleMoreFilters()"></div>
+<div class="filter-modal" id="filter-modal">
+<div class="sort-bar" id="sort-bar"></div>
+<div class="sort-bar" id="history-toolbar"></div>
+<div class="more-filters" id="more-filters"></div>
+</div>
+<div class="mf-height-resizer" id="mf-height-resizer"></div>
+
+<div class="body">
+  <div class="dirs-mask" id="dirs-mask" onclick="toggleDirs()"></div>
+  <aside class="dirs" id="dirs"></aside><div class="dirs-resizer" id="dirs-resizer"></div>
+  <main class="main">
+    <div class="grid" id="grid"></div>
+    <div class="more" id="more"></div>
+  </main>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- 手机端内嵌播放 -->
+<div class="vp" id="vp">
+  <div class="vp-mask" onclick="closePlayer()"></div>
+  <div class="vp-box">
+    <div class="vp-head">
+      <span id="vp-name"></span>
+      <span class="vp-x" onclick="closePlayer()">✕</span>
+    </div>
+    <video id="vp-video" controls playsinline preload="metadata"></video>
+    <div class="vp-foot" id="vp-foot"></div>
+  </div>
+</div>
+
+<script src="/common/api-fetch.js"></script>
+<script src="/common/local-cache.js"></script>
+<script src="/common/dir-tree-widget.js"></script>
+<script src="js/config.js"></script>
+<script src="js/player.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

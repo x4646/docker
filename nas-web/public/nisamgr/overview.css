@@ -1,0 +1,24 @@
+/* overview.css —— 总览页专属样式 */
+.hero{border-bottom:1px solid var(--line);padding-bottom:18px;margin-bottom:18px;}
+.hero .eyebrow{font-size:12px;color:var(--text-3);}
+.hero .big{font-family:ui-monospace,monospace;font-weight:700;font-size:44px;color:var(--gold);line-height:1.1;margin:6px 0 2px;}
+.hero .sub{font-size:12px;color:var(--text-2);}
+@media(max-width:640px){.hero .big{font-size:34px;}}
+.bull{display:inline-flex;align-items:center;gap:8px;background:var(--panel-2);border:1px solid var(--line);border-radius:8px;padding:8px 14px;margin-bottom:14px;}
+.bull .stamp{width:44px;height:44px;border-radius:50%;border:3px solid var(--down);color:var(--down);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:20px;transform:rotate(-6deg);}
+.dbl-hint{font-size:10px;color:var(--text-3);}
+.hero-dblhint{font-size:10px;color:var(--text-3);margin-top:2px;}
+.source-box{margin-top:8px;padding:8px 10px;background:var(--panel-2);border:1px dashed var(--line);border-radius:6px;display:flex;flex-direction:column;gap:3px;}
+.source-line{font-family:ui-monospace,monospace;font-size:11px;color:var(--text-2);}
+.hero .source-box{max-width:340px;}
+.manual-pick{display:flex;gap:8px;}
+.pick{flex:1;background:var(--input-bg);border:1px solid var(--line);color:var(--text-2);font-size:13px;font-weight:700;padding:8px;border-radius:6px;cursor:pointer;}
+.pick.on-bull{background:var(--down);color:#0B0F14;border-color:var(--down);}
+.pick.on-bear{background:var(--up);color:#0B0F14;border-color:var(--up);}
+/* 按账户分组 */
+.account-group{margin-bottom:16px;}
+.account-group:last-child{margin-bottom:0;}
+.account-group-head{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line);margin-bottom:4px;}
+.account-group-subtotal{font-family:ui-monospace,monospace;font-weight:700;font-size:14px;color:var(--gold);}
+.account-group table{margin-bottom:0;}
+.account-group td{padding:7px 8px;}

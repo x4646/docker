@@ -1,0 +1,127 @@
+/* bookkeeping.css —— 记账模块专属样式 */
+.proj-summary{background:var(--panel-2);border:1px solid var(--line);border-radius:8px;padding:12px 14px;font-size:13px;line-height:1.7;}
+/* 图标网格选择器 */
+.icon-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(76px,1fr));gap:8px;margin-bottom:14px;}
+.icon-grid-item{display:flex;flex-direction:column;align-items:center;gap:3px;background:var(--input-bg);border:1px solid var(--line);border-radius:10px;padding:10px 6px;cursor:pointer;transition:border-color .15s,background .15s,opacity .15s,transform .12s;}
+.icon-grid-item[data-drag-id]{cursor:grab;touch-action:none;}
+.icon-grid-item[data-drag-id]:active{cursor:grabbing;}
+.icon-grid-item.dragging{opacity:.35;transform:scale(.94);}
+.icon-grid-item.drag-over{border-color:var(--gold);background:rgba(217,166,78,.12);transform:scale(1.03);}
+.icon-grid-item:hover{border-color:var(--text-2);}
+.icon-grid-item.on{border-color:var(--gold);background:rgba(224,169,75,.1);}
+.icon-grid-emoji{font-size:22px;line-height:1;}
+.icon-grid-label{font-size:12px;color:var(--text-2);text-align:center;line-height:1.2;}
+.icon-grid-sub{font-size:9px;color:var(--text-3);font-family:ui-monospace,monospace;}
+/* 类型大按钮(支出/收入/转账) */
+.type-pills{display:flex;gap:8px;margin-bottom:16px;}
+.type-pill{flex:1;padding:12px;border-radius:10px;border:1px solid var(--line);background:var(--input-bg);color:var(--text-2);font-size:14px;font-weight:600;cursor:pointer;transition:all .15s;}
+.type-pill.on.expense{background:rgba(240,82,75,.15);border-color:var(--up);color:var(--up);}
+.type-pill.on.income{background:rgba(63,176,122,.15);border-color:var(--down);color:var(--down);}
+.type-pill.on.transfer{background:rgba(91,155,213,.15);border-color:var(--blue);color:var(--blue);}
+/* 金额输入框 */
+.amount-input{width:100%;background:var(--input-bg);border:1px solid var(--line);border-radius:8px;padding:10px 14px;font-size:20px;font-weight:700;text-align:center;color:var(--text);margin-bottom:16px;font-family:ui-monospace,monospace;}
+.amount-input:focus{outline:1px solid var(--gold);}
+/* 去掉数字输入框的加减箭头（不需要这个功能，纯手打金额） */
+.amount-input::-webkit-outer-spin-button,
+.amount-input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
+.amount-input{-moz-appearance:textfield;}
+/* 账户余额条 */
+.accounts-strip{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;}
+.accounts-strip-item{display:flex;align-items:center;gap:6px;background:var(--panel-2);border:1px solid var(--line);border-radius:20px;padding:6px 14px;font-size:12px;}
+.accounts-strip-name{color:var(--text-2);}
+.accounts-strip-balance{font-family:ui-monospace,monospace;font-weight:700;color:var(--text);}
+/* 小图标选择按钮(账户/分类新增表单里用) */
+.icon-pick{font-size:20px;background:var(--input-bg);border:1px solid var(--line);border-radius:8px;width:38px;height:38px;cursor:pointer;}
+.icon-pick.on{border-color:var(--gold);background:rgba(224,169,75,.15);}
+/* 分类排序按钮(上移/下移) */
+.sort-buttons{display:flex;flex-direction:column;gap:1px;}
+.sort-buttons .icon-btn{padding:1px 5px;font-size:9px;line-height:1.4;}
+/* 竖排可拖拽列表(分类管理用) */
+.drag-row{display:flex;align-items:center;gap:6px;border-radius:8px;padding:2px 4px;cursor:grab;transition:background .12s,opacity .15s,transform .12s;}
+.drag-row:active{cursor:grabbing;}
+.drag-row.dragging{opacity:.35;transform:scale(.98);}
+.drag-row.drag-over{background:rgba(217,166,78,.1);}
+.drag-handle{color:var(--text-3);font-size:16px;flex-shrink:0;user-select:none;cursor:grab;touch-action:none;padding:4px 6px;}
+.drag-handle:active{cursor:grabbing;}
+
+/* 自定义日历选择器 */
+.date-picker{position:relative;display:inline-block;}
+.date-picker-trigger{background:var(--input-bg);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:8px 12px;font-size:13px;font-family:ui-monospace,monospace;cursor:pointer;transition:border-color .15s,box-shadow .15s;}
+.date-picker-trigger:hover{border-color:var(--gold);box-shadow:0 0 0 3px rgba(217,166,78,.12);}
+@keyframes datePickerIn{from{opacity:0;transform:translateY(6px) scale(.97);}to{opacity:1;transform:translateY(0) scale(1);}}
+.date-picker-popup{
+  position:absolute;bottom:calc(100% + 8px);left:0;z-index:30;
+  background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px;
+  box-shadow:0 12px 32px rgba(0,0,0,.45),0 0 0 1px rgba(217,166,78,.08);width:250px;
+  animation:datePickerIn .16s ease-out;
+}
+/* 窄屏下别再跟着触发按钮的位置走了——按钮靠右边的话，固定250px宽度容易冲出屏幕右边界。
+   改成固定居中悬浮在屏幕中间，不管触发按钮在哪都不会跑出可视区域。 */
+@media(max-width:640px){
+  .date-picker-popup{
+    position:fixed;top:50%;left:50%;bottom:auto;
+    transform:translate(-50%,-50%);width:calc(100vw - 40px);max-width:320px;
+  }
+}
+.date-picker-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;font-size:13px;font-weight:700;color:var(--gold);}
+.date-picker-header button{background:var(--input-bg);border:1px solid var(--line);color:var(--text-2);border-radius:50%;width:28px;height:28px;cursor:pointer;font-size:14px;transition:all .15s;}
+.date-picker-header button:hover{border-color:var(--gold);color:var(--gold);background:rgba(217,166,78,.1);transform:scale(1.08);}
+.date-picker-weekdays{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:6px;}
+.date-picker-weekdays span{text-align:center;font-size:10px;color:var(--text-3);font-weight:600;}
+.date-picker-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;}
+.date-picker-day{background:transparent;border:none;color:var(--text);border-radius:8px;padding:7px 0;font-size:12px;cursor:pointer;font-family:ui-monospace,monospace;transition:all .12s;}
+.date-picker-day:hover{background:var(--panel-2);transform:scale(1.08);}
+.date-picker-day.today{border:1px solid var(--gold);color:var(--gold);font-weight:700;}
+.date-picker-day.selected{background:var(--gold);color:#0B0F14;font-weight:700;box-shadow:0 2px 8px rgba(217,166,78,.4);}
+.date-picker-today-btn{width:100%;margin-top:10px;background:transparent;border:1px solid var(--line);color:var(--text-2);border-radius:8px;padding:7px;font-size:11px;cursor:pointer;transition:all .15s;}
+.date-picker-today-btn:hover{border-color:var(--gold);color:var(--gold);background:rgba(217,166,78,.08);}
+
+/* 弹窗(增/改统一用这个) */
+.bk-modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:100;padding:16px;}
+.bk-modal-box{background:var(--panel);border:1px solid var(--line);border-radius:14px;max-width:420px;width:100%;max-height:85vh;max-height:85dvh;overflow:auto;box-shadow:0 16px 40px rgba(0,0,0,.5);animation:datePickerIn .16s ease-out;}
+.bk-modal-header{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--line-soft);font-size:14px;font-weight:700;position:sticky;top:0;background:var(--panel);}
+.bk-modal-close{background:none;border:none;color:var(--text-2);font-size:22px;cursor:pointer;line-height:1;padding:0 4px;}
+.bk-modal-close:hover{color:var(--up);}
+.bk-modal-body{padding:16px;}
+
+/* 右键菜单 */
+.bk-context-menu{position:fixed;z-index:110;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:4px;box-shadow:0 8px 24px rgba(0,0,0,.4);min-width:140px;max-width:calc(100vw - 20px);}
+.bk-context-menu button{display:block;width:100%;text-align:left;background:none;border:none;color:var(--text);font-size:13px;padding:8px 10px;border-radius:6px;cursor:pointer;}
+.bk-context-menu button:hover{background:var(--panel-2);color:var(--gold);}
+
+/* 分类钻取选择器 */
+.cat-picker-selected{font-size:12px;color:var(--gold);margin-bottom:8px;font-weight:600;}
+.cat-picker-breadcrumb{display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap;}
+.cat-picker-drill{font-size:9px;color:var(--gold);margin-top:1px;}
+/* 月份滑块 */
+.month-slider{max-width:280px;margin-bottom:16px;}
+.month-slider-label{font-family:ui-monospace,monospace;font-weight:700;font-size:16px;color:var(--gold);text-align:center;margin-bottom:8px;}
+.month-slider input[type="range"]{width:100%;accent-color:var(--gold);cursor:pointer;margin-bottom:8px;}
+.month-slider-quick{display:flex;gap:6px;justify-content:center;}
+/* 月度对比 */
+.month-compare-row{border-bottom:1px solid var(--line-soft);padding:12px 0;}
+.month-compare-row:last-child{border-bottom:none;}
+.month-compare-label{font-size:13px;font-weight:700;margin-bottom:8px;}
+.month-compare-bars{display:flex;flex-direction:column;gap:4px;margin-bottom:6px;}
+.month-compare-bar-row{display:flex;align-items:center;gap:8px;}
+.month-compare-bar-tag{width:16px;font-size:11px;font-weight:700;flex-shrink:0;}
+.month-compare-bar-track{flex:1;height:10px;background:var(--input-bg);border-radius:5px;overflow:hidden;}
+.month-compare-bar-fill{height:100%;border-radius:5px;transition:width .3s;}
+.month-compare-bar-fill.income{background:var(--down);}
+.month-compare-bar-fill.expense{background:var(--up);}
+.month-compare-bar-value{font-size:11px;font-family:ui-monospace,monospace;color:var(--text-2);width:80px;text-align:right;flex-shrink:0;}
+.month-compare-net{font-size:12px;font-weight:700;text-align:right;}
+/* 常用模板卡片 */
+.template-card{position:relative;display:flex;flex-direction:column;align-items:center;gap:3px;background:var(--input-bg);border:1px solid var(--line);border-radius:10px;padding:12px 6px;cursor:pointer;transition:border-color .15s,transform .1s;}
+.template-card:hover{border-color:var(--gold);transform:translateY(-1px);}
+.template-card:active{transform:translateY(0);}
+.template-del{position:absolute;top:2px;right:4px;background:none;border:none;color:var(--text-3);font-size:14px;cursor:pointer;padding:2px;line-height:1;}
+@media(max-width:640px){
+  .template-del{font-size:18px;padding:8px;top:-4px;right:-4px;}
+  .date-picker-header button{width:36px;height:36px;font-size:16px;}
+  .icon-pick{width:44px;height:44px;font-size:22px;}
+  .drag-handle{padding:8px 10px;font-size:18px;}
+  .bk-modal-close{font-size:26px;padding:6px 10px;}
+}
+.template-del:hover{color:var(--up);}
+.template-count{font-size:9px;color:var(--gold);margin-top:2px;}

@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Photo Viewer</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/common/css/dir-tree.css">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- 顶部导航 -->
+<nav class="navbar">
+  <div class="nav-logo">🖼 Photo</div>
+  <input class="nav-search" placeholder="搜索图片、标签、描述..." oninput="onSearch(this.value)">
+  <div id="active-tags" style="display:flex;gap:6px;flex-wrap:wrap"></div>
+  <div class="nav-actions">
+    <div style="display:flex;align-items:center;gap:6px;margin-right:8px">
+      <span style="font-size:.72rem;color:#507090">AI标签可信度≥</span>
+      <input type="range" min="0" max="1" step="0.05" value="0" style="width:90px;accent-color:#40d0ff" oninput="setTagThreshold(this.value)" id="tag-threshold-slider">
+      <span id="tag-threshold-val" style="font-size:.72rem;color:#40d0ff;min-width:32px">0%</span>
+    </div>
+    <button class="nav-btn" onclick="setFavFilter(this)">❤️ 收藏</button>
+    <button class="nav-btn" id="role-switch-btn" onclick="openRoleSwitcher()">🌐 全部</button>
+    <button class="nav-btn" onclick="toggleMusicBar()">🎵 音乐</button>
+  </div>
+</nav>
+
+<!-- 主体：侧边栏 + 内容 -->
+<div style="display:flex;margin-top:56px;min-height:calc(100vh - 56px)">
+
+  <!-- 侧边栏 -->
+  <div class="sidebar" id="sidebar">
+  </div>
+
+  <div id="sidebar-resizer" style="position:fixed;left:260px;top:56px;bottom:0;width:6px;cursor:col-resize;z-index:200;background:transparent"></div>
+  <!-- 主内容 -->
+  <div style="flex:1;min-width:0;overflow:hidden">
+    <div style="padding:6px 16px;border-bottom:1px solid #1e2838">
+      <button id="ai-bar-toggle" class="nav-btn" onclick="toggleAiBar()" style="padding:3px 12px;font-size:.8rem">🏷 标签</button>
+      <div id="ai-tag-panel" style="display:none;margin-top:8px">
+        <div style="display:flex;align-items:center;gap:14px;margin-bottom:8px;flex-wrap:wrap">
+          <label style="font-size:.78rem;color:#8fa8c4;cursor:pointer"><input type="radio" name="ai-mode" id="ai-mode-or" checked onchange="setAiMode('or')"> 并集(任一)</label>
+          <label style="font-size:.78rem;color:#8fa8c4;cursor:pointer"><input type="radio" name="ai-mode" id="ai-mode-and" onchange="setAiMode('and')"> 交集(全部)</label>
+          <label style="font-size:.78rem;color:#8fa8c4;cursor:pointer"><input type="radio" name="ai-mode" id="ai-mode-single" onchange="setAiMode('single')"> 单选</label>
+          <button class="nav-btn" onclick="clearAiFilter()" style="padding:2px 10px;font-size:.72rem">清除</button>
+        </div>
+        <div id="ai-tag-bar" style="display:flex;gap:6px;flex-wrap:wrap"></div>
+      </div>
+    </div>
+    <div class="stats-bar">
+      共 <span id="stats-total">0</span> 张照片
+    </div>
+    <div class="content">
+      <div class="photo-grid" id="photo-grid"></div>
+      <div class="load-more">
+        <div class="load-spinner" id="spinner" style="display:none"></div>
+      </div>
+      <div id="sentinel" style="height:1px"></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- 预览层 -->
+<div class="viewer-overlay" id="viewer">
+  <div class="viewer-header">
+    <div class="viewer-title" id="viewer-filename"></div>
+    <div style="display:flex;align-items:center;gap:8px">
+      <button class="viewer-btn" onclick="toggleFilterPanel()" title="滤镜">🎨</button>
+      <span id="viewer-counter" style="font-size:.78rem;color:#909090"></span>
+      <button class="viewer-btn slideshow-btn" id="btn-slideshow" onclick="toggleSlideshow()">▶ 幻灯片</button>
+      <div style="display:flex;align-items:center;gap:6px">
+        <span style="font-size:.72rem;color:#507090">间隔</span>
+        <input type="range" id="slideshow-interval" min="1" max="30" value="4" style="width:80px;accent-color:#40d0ff" oninput="updateSlideshowInterval(this.value)">
+        <span id="slideshow-interval-val" style="font-size:.72rem;color:#40d0ff;min-width:28px">4秒</span>
+        <span style="font-size:.72rem;color:#507090;margin-left:6px">转场</span>
+        <select id="trans-mode-sel" onchange="setTransMode(this.value)" style="background:#182535;border:1px solid #2a3d55;border-radius:4px;color:#f0f6ff;font-size:.7rem;padding:2px 4px"><option value="none">无</option><option value="random">🎲随机</option><option value="dissolve" selected>交叉溶解</option><option value="mosaic">马赛克</option><option value="tv">📺电视机</option><option value="wipe">擦除</option><option value="circle">圆形</option><option value="blinds">百叶窗</option><option value="fade">淡入淡出</option><option value="slide">左右滑动</option><option value="slideup">向上滑动</option><option value="slidedown">向下滑动</option><option value="zoom">放大</option><option value="zoomout">缩小</option><option value="rotate">旋转</option><option value="flip">翻页Y</option><option value="flipx">翻页X</option><option value="blur">模糊</option><option value="swing">摇摆</option><option value="kenburns">Ken Burns</option></select>
+        <input type="checkbox" id="slideshow-fullscreen" style="accent-color:#40d0ff" checked title="全屏">
+        <span style="font-size:.72rem;color:#507090">全屏</span>
+      </div>
+      <button class="viewer-btn" onclick="resetViewerTransform()">⊡</button>
+      <button class="viewer-btn" onclick="toggleFavCurrent()">🤍</button>
+      <button class="viewer-btn" onclick="closeViewer()">✕</button>
+    </div>
+  </div>
+  <div class="viewer-body">
+    <button id="viewer-close-mobile" onclick="closeViewer()">✕</button>
+    <div class="viewer-img-wrap" id="viewer-img-wrap">
+      <img class="viewer-img" id="viewer-img" src="" alt="" draggable="false">
+      <img class="viewer-img" id="viewer-img-old" src="" alt="" draggable="false" style="position:absolute;top:0;left:0;right:0;bottom:0;margin:auto;pointer-events:none;opacity:0;z-index:2">
+      <div class="viewer-spinner" id="viewer-spinner"></div>
+    </div>
+    <button class="viewer-prev" id="btn-prev" onclick="viewerPrev()">&#8249;</button>
+    <button class="viewer-next" id="btn-next" onclick="viewerNext()">&#8250;</button>
+    <div class="zoom-indicator" id="zoom-indicator">100%</div>
+  </div>
+  <div class="viewer-footer">
+    <div class="viewer-info">
+      <div class="info-item"><span class="info-label">尺寸：</span><span class="info-value" id="viewer-dims"></span></div>
+      <div class="info-item"><span class="info-label">大小：</span><span class="info-value" id="viewer-size"></span></div>
+      <div class="info-item"><span class="info-label">相机：</span><span class="info-value" id="viewer-camera"></span></div>
+      <div class="info-item"><span class="info-label">时间：</span><span class="info-value" id="viewer-date"></span></div>
+      <div class="info-item" style="flex:1"><span class="info-label">路径：</span><span class="info-value" id="viewer-path" style="font-family:monospace;font-size:.72rem;color:#507090"></span></div>
+      <div class="info-item"><span class="info-label">位置：</span><span class="info-value" id="viewer-gps" style="cursor:pointer;color:#40d0ff" onclick="openGpsMap()">-</span></div>
+      <div class="info-item" style="flex:1"><span class="info-label">AI：</span><span class="info-value" id="viewer-ai" style="color:#909090"></span></div>
+    </div>
+    <div class="viewer-tags" id="viewer-tags"></div>
+    <div class="music-bar" id="music-bar-viewer" style="display:none">
+      <div class="music-info">
+        <div class="music-name" id="music-name">未选择音乐</div>
+      </div>
+      <div class="music-controls">
+        <button class="music-btn" onclick="prevSong()">⏮</button>
+        <button class="music-btn play" id="btn-play" onclick="togglePlay()">▶</button>
+        <button class="music-btn" onclick="nextSong()">⏭</button>
+        <button class="music-btn" onclick="toggleMode()" id="btn-mode">🔀</button>
+      </div>
+      <div class="music-progress" onclick="seekMusic(event)" onmousedown="startSeekDrag(event)" style="position:relative;height:14px;display:flex;align-items:center">
+        <div style="position:absolute;left:0;right:0;height:3px;background:#2a3d55;border-radius:3px"></div>
+        <div class="music-progress-fill" id="music-progress-fill" style="position:absolute;left:0;height:3px;background:#40d0ff;border-radius:3px;width:0%;pointer-events:none"></div>
+        <div id="music-progress-knob" style="position:absolute;left:0%;width:11px;height:11px;background:#40d0ff;border-radius:50%;transform:translateX(-50%);pointer-events:none;box-shadow:0 0 4px rgba(0,0,0,.5)"></div>
+      </div>
+      <span id="music-time" style="font-size:.68rem;color:#8aa8c8;font-family:monospace;white-space:nowrap">0:00 / 0:00</span>
+      <div class="music-vol">
+        <span style="font-size:.8rem">🔊</span>
+        <input class="music-vol-slider" type="range" min="0" max="1" step="0.05" value="0.6" oninput="setVolume(this.value)">
+      </div>
+      <button class="music-list-btn" onclick="toggleEQPanel()">🎛</button>
+      <button class="music-list-btn" onclick="togglePlaylistPanel()">列表</button>
+    </div>
+  </div>
+</div>
+
+<!-- 播放列表面板 -->
+<div class="playlist-panel" id="playlist-panel">
+  <div class="playlist-header">
+    <div class="playlist-title">播放列表</div>
+    <button style="background:none;border:none;color:#909090;cursor:pointer;font-size:1.2rem" onclick="togglePlaylistPanel()">✕</button>
+  </div>
+  <div id="playlist-toolbar" style="padding:8px 12px;border-bottom:1px solid #2a3d55;display:flex;gap:8px;align-items:center;flex-wrap:wrap"></div>
+  <div class="playlist-body" id="playlist-body"></div>
+</div>
+
+<!-- 主页面音乐栏 -->
+<div id="main-music-bar" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:50;background:rgba(10,10,10,.95);border-top:1px solid #2a3d55;height:52px;align-items:center;gap:12px;padding:0 16px;">
+  <div style="flex:1;min-width:0">
+    <div id="main-music-name" style="font-size:.8rem;color:#f0f0f0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">未选择音乐</div>
+  </div>
+  <div style="display:flex;align-items:center;gap:8px">
+    <button class="music-btn" onclick="prevSong()">⏮</button>
+    <button id="main-btn-play" onclick="togglePlay()" style="width:36px;height:36px;background:#40d0ff;color:#000;border-radius:50%;border:none;cursor:pointer;font-size:1rem">▶</button>
+    <button class="music-btn" onclick="nextSong()">⏭</button>
+  </div>
+  <div onclick="seekMusic(event)" onmousedown="startSeekDrag(event)" style="flex:1;max-width:200px;position:relative;height:14px;display:flex;align-items:center;cursor:pointer">
+    <div style="position:absolute;left:0;right:0;height:3px;background:#2a3d55;border-radius:3px"></div>
+    <div id="main-music-progress-fill" style="position:absolute;left:0;height:3px;background:#40d0ff;border-radius:3px;width:0%;pointer-events:none"></div>
+    <div id="main-progress-knob" style="position:absolute;left:0%;width:11px;height:11px;background:#40d0ff;border-radius:50%;transform:translateX(-50%);pointer-events:none;box-shadow:0 0 4px rgba(0,0,0,.5)"></div>
+  </div>
+  <span id="main-music-time" style="font-size:.68rem;color:#8aa8c8;font-family:monospace;white-space:nowrap">0:00 / 0:00</span>
+  <input type="range" min="0" max="1" step="0.05" value="0.6" oninput="setVolume(this.value)" style="width:60px;accent-color:#40d0ff">
+  <button onclick="toggleEQPanel()" style="padding:4px 10px;border-radius:4px;background:transparent;border:1px solid #2a3d55;color:#909090;font-size:.72rem;cursor:pointer">🎛</button>
+  <button onclick="togglePlaylistPanel()" style="padding:4px 10px;border-radius:4px;background:transparent;border:1px solid #2a3d55;color:#909090;font-size:.72rem;cursor:pointer">列表</button>
+</div>
+
+<script src="/common/api-fetch.js"></script>
+<script src="/common/progress-modal.js"></script>
+<script src="js/context-menu.js"></script>
+<script src="/common/local-cache.js"></script>
+<script src="/common/dir-tree-widget.js"></script>
+<script src="/common/dir-tree-actions.js"></script> 
+<script src="js/app.js"></script>
+  <button id="sidebar-toggle" onclick="toggleSidebar()" style="position:fixed;left:260px;top:64px;z-index:200;width:18px;height:48px;background:#1e2838;border:1px solid #2a3d55;border-left:none;border-radius:0 6px 6px 0;cursor:pointer;color:#507090;font-size:.7rem;padding:0;display:flex;align-items:center;justify-content:center;transition:left .25s ease" title="折叠/展开">◀</button>
+</body>
+</html>

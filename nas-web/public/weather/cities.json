@@ -1,0 +1,27 @@
+{
+  "tokyo23": [
+    { "name": "千代田区", "value": "Chiyoda" },
+    { "name": "中央区",   "value": "Chuo" },
+    { "name": "港区",     "value": "Minato" },
+    { "name": "新宿区",   "value": "Shinjuku" },
+    { "name": "文京区",   "value": "Bunkyo" },
+    { "name": "台東区",   "value": "Taito" },
+    { "name": "墨田区",   "value": "Sumida" },
+    { "name": "江東区",   "value": "Koto" },
+    { "name": "品川区",   "value": "Shinagawa" },
+    { "name": "目黒区",   "value": "Meguro" },
+    { "name": "大田区",   "value": "Ota" },
+    { "name": "世田谷区", "value": "Setagaya" },
+    { "name": "渋谷区",   "value": "Shibuya" },
+    { "name": "中野区",   "value": "Nakano" },
+    { "name": "杉並区",   "value": "Suginami" },
+    { "name": "豊島区",   "value": "Toshima" },
+    { "name": "北区",     "value": "Kita" },
+    { "name": "荒川区",   "value": "Arakawa" },
+    { "name": "板橋区",   "value": "Itabashi" },
+    { "name": "練馬区",   "value": "Nerima" },
+    { "name": "足立区",   "value": "Adachi" },
+    { "name": "葛飾区",   "value": "Katsushika" },
+    { "name": "江戸川区", "value": "Edogawa" }
+  ]
+}

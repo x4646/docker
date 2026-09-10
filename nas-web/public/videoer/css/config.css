@@ -1,0 +1,79 @@
+/* config.css — 设置面板 */
+
+#vcfg{display:none; position:fixed; inset:0; z-index:9800}
+#vcfg.show{display:block}
+.vcfg-mask{position:absolute; inset:0; background:rgba(0,0,0,.72)}
+.vcfg-box{
+  position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+  width:min(460px,94vw); max-height:86vh;
+  display:flex; flex-direction:column;
+  background:#141d29; border:1px solid #2a3d55; border-radius:10px;
+  box-shadow:0 14px 44px rgba(0,0,0,.7); overflow:hidden;
+}
+.vcfg-head{
+  display:flex; align-items:center; justify-content:space-between;
+  padding:13px 16px; border-bottom:1px solid #2a3d55;
+  font-size:.88rem; font-weight:700; color:#f0f6ff;
+}
+.vcfg-x{cursor:pointer; color:#8aa8c8; padding:0 4px}
+.vcfg-x:hover{color:#ff5567}
+.vcfg-body{flex:1; overflow-y:auto; padding:6px 16px 14px}
+.vcfg-t{
+  font-size:.68rem; color:#507090; letter-spacing:1px;
+  margin:16px 0 6px; padding-bottom:5px; border-bottom:1px solid #223145;
+}
+.vcfg-t:first-child{margin-top:8px}
+
+.vcfg-r{display:flex; align-items:center; gap:10px; padding:7px 0; min-height:34px}
+.vcfg-r label{
+  flex:1; min-width:0; font-size:.78rem; color:#c8dff5;
+  display:flex; flex-direction:column;
+}
+.vcfg-r label i{font-style:normal; font-size:.66rem; color:#507090; margin-top:1px}
+.vcfg-r input[type=number]{
+  width:74px; padding:5px 8px; text-align:right;
+  background:#0e1620; border:1px solid #2a3d55; border-radius:5px;
+  color:#f0f6ff; font-size:.76rem;
+}
+.vcfg-r input[type=number]:focus{outline:none; border-color:#40d0ff}
+.vcfg-u{width:34px; font-size:.7rem; color:#507090}
+
+/* 开关 */
+.vcfg-sw{
+  width:38px; height:21px; border-radius:11px; cursor:pointer; flex-shrink:0;
+  background:#22303f; border:1px solid #2a3d55; position:relative;
+  transition:background .16s;
+}
+.vcfg-sw i{
+  position:absolute; top:2px; left:2px; width:15px; height:15px;
+  border-radius:50%; background:#6a8098; transition:all .16s;
+}
+.vcfg-sw.on{background:rgba(64,208,255,.28); border-color:#40d0ff}
+.vcfg-sw.on i{left:19px; background:#40d0ff}
+
+/* 分段选择 */
+.vcfg-seg{display:flex; border:1px solid #2a3d55; border-radius:5px; overflow:hidden; flex-shrink:0}
+.vcfg-seg span{
+  padding:5px 11px; cursor:pointer; font-size:.72rem; color:#8aa8c8;
+  border-right:1px solid #2a3d55;
+}
+.vcfg-seg span:last-child{border-right:none}
+.vcfg-seg span:hover{background:rgba(64,208,255,.1); color:#40d0ff}
+.vcfg-seg span.on{background:#40d0ff; color:#04121c; font-weight:700}
+
+.vcfg-foot{
+  display:flex; align-items:center; justify-content:space-between; gap:10px;
+  padding:11px 16px; border-top:1px solid #2a3d55;
+}
+.vcfg-reset{
+  padding:6px 14px; cursor:pointer;
+  background:#16202c; border:1px solid #2a3d55; border-radius:5px;
+  color:#8aa8c8; font-size:.74rem;
+}
+.vcfg-reset:hover{border-color:#ff5567; color:#ff5567}
+.vcfg-note{font-size:.66rem; color:#507090}
+
+@media(max-width:700px){
+  .vcfg-r label{font-size:.74rem}
+  .vcfg-seg span{padding:5px 8px; font-size:.68rem}
+}

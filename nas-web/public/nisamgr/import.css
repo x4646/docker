@@ -1,0 +1,13 @@
+/* import.css —— 数据录入页专属样式 */
+.file-input{display:none;}
+.upload-btn{width:100%;background:var(--input-bg);border:1px dashed var(--gold);color:var(--gold);border-radius:8px;padding:14px;font-size:13px;font-weight:600;cursor:pointer;margin-bottom:6px;}
+.upload-btn:disabled{opacity:.6;cursor:wait;}
+.extract-status{font-size:12px;color:var(--text-3);margin-top:6px;}
+.extract-status.extract-error{color:var(--up);}
+.extract-preview{background:var(--input-bg);border:1px solid var(--line);border-radius:8px;padding:10px;margin-top:10px;}
+.extract-preview-title{font-size:12px;color:var(--gold);font-weight:700;margin-bottom:8px;}
+.paste-textarea{width:100%;background:var(--input-bg);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:10px;font-family:ui-monospace,monospace;font-size:12px;line-height:1.6;resize:vertical;min-height:140px;}
+.paste-textarea:focus{outline:1px solid var(--gold);}
+.result-banner{margin-top:10px;padding:10px 12px;border-radius:6px;font-size:12px;}
+.result-banner.good{background:rgba(63,176,122,.12);border:1px solid var(--down);color:var(--down);}
+.inline-link{color:var(--gold);cursor:pointer;text-decoration:underline;margin-left:4px;}

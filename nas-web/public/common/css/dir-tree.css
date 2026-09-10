@@ -1,0 +1,78 @@
+/* ─── DirTree 目录树样式（已清理：去掉无用的 .dt-* 旧样式，保留在用的 .pc-*） ── */
+
+/* ── 管理页PC目录树（B方案） ── */
+.pc-dir-row { border-bottom: 1px solid #1a2433; }
+.pc-row-inner { position: relative; }
+.pc-guide {
+  display: inline-block;
+  width: 18px;
+  flex-shrink: 0;
+  align-self: stretch;
+  border-left: 1px solid #2a3d55;
+  margin-left: 8px;
+}
+.pc-toggle {
+  cursor: pointer;
+  width: 18px;
+  height: 18px;
+  line-height: 16px;
+  text-align: center;
+  flex-shrink: 0;
+  color: #40d0ff;
+  user-select: none;
+  border: 1px solid #2a3d55;
+  border-radius: 4px;
+  font-size: .8rem;
+  font-weight: 700;
+  margin-top: 1px;
+}
+.pc-toggle:hover { background: #1e2838; }
+/* 名称行 + 按钮区 水平排列，按钮靠右 */
+.pc-row-inner .dir-path {
+  display: flex;
+  align-items: center;
+}
+.pc-row-inner > div[style*="flex:1"] {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.pc-row-inner .dir-actions {
+  margin-top: 0 !important;
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+/* ── 视觉打磨(追加, 不覆盖原有规则) ───────────────── */
+.dtw-row {
+  border-radius: 5px;
+  transition: background-color .12s;
+}
+.dtw-row:hover {
+  background-color: rgba(64, 208, 255, .06);
+}
+.pc-toggle {
+  width: 22px;
+  height: 22px;
+  line-height: 20px;
+}
+.pc-guide {
+  border-left-color: #1e2a3a;
+}
+.dtw-name {
+  font-weight: 600;
+}
+.dtw-stat {
+  opacity: .82;
+}
+
+/* ── 成人/家庭 目录背景标注 ── */
+/* 默认(未标记) = 成人, 大多数目录都是这个状态, 用淡粉色标出来 */
+.dtw-row-adult{background:rgba(255,95,168,.08)}
+.dtw-row-adult:hover{background:rgba(255,95,168,.14)}
+/* 标记过的(直接或继承) = 家庭, 保持正常背景, 不额外强调 */
+.dtw-row-family{background:transparent}

@@ -1,0 +1,152 @@
+/* core.css —— 全局主题变量 + 页面框架 + 多个页面共用的基础UI组件。
+   这个文件几乎不会变，改哪个页面的专属样式，去对应页面自己的css文件改。 */
+
+:root{
+  --bg:#14181F;--panel:#1B222C;--panel-2:#212A35;--line:#38454F;--line-soft:#2A3540;
+  --text:#F0F2F5;--text-2:#B4BEC9;--text-3:#8892A0;
+  --gold:#D9A64E;--up:#E8564F;--down:#45AB79;--blue:#5B9BD5;--teal:#4FB0A5;
+  --input-bg:#12161C;--topbar-bg:rgba(20,24,31,.92);
+}
+/* 明亮主题（手动切换）——柔和的暖白，不刺眼 */
+[data-theme="light"]{
+  --bg:#EDEAE3;--panel:#F7F5F1;--panel-2:#E9E5DD;--line:#D5CFC2;--line-soft:#E0DACE;
+  --text:#33291A;--text-2:#5F5647;--text-3:#8D8474;
+  --gold:#B8843A;--up:#C2453F;--down:#358560;--blue:#4A7FB5;--teal:#3D9186;
+  --input-bg:#F2EFE9;--topbar-bg:rgba(247,245,241,.92);
+}
+/* 跟随系统：只有勾了"自动"、且系统当前是浅色模式时才生效；系统深色时沿用上面 :root 的暗色默认值 */
+@media (prefers-color-scheme: light){
+  [data-theme="auto"]{
+    --bg:#EDEAE3;--panel:#F7F5F1;--panel-2:#E9E5DD;--line:#D5CFC2;--line-soft:#E0DACE;
+    --text:#33291A;--text-2:#5F5647;--text-3:#8D8474;
+    --gold:#B8843A;--up:#C2453F;--down:#358560;--blue:#4A7FB5;--teal:#3D9186;
+    --input-bg:#F2EFE9;--topbar-bg:rgba(247,245,241,.92);
+  }
+}
+html{transition:background .2s;}
+body,.topbar,input,select,textarea{transition:background .2s,color .2s,border-color .2s;}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--text);
+  font-family:-apple-system,"Segoe UI","Noto Sans JP",sans-serif;}
+#root{max-width:960px;margin:0 auto;padding-bottom:60px;}
+.topbar{position:sticky;top:0;z-index:20;background:var(--topbar-bg);backdrop-filter:blur(8px);
+  border-bottom:1px solid var(--line);padding:14px 18px;display:flex;align-items:center;gap:14px;}
+.brand{font-weight:800;font-size:18px;letter-spacing:.04em;}
+.brand .tag{font-size:11px;color:var(--gold);border:1px solid var(--gold);border-radius:4px;padding:1px 6px;margin-left:8px;font-weight:600;}
+.env{margin-left:auto;font-size:11px;color:var(--text-3);font-family:ui-monospace,monospace;}
+@media(max-width:640px){
+  .env{display:none;}
+  .topbar{padding:10px 14px;gap:10px;}
+  .brand{font-size:14px;}
+  .brand .tag{font-size:9px;padding:1px 4px;margin-left:4px;}
+}
+.nav{display:flex;gap:4px;padding:10px 14px;flex-wrap:wrap;border-bottom:1px solid var(--line-soft);
+  position:sticky;top:53px;z-index:19;background:var(--bg);}
+.nav button{background:transparent;border:1px solid transparent;color:var(--text-2);font-size:13px;padding:7px 13px;border-radius:7px;cursor:pointer;font-weight:600;}
+.nav button:hover{color:var(--text);background:var(--panel);}
+.nav button.active{background:var(--gold);color:#0B0F14;border-color:var(--gold);}
+.page{padding:18px;}
+h2.page-title{font-size:16px;margin:0 0 4px;font-weight:700;}
+.page-sub{font-size:12px;color:var(--text-3);margin-bottom:18px;}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px;margin-bottom:14px;}
+.card-title{font-size:13px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px;color:var(--text);}
+.card-title .idx{font-family:ui-monospace,monospace;font-size:11px;color:var(--gold);border:1px solid var(--gold);border-radius:4px;padding:1px 6px;}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}
+.stat{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px;}
+.stat .lbl{font-size:11px;color:var(--text-3);}
+.stat .val{font-family:ui-monospace,monospace;font-weight:700;font-size:19px;margin-top:4px;}
+.stat .chg{font-family:ui-monospace,monospace;font-size:12px;margin-top:3px;color:var(--text-3);}
+.up{color:var(--up);}.down{color:var(--down);}
+.v-down{color:var(--down);}
+.v-up{color:var(--up);}
+table{width:100%;border-collapse:collapse;font-size:13px;}
+th,td{text-align:left;padding:9px 8px;border-bottom:1px solid var(--line-soft);}
+th{color:var(--text-3);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.04em;}
+td.num{font-family:ui-monospace,monospace;text-align:right;}
+.acct-tag{font-size:12px;padding:3px 8px;border-radius:4px;border:1px solid var(--line);color:var(--text-2);}
+.mode-switch{display:flex;gap:6px;margin-bottom:8px;}
+.mode-btn{background:var(--input-bg);border:1px solid var(--line);color:var(--text-2);font-size:12px;padding:5px 12px;border-radius:5px;cursor:pointer;font-weight:600;}
+.mode-btn.on{background:var(--gold);color:#0B0F14;border-color:var(--gold);}
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px;}
+.btn{background:var(--gold);color:#0B0F14;border:none;border-radius:7px;padding:10px 16px;font-weight:700;font-size:13px;cursor:pointer;}
+.btn.ghost{background:transparent;border:1px solid var(--line);color:var(--text);}
+.btn.sm{padding:6px 11px;font-size:12px;}
+.empty{color:var(--text-3);text-align:center;padding:30px;font-size:13px;line-height:1.8;}
+.hint{font-size:11px;color:var(--text-3);line-height:1.6;margin-top:10px;}
+@media(max-width:640px){
+  .grid{grid-template-columns:1fr 1fr;}
+  .icon-btn{padding:8px 12px;font-size:13px;min-height:36px;min-width:36px;}
+  .row-actions{gap:8px;}
+  .sort-buttons{flex-direction:row;gap:6px;}
+  .sort-buttons .icon-btn{padding:6px 10px;font-size:13px;min-height:32px;min-width:32px;}
+  .btn.sm{padding:9px 14px;font-size:13px;}
+  .mode-btn{padding:9px 14px;font-size:13px;}
+  input[type="checkbox"],input[type="radio"]{width:20px;height:20px;}
+}
+
+/* 窄屏下表格自动变成堆叠卡片——横向挤7列在小屏幕上完全没法看，改成每行一张卡，
+   字段名用 data-label 属性配合 ::before 显示在数值左边。 */
+@media(max-width:640px){
+  table{border:none;}
+  table thead{display:none;}
+  table, table tbody, table tr, table td{display:block;width:100%;}
+  table tr{border:1px solid var(--line);border-radius:8px;margin-bottom:8px;padding:8px 10px;background:var(--panel-2);}
+  table td{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:none;text-align:right;}
+  table td::before{content:attr(data-label);font-size:11px;color:var(--text-3);font-weight:600;text-align:left;margin-right:10px;flex-shrink:0;}
+  table td.num{text-align:right;}
+}
+.note-banner{background:var(--panel-2);border:1px solid var(--line);border-left:3px solid var(--gold);border-radius:6px;padding:10px 14px;font-size:12px;color:var(--text-2);line-height:1.6;margin-bottom:16px;}
+.icon-btn{background:transparent;border:1px solid var(--line);color:var(--text-2);border-radius:5px;padding:4px 9px;font-size:11px;cursor:pointer;}
+.icon-btn:hover{color:var(--text);border-color:var(--gold);}
+.icon-btn:disabled{opacity:.4;cursor:not-allowed;}
+.icon-btn.danger:hover{color:var(--up);border-color:var(--up);}
+.row-actions{display:flex;gap:6px;}
+.warn{color:var(--gold);font-size:12px;margin-top:6px;}
+.pill{font-size:10px;padding:2px 7px;border-radius:10px;font-weight:700;}
+.pill.pending{background:rgba(224,169,75,.15);color:var(--gold);border:1px solid var(--gold);}
+select{cursor:pointer;}
+.editable-num{cursor:pointer;border-bottom:1px dashed var(--line);padding-bottom:1px;}
+.editable-num:hover{color:var(--gold);border-bottom-color:var(--gold);}
+.inline-edit{width:120px;background:var(--input-bg);border:1px solid var(--gold);color:var(--text);font-family:ui-monospace,monospace;font-size:13px;padding:4px 6px;border-radius:5px;text-align:right;outline:none;}
+.saved-flash{font-size:10px;color:var(--down);margin-left:6px;}
+.field{display:flex;flex-direction:column;gap:5px;margin-bottom:14px;max-width:360px;}
+.field label{font-size:12px;color:var(--text-2);}
+.field select, .field input{background:var(--input-bg);border:1px solid var(--line);color:var(--text);border-radius:6px;padding:9px 10px;font-size:13px;}
+/* 通用输入框基础样式——不管有没有包在.field里，看着都得一致，不能是浏览器默认丑样子 */
+input[type="text"]{
+  background:var(--input-bg);border:1px solid var(--line);color:var(--text);
+  border-radius:6px;padding:8px 10px;font-size:13px;min-width:140px;
+}
+input[type="number"]{
+  background:var(--input-bg);border:1px solid var(--line);color:var(--text);
+  border-radius:6px;padding:8px 10px;font-size:13px;width:130px;
+}
+input[type="text"]:focus,input[type="number"]:focus{outline:1px solid var(--gold);border-color:var(--gold);}
+.save-row input{flex:1;}
+/* 所有数字输入框统一去掉加减箭头——纯手打金额，不需要这个功能 */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
+input[type="number"]{-moz-appearance:textfield;}
+
+/* 日期输入框：默认原生控件在暗色主题下很丑（日历图标是黑的，几乎看不见），美化一下，限制宽度 */
+input[type="date"]{
+  background:var(--input-bg);border:1px solid var(--line);color:var(--text);
+  border-radius:8px;padding:8px 10px;font-size:13px;font-family:ui-monospace,monospace;
+  cursor:pointer;transition:border-color .15s;width:150px;
+}
+input[type="date"]:hover{border-color:var(--text-2);}
+input[type="date"]:focus{outline:1px solid var(--gold);border-color:var(--gold);}
+input[type="date"]::-webkit-calendar-picker-indicator{
+  cursor:pointer;border-radius:4px;padding:2px;
+  filter:invert(0.6);
+}
+[data-theme="light"] input[type="date"]::-webkit-calendar-picker-indicator{filter:invert(0.3);}
+input[type="date"]::-webkit-calendar-picker-indicator:hover{background:var(--panel-2);}
+.field-label{font-size:12px;color:var(--text-2);margin-bottom:6px;font-weight:600;}
+.holding-group-label{font-size:11px;color:var(--gold);font-weight:700;margin-bottom:8px;text-transform:uppercase;letter-spacing:.03em;}
+.save-msg{font-size:12px;color:var(--down);}
+.save-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+.theme-toggle{display:flex;gap:2px;background:var(--panel-2);border:1px solid var(--line);border-radius:20px;padding:2px;}
+.theme-toggle button{background:transparent;border:none;border-radius:16px;padding:5px 9px;font-size:13px;cursor:pointer;opacity:.5;transition:all .15s;}
+.theme-toggle button.on{background:var(--gold);opacity:1;}
+.theme-toggle button:hover{opacity:.8;}

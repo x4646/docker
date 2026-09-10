@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="NAS 个人速记本" />
+  <title>速记本</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<div id="app">
+
+  <!-- ── 侧栏 ──────────────────────────────────────────────────────────── -->
+  <aside id="sidebar">
+    <div id="sidebar-header">
+      <input
+        id="search-input"
+        type="search"
+        placeholder="搜索笔记…"
+        autocomplete="off"
+        aria-label="搜索笔记"
+      />
+      <button id="btn-new" aria-label="新建笔记">＋ 新建笔记</button>
+    </div>
+
+    <div id="note-list" role="list" aria-label="笔记列表"></div>
+
+    <div id="sidebar-footer">
+      <button id="btn-trash" aria-label="打开回收站">🗑 回收站</button>
+    </div>
+  </aside>
+
+  <!-- ── 编辑区 ─────────────────────────────────────────────────────────── -->
+  <main id="editor">
+
+    <!-- 工具栏 -->
+    <div id="editor-toolbar">
+      <span id="save-status" aria-live="polite"></span>
+      <button id="btn-delete" aria-label="删除笔记">移入回收站</button>
+    </div>
+
+    <!-- 标题 + 内容（有笔记时显示） -->
+    <div id="editor-area" style="display:none; flex-direction:column; flex:1; overflow:hidden;">
+      <input
+        id="title-input"
+        type="text"
+        placeholder="标题（可选）"
+        autocomplete="off"
+        aria-label="笔记标题"
+      />
+      <textarea
+        id="content-input"
+        placeholder="开始记录…"
+        aria-label="笔记内容"
+        spellcheck="false"
+      ></textarea>
+    </div>
+
+    <!-- 空状态（无笔记 / 未选中） -->
+    <div id="empty-state">
+      <p>点击「新建笔记」开始记录</p>
+      <p style="font-size:12px">或双击左侧列表打开笔记</p>
+    </div>
+
+  </main>
+
+</div>
+
+<!-- ── 回收站视图（覆盖层）────────────────────────────────────────────────── -->
+<div id="trash-view" style="display:none;" role="dialog" aria-label="回收站">
+  <div id="trash-header">
+    <button id="btn-back" aria-label="返回笔记">← 返回</button>
+    <h2>回收站</h2>
+    <button id="btn-empty-trash">清空回收站</button>
+  </div>
+  <div id="trash-list" role="list" aria-label="回收站列表"></div>
+</div>
+
+<!-- ── Toast 通知 ─────────────────────────────────────────────────────────── -->
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,148 @@
+/* ============================================================
+   手机端（iPhone）适配 —— 第一批：iOS 硬伤修复
+   必须放在所有其他 css 之后加载，靠加载顺序保证覆盖生效。
+   要回退：删掉本文件，并去掉 index.html 里对应那行 link 即可。
+   ============================================================ */
+
+@media(max-width:640px){
+
+  /* --- 1. 修复 iOS Safari 聚焦输入框时自动放大整个页面 ---
+     Safari 规则：input 字号小于 16px 就触发自动缩放。全部抬到 16px。 */
+  input, select, textarea,
+  .field input, .field select,
+  input[type="text"], input[type="number"], input[type="date"]{
+    font-size:16px !important;
+  }
+  /* 金额是记账的主角，手机上再放大一档，好确认 */
+  .amount-input{ font-size:26px !important; padding:14px !important; }
+  /* 表格内联编辑框在 16px 下原来的 120px 会挤，放开 */
+  .inline-edit{ width:auto !important; min-width:110px; max-width:100%; }
+
+  /* --- 2. 顶栏不再吸顶，改由导航栏独占吸顶 ---
+     原来 .nav 写死 top:53px，但手机上顶栏被压到约 46px，
+     中间会露出一条缝、滚动时内容从缝里穿过去。
+     顺便省回一整条顶栏的高度。 */
+  .topbar{ position:static; }
+  .nav{ top:0; }
+
+  /* --- 3. 刘海屏 / 灵动岛 / 底部横条安全区 ---
+     竖屏时左右 inset 为 0，等于没变化；横屏和底部才生效。 */
+  .topbar{ padding-left:calc(14px + env(safe-area-inset-left));
+           padding-right:calc(14px + env(safe-area-inset-right)); }
+  .nav{ padding-left:calc(14px + env(safe-area-inset-left));
+        padding-right:calc(14px + env(safe-area-inset-right)); }
+  .page{ padding-left:calc(18px + env(safe-area-inset-left));
+         padding-right:calc(18px + env(safe-area-inset-right)); }
+  #root{ padding-bottom:calc(60px + env(safe-area-inset-bottom)); }
+}
+
+/* ============================================================
+   第三批：tab 横滑 + 保存按钮吸底
+   ============================================================ */
+@media(max-width:640px){
+
+  /* --- 4. 13 个 tab 不再折行，改成单行横向滑动 ---
+     原来 flex-wrap:wrap 会折成三四行，占掉小半个屏幕。
+     inline style 里写死的 flexWrap:"wrap" 靠 !important 压掉。 */
+  .card > .mode-switch:first-child{
+    flex-wrap:nowrap !important;
+    overflow-x:auto;
+    overflow-y:hidden;
+    -webkit-overflow-scrolling:touch;
+    scroll-snap-type:x proximity;
+    scrollbar-width:none;
+    padding-bottom:4px;
+  }
+  .card > .mode-switch:first-child::-webkit-scrollbar{ display:none; }
+  .card > .mode-switch:first-child > .mode-btn{
+    flex:0 0 auto;
+    scroll-snap-align:center;
+  }
+
+  /* --- 5. 保存按钮吸底 ---
+     用 fixed 而不是 sticky：按钮在表单末尾，sticky 的生效区间几乎为零。 */
+  .save-sticky{
+    position:fixed;
+    left:calc(12px + env(safe-area-inset-left));
+    right:calc(12px + env(safe-area-inset-right));
+    bottom:calc(12px + env(safe-area-inset-bottom));
+    width:auto !important;
+    margin-top:0 !important;
+    z-index:40;
+    padding:15px !important;
+    font-size:16px !important;
+    box-shadow:0 6px 24px rgba(0,0,0,.55);
+  }
+  /* 金额/账户没填时按钮是 disabled，但原来没有视觉区分，补上 */
+  .save-sticky:disabled{ opacity:.45; box-shadow:none; }
+
+  /* 给吸底按钮让出空间，免得挡住表单最后一行 */
+  #root{ padding-bottom:calc(84px + env(safe-area-inset-bottom)); }
+}
+
+/* 排序开关（桌面/手机通用，故意不放进 media query） */
+.sort-row{ display:flex; align-items:center; justify-content:space-between; gap:8px; }
+.sort-toggle{ font-weight:600; white-space:nowrap; }
+
+/* ============================================================
+   第四批：触摸细节打磨
+   ============================================================ */
+
+/* --- 6. 去掉 iOS 点击时的灰色闪烁块 ---
+   （全局，桌面端无影响） */
+*{ -webkit-tap-highlight-color:transparent; }
+
+/* --- 7. 可点元素禁止长按选中 / 弹出"拷贝·查询"气泡 --- */
+button, .btn, .mode-btn, .type-pill, .icon-grid-item, .nav a, .nav button{
+  -webkit-user-select:none; user-select:none;
+  -webkit-touch-callout:none;
+}
+
+@media(max-width:640px){
+
+  /* --- 8. 图标网格改 3 列，每格更大更好点 ---
+     原来 minmax(76px) 在 iPhone 上排 4 列，每格偏小。 */
+  .icon-grid{
+    grid-template-columns:repeat(3,1fr) !important;
+    gap:10px;
+  }
+  .icon-grid-item{ padding:14px 6px; }
+  .icon-grid-emoji{ font-size:26px; }
+  .icon-grid-label{ font-size:13px; }
+
+  /* --- 9. tab 横滑到头时不要触发 Safari 的返回手势 --- */
+  .card > .mode-switch:first-child{ overscroll-behavior-x:contain; }
+}
+
+/* ============================================================
+   第五批：字体抗锯齿 + 点击响应 + 走势分析页手机适配
+   ============================================================ */
+
+/* --- 10. 去掉300ms点击延迟/双击误触放大缩放, 文字抗锯齿更清晰 ---
+   （全局, 桌面端无影响；不加到 .chart-wrap 本身, 免得跟自己写的双指缩放切档位手势打架） */
+html{ -webkit-font-smoothing:antialiased; }
+button, .btn, .mode-btn, .seg button, .legend-row, .type-pill, .icon-grid-item, .nav button{
+  touch-action:manipulation;
+}
+
+@media(max-width:640px){
+
+  /* --- 11. 走势分析工具栏(档位/分账户/金额涨跌幅/翻页...)按钮太多会挤成两三行，
+     改成跟13个记账tab同一套单行横滑模式 --- */
+  .toolbar{
+    flex-wrap:nowrap !important;
+    overflow-x:auto;
+    -webkit-overflow-scrolling:touch;
+    scrollbar-width:none;
+    padding-bottom:2px;
+  }
+  .toolbar::-webkit-scrollbar{ display:none; }
+  .toolbar > *{ flex:0 0 auto; }
+
+  /* --- 12. 图表横向滚动补上 iOS 惯性滚动 --- */
+  .chart-wrap{ -webkit-overflow-scrolling:touch; }
+
+  /* --- 13. 图例行触摸目标偏矮(苹果建议最小44pt), 手机上加大一点更好点 --- */
+  .legend-row{ padding:10px 12px; }
+  .legend-row input{ width:18px; height:18px; }
+}

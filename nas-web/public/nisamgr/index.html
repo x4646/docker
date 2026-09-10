@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>资产管理台 v20260711-112347</title>
+<link rel="stylesheet" href="core.css">
+<link rel="stylesheet" href="overview.css">
+<link rel="stylesheet" href="chart.css">
+<link rel="stylesheet" href="import.css">
+<link rel="stylesheet" href="confirm.css">
+<link rel="stylesheet" href="history.css">
+<link rel="stylesheet" href="bookkeeping.css">
+<script>(function(){try{document.documentElement.dataset.theme=localStorage.getItem('theme')||'auto';}catch(e){}})();</script>
+<link rel="stylesheet" href="mobile.css">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="资产管理台">
+<meta name="theme-color" content="#0B0F14">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="manifest" href="manifest.json">
+<script>(function(){
+  // theme-color原来是写死的深色, 切到"明亮"主题后iOS状态栏/切换器卡片背景还是深色,
+  // 跟页面实际颜色对不上。这里跟着data-theme(明亮/黑暗/跟随系统)同步。
+  var LIGHT = "#EDEAE3", DARK = "#14181F";
+  function resolve() {
+    var t = document.documentElement.dataset.theme;
+    if (t === "light") return LIGHT;
+    if (t === "dark") return DARK;
+    try { return window.matchMedia("(prefers-color-scheme: light)").matches ? LIGHT : DARK; } catch (e) { return DARK; }
+  }
+  function sync() {
+    var m = document.querySelector('meta[name="theme-color"]');
+    if (m) m.setAttribute("content", resolve());
+  }
+  sync();
+  try {
+    new MutationObserver(sync).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+    window.matchMedia("(prefers-color-scheme: light)").addEventListener("change", sync);
+  } catch (e) {}
+})();</script>
+</head>
+<body>
+<div id="root"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
+<script src="app.js"></script>
+<script src="overview.js"></script>
+<script src="chart.js"></script>
+<script src="import.js"></script>
+<script src="confirm.js"></script>
+<script src="history.js"></script>
+<script src="bookkeeping-shared.js"></script>
+<script src="bookkeeping-tx.js"></script>
+<script src="bookkeeping-manage.js"></script>
+<script src="bookkeeping-planning.js"></script>
+<script src="bookkeeping-insights.js"></script>
+<script src="bookkeeping.js"></script>
+</body>
+</html>
