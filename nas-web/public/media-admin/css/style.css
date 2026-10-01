@@ -1,5 +1,5 @@
 * { margin:0; padding:0; box-sizing:border-box; }
-body { background:#0f1319; color:#f0f6ff; font-family:'Noto Sans SC',sans-serif; min-height:100vh; }
+body { background:#0f1319; color:#f0f6ff; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei','Noto Sans SC',sans-serif; min-height:100vh; overflow-x:hidden; }
 .navbar { background:#161d28; border-bottom:1px solid #2a3d55; padding:0 24px; height:56px; display:flex; align-items:center; gap:12px; position:sticky; top:0; z-index:100; }
 .nav-logo { font-size:1.1rem; font-weight:700; color:#40d0ff; }
 .nav-tabs { display:flex; gap:4px; margin-left:auto; }
@@ -27,7 +27,12 @@ body { background:#0f1319; color:#f0f6ff; font-family:'Noto Sans SC',sans-serif;
 /* 目录列表 */
 .dir-list { display:flex; flex-direction:column; gap:8px; }
 .dir-item { background:#1e2838; border:1px solid #2a3d55; border-radius:8px; padding:12px 16px; display:flex; align-items:center; gap:12px; }
-.dir-path { flex:1; font-family:monospace; font-size:.82rem; color:#c8dff5; }
+/* min-width:0是关键: 没有这个的话flex:1子元素默认不会小于内容本身的宽度, 长路径会把
+   整行(乃至整个页面, body没设overflow-x:hidden之前)撑出横向滚动。用overflow-wrap
+   而不是white-space:nowrap+ellipsis截断——这个class在admin.js里有的地方是单行路径,
+   有的地方是"名称+路径+统计"三行堆叠的容器(见admin.js:907), nowrap会把那种多行布局
+   压成一行, 换行才是安全通用的做法。 */
+.dir-path { flex:1; min-width:0; font-family:monospace; font-size:.82rem; color:#c8dff5; overflow-wrap:break-word; }
 .dir-count { font-size:.75rem; color:#507090; }
 .dir-actions { display:flex; gap:6px; }
 
@@ -45,6 +50,10 @@ body { background:#0f1319; color:#f0f6ff; font-family:'Noto Sans SC',sans-serif;
 .form-label { display:block; font-size:.78rem; color:#c8dff5; margin-bottom:5px; }
 .form-input { width:100%; padding:9px 12px; background:#1e2838; border:1px solid #2a3d55; border-radius:7px; color:#f0f6ff; font-size:.86rem; outline:none; transition:border-color .2s; }
 .form-input:focus { border-color:#40d0ff; }
+
+/* 歌曲选择器弹窗内部布局(数值原来写在index.html的内联style里, 挪到这里手机断点才能覆盖得了) */
+.song-picker-body { height:400px; }
+.song-picker-tree-col { width:260px; }
 
 /* Modal */
 .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,.7); z-index:200; display:none; align-items:center; justify-content:center; }
@@ -83,3 +92,75 @@ body { background:#0f1319; color:#f0f6ff; font-family:'Noto Sans SC',sans-serif;
 .stat-box { background:#1e2838; border-radius:8px; padding:12px; text-align:center; }
 .stat-label { font-size:.7rem; color:#507090; margin-bottom:4px; }
 .stat-num { font-size:1.4rem; font-weight:700; color:#f0f6ff; }
+
+/* ══ 目录树紧凑化: 仅媒体管理页(NAS目录/PC目录两个挂载点)覆盖, 不碰共享的
+   dir-tree.css/dir-tree-widget.js——viewer/videoer侧边栏之前专门为手机触屏放大过
+   点击区域, 这里只是想让桌面管理页显得更像Windows资源管理器那种紧凑列表, 两边
+   需求不一样, 用容器ID把范围锁死, 互不影响。
+   .dtw-row/.dtw-name在dir-tree-widget.js里写的是内联style(padding/border-bottom/
+   font-size), 外部样式表选择器再高的优先级也盖不过内联, 这几处只能用!important。 */
+#nas-tree-mount .dtw-row,
+#pc-tree-mount .dtw-row {
+  padding: 2px 4px !important;
+  border-bottom: none !important;
+  border-radius: 3px;
+}
+#nas-tree-mount .dtw-node:hover > .dtw-row,
+#pc-tree-mount .dtw-node:hover > .dtw-row {
+  background: #1c3a54 !important;
+}
+#nas-tree-mount .pc-toggle,
+#pc-tree-mount .pc-toggle {
+  width: 14px !important;
+  height: 14px !important;
+  border: none !important;
+  background: transparent !important;
+  color: #8aa8c8;
+  font-size: .68rem !important;
+  font-weight: 400 !important;
+  border-radius: 0 !important;
+}
+#nas-tree-mount .pc-toggle:hover,
+#pc-tree-mount .pc-toggle:hover { color: #fff; background: transparent !important; }
+#nas-tree-mount .pc-guide,
+#pc-tree-mount .pc-guide { width: 15px; }
+#nas-tree-mount .dtw-name,
+#pc-tree-mount .dtw-name { font-size: .78rem !important; }
+#nas-tree-mount .dtw-stat,
+#pc-tree-mount .dtw-stat { font-size: .68rem !important; }
+
+@media (max-width:700px) {
+  /* 顶栏5个tab+logo原来不换行, 窄屏会被挤出去(配合上面新加的body overflow-x:hidden,
+     不换行就会变成整页可以横向拖动) */
+  .navbar { flex-wrap:wrap; height:auto; min-height:56px; padding:8px 14px; row-gap:6px; }
+  .main { padding:12px; }
+  .card { padding:14px; }
+  /* 歌曲选择器弹窗左侧目录树原来是固定260px, 92%宽度的弹窗在手机上根本装不下,
+     右侧歌曲列表会被挤到没法用——手机上改成上下堆叠 */
+  .song-picker-body { flex-direction:column; height:70vh; }
+  .song-picker-tree-col { width:100% !important; max-height:32vh; }
+  .song-picker-list-col { min-height:0; }
+
+  /* 上面那段"Windows资源管理器紧凑风格"是给鼠标+桌面屏幕设计的, 14px的展开按钮、
+     2px的行高在手机上点不准——手机断点下盖回touch-friendly的尺寸, 桌面风格不受影响。 */
+  #nas-tree-mount .dtw-row,
+  #pc-tree-mount .dtw-row { padding: 8px 4px !important; }
+  #nas-tree-mount .pc-toggle,
+  #pc-tree-mount .pc-toggle {
+    width: 26px !important; height: 26px !important;
+    font-size: 1rem !important;
+  }
+  #nas-tree-mount .dtw-check,
+  #pc-tree-mount .dtw-check,
+  #nas-tree-mount .pc-dir-check,
+  #pc-tree-mount .pc-dir-check {
+    transform: scale(1.4); margin: 0 6px 0 2px !important;
+  }
+  #nas-tree-mount .dtw-name,
+  #pc-tree-mount .dtw-name { font-size: .8rem !important; }
+  /* 批量操作工具栏/筛选栏按钮平时padding偏小, 手机上加大一点更好点 */
+  #page-dirs .btn-sm, #page-pc .btn-sm { padding:7px 13px; }
+
+  /* 目录/播放列表卡片的操作按钮原来不换行, 长目录名+多个按钮在窄屏会被挤出去 */
+  .dir-actions { flex-wrap: wrap; }
+}

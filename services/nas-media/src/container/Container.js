@@ -1,0 +1,336 @@
+const express = require('express');
+const path = require('path');
+const fs = require('fs');
+const { ConsoleLogger } = require('../infrastructure/logger/ConsoleLogger');
+const { SqlitePhotoRepository } = require('../infrastructure/repositories/SqlitePhotoRepository');
+const { PhotoUseCase } = require('../application/PhotoUseCase');
+const { PhotoController } = require('../interfaces/http/PhotoController');
+const { FileBrowserController } = require('../shared/browser/FileBrowserController');
+
+class Container {
+  constructor(config) {
+    this.config = config;
+    this.app = express();
+    this.dbInstance = null;
+  }
+
+  // 2026-09-10加: photos表20多万行, "WHERE path LIKE ?"绑定参数时SQLite没法确定
+  // 有没有前导通配符, 只能退化成扫全索引(EXPLAIN QUERY PLAN证实是SCAN不是SEARCH)。
+  // better-sqlite3是同步阻塞的, 扫这20多万行期间整个Node事件循环动弹不得, 别的请求
+  // 全部干等——这是"翻图库/切视频时页面卡死, 其他服务不受影响"的根因。
+  // 改成区间比较 path>=lo AND path<hi 让SQLite走已有的idx_photos_path做真正的索引区间查找。
+  // '/'(0x2F)和'0'(0x30)相邻, 任何"prefix/"打头的字符串第二个字符比较就已经小于"prefix0",
+  // 不管后面跟什么都成立, 所以这个区间精确覆盖"以prefix/开头的所有路径"。
+  pathPrefixRange(prefix) {
+    return [prefix + '/', prefix + '0'];
+  }
+
+  build() {
+    const logger       = new ConsoleLogger();
+    const photoRepo    = new SqlitePhotoRepository(this.config.DB_PATH);
+    const photoUseCase = new PhotoUseCase(photoRepo, logger, this.config.PIPE_URL, this.config.DATA_PATH);
+
+    // 2026-09-26改: 默认100kb上限, video-migrate.js里"批量替换"选中文件一多(几百上千条
+    // 完整路径的JSON数组)请求体轻松超过100kb——这个全局中间件先于任何路由级
+    // express.json({limit:...})跑到, 已经在这里就把请求拒了(413), 路由级的limit覆盖
+    // 根本没机会生效。全局放宽到20mb, 兼顾这种大批量JSON请求。
+    this.app.use(express.json({ limit: '20mb' }));
+    this.app.use(express.static('/app/public'));
+    this.app.use('/thumbs',  express.static(path.join(this.config.DATA_PATH, 'thumbs')));
+    // preview/original内容按路径不可变(生成后不会改), 加30天缓存: 第二次打开同一张图
+    // (包括查看器相邻图预取、重新打开同一目录)直接命中浏览器缓存,不用再走一次网络。
+    this.app.use('/preview', express.static(path.join(this.config.DATA_PATH, 'preview'), { maxAge: '30d' }));
+
+    // 原图访问
+    // 2026-09-09修复(fd泄漏/卡死): 原来先同步阻塞调 fs.existsSync 再 sendFile,
+    // 视频拖进度条时大量并发Range请求会把这个同步调用堆在Node单线程事件循环上排队,
+    // 整个进程(包括其他请求)被拖住 —— 这才是"CPU占用高、服务卡死"的真正原因,
+    // 不是sendFile本身不关闭流。去掉这个同步预检查, 直接交给sendFile的错误回调处理404。
+    this.app.get('/original/*', (req, res) => {
+      const filePath = '/' + req.params[0];
+      res.sendFile(filePath, { maxAge: '30d' }, (err) => {
+        if (err && !res.headersSent) res.status(404).json({ error: 'not found' });
+      });
+    });
+
+    // 音乐文件流
+    // 2026-09-09修复: 跟/original同一个问题(同步existsSync堵事件循环), 顺手一起改掉。
+    this.app.get('/music/*', (req, res) => {
+      const filePath = '/share/' + req.params[0];
+      res.sendFile(filePath, {}, (err) => {
+        if (err && !res.headersSent) res.status(404).json({ error: 'not found' });
+      });
+    });
+
+    // 图片API
+    // 引入扩展路由（纯JS，挂载后重启即生效）
+    // 2026-09-09修复: 这里原来重复require了两遍, 所有路由和routes.js里的初始化逻辑
+    // (建表/建索引)都跑了两次, 纯属多余, 去掉重复的一遍。
+    try { require('../../routes')(this.app, this.db.bind(this)); } catch (e) { logger.warn('routes.js加载失败', { error: String(e) }); }
+    const photoCtrl = new PhotoController(photoUseCase);
+    this.app.use('/api/photos', photoCtrl.router);
+
+    // 文件浏览器API（共通组件）
+    const browserCtrl = new FileBrowserController();
+    this.app.use('/api/browser', browserCtrl.router);
+
+    // 监控目录API
+    this.app.get('/api/watch-dirs', (req, res) => {
+      const dirs = this.db().prepare('SELECT * FROM photo_watch_dirs').all();
+      res.json(dirs);
+    });
+    this.app.post('/api/watch-dirs', (req, res) => {
+      const { path: dirPath } = req.body;
+      if (!dirPath) return res.status(400).json({ error: '缺少path' });
+      this.db().prepare('INSERT OR IGNORE INTO photo_watch_dirs (path) VALUES (?)').run(dirPath);
+      res.json({ ok: true });
+    });
+    this.app.delete('/api/watch-dirs/:id', (req, res) => {
+      this.db().prepare('DELETE FROM photo_watch_dirs WHERE id = ?').run(req.params.id);
+      res.json({ ok: true });
+    });
+
+    // 播放列表API
+    this.app.get('/api/playlists', (req, res) => {
+      const lists = this.db().prepare('SELECT * FROM playlists').all();
+      res.json(lists.map((l) => ({ ...l, songs: JSON.parse(l.songs) })));
+    });
+    this.app.post('/api/playlists', (req, res) => {
+      const { name, songs = [] } = req.body;
+      if (!name) return res.status(400).json({ error: '缺少name' });
+      const r = this.db().prepare('INSERT INTO playlists (name, songs) VALUES (?, ?)').run(name, JSON.stringify(songs));
+      res.json({ ok: true, id: r.lastInsertRowid });
+    });
+    this.app.put('/api/playlists/:id', (req, res) => {
+      const { name, songs } = req.body;
+      this.db().prepare('UPDATE playlists SET name = ?, songs = ? WHERE id = ?')
+        .run(name, JSON.stringify(songs || []), req.params.id);
+      res.json({ ok: true });
+    });
+    this.app.delete('/api/playlists/:id', (req, res) => {
+      this.db().prepare('DELETE FROM playlists WHERE id = ?').run(req.params.id);
+      res.json({ ok: true });
+    });
+
+    // 音乐设置
+    this.app.get('/api/music-settings', (req, res) => {
+      res.json(this.db().prepare('SELECT * FROM music_settings WHERE id = 1').get());
+    });
+    this.app.post('/api/music-settings', (req, res) => {
+      const { mode, volume, auto_play, playlist_id } = req.body;
+      this.db().prepare('UPDATE music_settings SET mode=?, volume=?, auto_play=?, playlist_id=? WHERE id=1')
+        .run(mode, volume, auto_play ? 1 : 0, playlist_id);
+      res.json({ ok: true });
+    });
+
+    // 数据库管理接口
+    this.app.post('/api/db/query', (req, res) => {
+      const { sql } = req.body;
+      if (!sql) return res.status(400).json({ error: '缺少sql' });
+      try {
+        const stmt = this.db().prepare(sql);
+        if (sql.trim().toUpperCase().startsWith('SELECT')) {
+          res.json({ rows: stmt.all() });
+        } else {
+          const r = stmt.run();
+          res.json({ changes: r.changes });
+        }
+      } catch (e) {
+        res.json({ error: e.message });
+      }
+    });
+
+    // 时间分组接口(缓存: MAX(id)当便宜的版本号, 没新照片入库就直接回放, 跳过整表GROUP BY)
+    let _timeGroupsCache = null;
+    this.app.get('/api/photos/groups/time', (req, res) => {
+      const db = this.db();
+      const version = (db.prepare('SELECT MAX(id) v FROM photos').get()).v || 0;
+      if (_timeGroupsCache && _timeGroupsCache.version === version) {
+        return res.json(_timeGroupsCache.data);
+      }
+      const rows = db.prepare(`
+        SELECT
+          CAST(strftime('%Y', exif_time, 'unixepoch') AS INTEGER) as year,
+          CAST(strftime('%m', exif_time, 'unixepoch') AS INTEGER) as month,
+          COUNT(*) as count
+        FROM photos
+        WHERE status = 'done' AND exif_time IS NOT NULL
+        GROUP BY year, month
+        ORDER BY year DESC, month DESC
+      `).all();
+      _timeGroupsCache = { version, data: rows };
+      res.json(rows);
+    });
+
+    // 目录分组接口
+    // 目录树懒加载：不传path返回根目录，传path返回该目录的直接子目录
+    this.app.get('/api/photos/groups/dir', (req, res) => {
+      const db      = this.db();
+      const reqPath = req.query.path;
+
+      if (!reqPath) {
+        // 返回browser_roots根目录
+        const roots = db.prepare("SELECT * FROM browser_roots WHERE source = 'nas' AND enabled = 1 ORDER BY name").all();
+        const result = roots.map((r) => {
+          const [rlo, rhi] = this.pathPrefixRange(r.path);
+          const count = (db.prepare('SELECT COUNT(*) as cnt FROM photos WHERE path >= ? AND path < ?').get(rlo, rhi)).cnt;
+          const hasChildren = count > 0;
+          return { id: String(r.id), path: r.path, name: r.name, count, depth: 0, hasChildren };
+        });
+        return res.json(result);
+      }
+
+      // 返回指定路径的直接子目录
+      const fs   = require('fs');
+      const path = require('path');
+      const result = [];
+
+      try {
+        const items = fs.readdirSync(reqPath);
+        for (const name of items) {
+          if (name.startsWith('.') || name.startsWith('@')) continue;
+          const full = path.join(reqPath, name);
+          try {
+            if (fs.statSync(full).isDirectory()) {
+              const [flo, fhi] = this.pathPrefixRange(full);
+              const count = (db.prepare('SELECT COUNT(*) as cnt FROM photos WHERE path >= ? AND path < ?').get(flo, fhi)).cnt;
+              if (count === 0) continue;
+              const pending = (db.prepare("SELECT COUNT(*) as cnt FROM photos WHERE path >= ? AND path < ? AND status IN ('pending','processing')").get(flo, fhi)).cnt;
+              const done    = (db.prepare("SELECT COUNT(*) as cnt FROM photos WHERE path >= ? AND path < ? AND status = 'done'").get(flo, fhi)).cnt;
+              const hasChildren = fs.readdirSync(full).some((n) => !n.startsWith('.') && !n.startsWith('@') && fs.statSync(path.join(full, n)).isDirectory());
+              result.push({ id: full, path: full, name, count, done, pending, depth: 1, hasChildren });
+            }
+          } catch (e) {}
+        }
+      } catch (e) {}
+
+      result.sort((a, b) => a.name.localeCompare(b.name, 'ja'));
+      res.json(result);
+    });
+
+    // 按目录统计状态
+    this.app.get('/api/photos/stats/by-dir', (req, res) => {
+      const dirPath = req.query.path;
+      if (!dirPath) return res.status(400).json({ error: '缺少path' });
+      const db = this.db();
+      const [slo, shi] = this.pathPrefixRange(dirPath);
+      const stats = db.prepare(`
+        SELECT status, COUNT(*) as cnt FROM photos
+        WHERE path >= ? AND path < ? GROUP BY status
+      `).all(slo, shi);
+      const result = { pending: 0, processing: 0, done: 0, error: 0 };
+      stats.forEach((s) => { result[s.status] = s.cnt; });
+      result.total = result.pending + result.processing + result.done + result.error;
+      res.json(result);
+    });
+
+    // 文件数量异步统计（单独接口，不阻塞）
+    this.app.get('/api/photos/filecount', (req, res) => {
+      const dirPath = req.query.path;
+      if (!dirPath) return res.status(400).json({ error: '缺少path' });
+      const fsLib   = require('fs');
+      const pathLib = require('path');
+      const EXTS    = new Set(['.jpg', '.jpeg', '.png', '.heic', '.webp', '.gif', '.bmp', '.tiff', '.raw']);
+      let count = 0;
+      const walk = (dir) => {
+        try {
+          fsLib.readdirSync(dir).forEach((n) => {
+            if (n.startsWith('.') || n.startsWith('@')) return;
+            const f = pathLib.join(dir, n);
+            try {
+              const s = fsLib.statSync(f);
+              if (s.isDirectory()) walk(f);
+              else if (EXTS.has(pathLib.extname(n).toLowerCase())) count++;
+            } catch (e) {}
+          });
+        } catch (e) {}
+      };
+      setImmediate(() => {
+        walk(dirPath);
+        res.json({ count });
+      });
+    });
+
+    // 按目录派发任务
+    this.app.post('/api/photos/dispatch/dir', async (req, res) => {
+      const { dirPath, reprocess } = req.body;
+      if (!dirPath) return res.status(400).json({ error: '缺少dirPath' });
+      const db = this.db();
+      if (reprocess) {
+        const [dlo, dhi] = this.pathPrefixRange(dirPath);
+        db.prepare("UPDATE photos SET status='pending', thumb_path=NULL, preview_path=NULL WHERE path >= ? AND path < ? AND status='done'").run(dlo, dhi);
+      }
+      const sent = await photoUseCase.dispatchPendingByDir(dirPath);
+      res.json({ ok: true, sent });
+    });
+
+    // 重新处理单张图片
+    this.app.post('/api/photos/:id/reprocess', async (req, res) => {
+      const photo = photoUseCase.getPhoto(parseInt(req.params.id));
+      if (!photo) return res.status(404).json({ error: 'not found' });
+      this.db().prepare("UPDATE photos SET status='pending', thumb_path=NULL, preview_path=NULL WHERE id=?").run(photo.id);
+      const sent = await photoUseCase.dispatchPending();
+      res.json({ ok: true, sent });
+    });
+
+    // 定时派发任务（每30秒）
+    // setInterval(() => photoUseCase.dispatchPending(), 30000);
+    // 超时重置：processing超过10分钟重置为pending
+    setInterval(() => {
+      const db      = this.db();
+      const timeout = Math.floor(Date.now() / 1000) - 600;
+      const r       = db.prepare("UPDATE photos SET status='pending' WHERE status='processing' AND updated_at < ?").run(timeout);
+      if (r.changes > 0) logger.info(`超时重置 ${r.changes} 张图片`);
+    }, 60000);
+
+    // PC根目录配置接口
+    const pcRootsPath = '/data/pc_roots.json';
+    this.app.get('/api/pc-roots', (req, res) => {
+      try {
+        if (fs.existsSync(pcRootsPath)) {
+          res.json(JSON.parse(fs.readFileSync(pcRootsPath, 'utf8')));
+        } else {
+          res.json([]);
+        }
+      } catch (e) { res.json([]); }
+    });
+    this.app.post('/api/pc-roots', (req, res) => {
+      const { name, path: dirPath } = req.body;
+      if (!name || !dirPath) return res.status(400).json({ error: '缺少name或path' });
+      try {
+        const roots = fs.existsSync(pcRootsPath) ? JSON.parse(fs.readFileSync(pcRootsPath, 'utf8')) : [];
+        roots.push({ name, path: dirPath });
+        fs.writeFileSync(pcRootsPath, JSON.stringify(roots, null, 2));
+        res.json({ ok: true });
+      } catch (e) { res.json({ error: e.message }); }
+    });
+    this.app.delete('/api/pc-roots/:idx', (req, res) => {
+      try {
+        const roots = fs.existsSync(pcRootsPath) ? JSON.parse(fs.readFileSync(pcRootsPath, 'utf8')) : [];
+        roots.splice(parseInt(req.params.idx), 1);
+        fs.writeFileSync(pcRootsPath, JSON.stringify(roots, null, 2));
+        res.json({ ok: true });
+      } catch (e) { res.json({ error: e.message }); }
+    });
+    // 引入扩展路由（纯JS，挂载后重启即生效）
+    logger.info('Photo Indexer容器构建完成');
+    return this;
+  }
+
+  // 2026-09-09修复(fd泄漏): 原来每次调用都新开一个原生sqlite连接、从不关闭,
+  // 导致 nas.db 同时挂着几十个文件句柄。改成单例, 首次调用才真正打开, 之后复用同一个连接。
+  db() {
+    if (!this.dbInstance) {
+      this.dbInstance = require('better-sqlite3')(this.config.DB_PATH);
+    }
+    return this.dbInstance;
+  }
+
+  start(port) {
+    this.app.listen(port, '0.0.0.0', () => {
+      console.log(`Photo Indexer running on port ${port}`);
+    });
+  }
+}
+
+module.exports = { Container };

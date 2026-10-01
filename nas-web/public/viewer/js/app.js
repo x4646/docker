@@ -10,11 +10,13 @@ const state = {
   hasMore:   true,
   filter:    { q:'', tags:[], favorite:false, dirPath:'', year:0, month:0 },
   aiFilter:  { tags:[], mode:'or' },
-  viewer:    { index:-1, zoom:1, panX:0, panY:0, dragging:false, lastX:0, lastY:0 },
+  viewer:    { index:-1, zoom:1, panX:0, panY:0, rotate:0, dragging:false, lastX:0, lastY:0 },
   slideshow: { active:false, timer:null, interval:4000 },
   music:     { audio:null, playlist:[], index:0, playing:false, mode:'shuffle', volume:0.6 },
   playlists: [],
   tags:      [],
+  selectMode: false,
+  selectedIds: new Set(),
 };
 
 const dirFilecountCache = new Map();
@@ -99,22 +101,31 @@ window.addEventListener("scroll", function () {
 }, { passive: true });
 window.addEventListener("beforeunload", _saveBrowseState);
 async function init() {
+  // 2026-09-20加: 必须在_restoreBrowseState()(会立刻触发loadPhotos)之前就把
+  // _familyGateActive算好并await完——否则首次打开页面时loadPhotos可能会在家庭限制
+  // 状态确定之前就先发出去一次不受限制的请求, 泄露一瞬间的完整内容。
+  try {
+    const _roles = await fetch('/api/roles').then(r => r.json());
+    _familyGateActive = _isFamilyRole(getEffectiveRole(_roles));
+  } catch (e) { /* 拉角色列表失败: 保持_familyGateActive默认false, 不影响后续正常使用 */ }
   _restoreBrowseState();
   setupIntersectionObserver();
   setupKeyboard();
   setupViewer();
+  _applyColCount(_loadColCount());
   if (typeof renderRoleSwitchButton === 'function') renderRoleSwitchButton();
   loadSidebar().catch(function(e){ console.error('sidebar', e); });
   loadPlaylists()
     .then(function(){ return loadMusicSettings(); })
     .then(function(){ restoreLastPlay(); })
     .catch(function(e){ console.error('music', e); });
-  setTimeout(function(){ loadTags().catch(function(e){ console.error('tags', e); }); }, 300);
+  _loadTagsLast();
 }
 
 // ── 侧边栏 ────────────────────────────────────────────
 
 async function loadPcPhotos(pcPath) {
+  closeSidebarDrawer();
   state.pcMode = true;
   pcPath = pcPath.split('\\').join('/');
   const statsBar = document.querySelector(".stats-bar");
@@ -249,15 +260,20 @@ async function loadSidebar() {
   sidebar.appendChild(tagCloud);
 
   const _nasViewRoots = dtaMakeRoots('nas');
-  const _currentRole = (function(){ try { const raw = localStorage.getItem('viewer_current_role'); return raw ? JSON.parse(raw) : null; } catch(e){ return null; } })();
-  if (_currentRole) {
+  // 2026-09-20改: 不再直接信localStorage里存的角色——先拉角色列表算出"本次实际生效"的
+  // 角色(默认家庭, 没解锁密码就不能用"全部"或其他角色), 再决定侧边栏目录树给哪些根目录。
+  let _allRoles = [];
+  try { _allRoles = await fetch('/api/roles').then(r => r.json()); } catch (e) {}
+  const _effectiveRole = getEffectiveRole(_allRoles);
+  _familyGateActive = _isFamilyRole(_effectiveRole);
+  if (_effectiveRole) {
     _nasViewRoots.fn = async () => {
-      const r = await fetch('/api/roles').then(r => r.json());
-      const role = r.find(x => x.id === _currentRole.id);
-      const roots = (role && role.allowed_roots) || [];
+      const roots = _effectiveRole.allowed_roots || [];
       return roots.map(p => ({ name: p.split('/').filter(Boolean).pop() || p, path: p, hasChildren: true }));
     };
   }
+  const _roleBtn = document.getElementById('role-switch-btn');
+  if (_roleBtn) _roleBtn.textContent = _effectiveRole ? (_effectiveRole.icon + ' ' + _effectiveRole.name) : '🌐 全部';
   const _nasView = (path) => {
     clearSearchQuery();
     state.filter.dirPath  = path;
@@ -273,12 +289,17 @@ async function loadSidebar() {
   window.dirTree = new DirTreeWidget({
     container: dirContainer,
     source: 'nas',
-    instanceId: 'viewer_nas',
+    // 2026-09-23修复: instanceId跟着当前生效角色变, 不同角色(家庭/admin/全部)各自的
+    // 根目录列表不一样, 之前用固定的'viewer_nas'会导致切角色后缓存里存的还是上一个角色
+    // 的根目录列表, 比如切到admin后目录树该出现的/share/Person短暂/持续显示不出来。
+    instanceId: 'viewer_nas_' + (_effectiveRole ? _effectiveRole.id : 'all') + (_familyGateActive ? '_fam' : ''),
     mode: 'single',
     showRefresh: true,
     rootsFn: _nasViewRoots.fn,
     childrenFn: async (path) => {
-      return await fetch('/api/dir-tree?source=nas&path=' + encodeURIComponent(path)).then(r => r.json());
+      // 2026-10-01: viewer 的目录树只显示"库里有照片"的目录(media=photo, 走数据库, 不扫盘; 与 videoer 共用同一个接口)。
+      // 不带这个参数时后端会把磁盘上所有子目录(含没有图片的)先放行再慢慢判定, 缓存一失效(目录改过/服务重启/5分钟过期)就变成"全部显示"。
+      return await fetch('/api/dir-tree?source=nas&media=photo&path=' + encodeURIComponent(path) + (_familyGateActive ? '&category=family' : '')).then(r => r.json());
     },
     statFn: async (path, forceReal) => {
       return await fetch('/api/dir-stat?source=nas&path=' + encodeURIComponent(path) + (forceReal ? '&real=1' : '')).then(r => r.json());
@@ -417,8 +438,6 @@ async function loadSidebar() {
       window.pcTree.bind();
       window.pcTree.init();
     });
-
-  loadTags();
 }
 
 function setFavFilter(el) {
@@ -460,9 +479,10 @@ function renderSkeletonGrid() {
 }
 
 async function loadPhotos(reset = false) {
+  if (reset) _undoClear();
   if (!state.pcMode) state.filter.dirPath = state.filter.dirPath;
   if (state.loading || (!reset && !state.hasMore)) return;
-  if (reset) { state.page = 1; state.photos = []; state.hasMore = true; _photoLoadGen++; }
+  if (reset) { closeSidebarDrawer(); state.page = 1; state.photos = []; state.hasMore = true; _photoLoadGen++; }
   if (reset) {
     state.pcMode = false;
     const _sb = document.querySelector('.stats-bar');
@@ -481,8 +501,23 @@ async function loadPhotos(reset = false) {
   const { q, tags, favorite, dirPath, year, month } = state.filter;
   let url;
   const ratings = state.filter.ratings || [];
-  const _useTagApi = state.aiFilter.tags.length || tags.length || ratings.length ||
-                     (favorite && !q && !year && !month);
+  // 2026-09-23加: "全部"默认浏览(不带任何筛选条件)之前一直是按时间倒序, 每次打开
+  // 都是同一批最新照片排在最前面, 翻页也总是那个顺序。改成"文件夹随机排序, 文件夹内
+  // 部顺序不变"(见/api/photo-tags/photos的dirSeed参数), 种子存在sessionStorage,
+  // 同一次会话内翻页顺序保持稳定(不重不漏), 重新打开浏览器/新标签页才会换一批顺序。
+  const _advOn = _advActive();
+  const _wantDirRandom = !dirPath && !q && !tags.length && !favorite && !year && !month &&
+                         !ratings.length && !state.aiFilter.tags.length && !_advOn;
+  // 2026-09-20修复: 家庭模式下之前只在"按目录浏览"时通过dirPath间接限制能看到的内容,
+  // 点"收藏"/"全部"/年月/搜索这些不带dirPath的入口时限制直接失效, 什么都能看到。
+  // /api/photos(全部/年月浏览走的接口)是TS编译产物冻结区, 不能碰; /api/photo-tags/photos
+  // 这条JS热加载的接口本来就支持category=family|adult(dir_category表驱动, videoer已经在用),
+  // 所以家庭模式下强制全部走这条接口, 统一用category=family兜底, 不依赖dirPath。
+  const _sortMode = _getSortMode();
+  const _nameSort = _sortMode === 'name' || (_sortMode === 'folder' && !!dirPath);   // 选了目录默认按文件名顺序
+  // 随机/正序只有 /api/photo-tags/photos 支持, 所以选了这两种排序时一律走它; 文件夹乱序只在"全部"(没有任何筛选)时有意义
+  const _useTagApi = _familyGateActive || state.aiFilter.tags.length || tags.length || ratings.length ||
+                     (favorite && !q && !year && !month) || _wantDirRandom || ['random', 'name', 'asc', 'res_desc', 'res_asc', 'ratio'].includes(_sortMode) || _nameSort || _advOn;
   if (_useTagApi) {
     const useTags = state.aiFilter.tags.length ? state.aiFilter.tags : tags;
     const useMode = state.aiFilter.tags.length ? state.aiFilter.mode : 'or';
@@ -491,6 +526,16 @@ async function loadPhotos(reset = false) {
     if (ratings.length) url += `&ratings=${ratings.join(',')}`;
     if (dirPath) url += `&dirPath=${encodeURIComponent(dirPath)}`;
     if (favorite) url += `&favorite=1`;
+    if (q) url += `&q=${encodeURIComponent(q)}`;
+    if (_familyGateActive) url += `&category=family`;
+    if (_wantDirRandom && _sortMode === 'folder') url += `&dirSeed=${_getDirSeed()}`;
+    else if (_sortMode === 'random') url += `&seed=${_getSeed()}`;
+    else if (_nameSort) url += `&sortFields=name:asc`;
+    else if (_sortMode === 'asc') url += `&order=asc`;
+    else if (_sortMode === 'res_desc') url += `&sortFields=resolution:desc`;
+    else if (_sortMode === 'res_asc') url += `&sortFields=resolution:asc`;
+    else if (_sortMode === 'ratio') url += `&sortFields=ratio:asc`;
+    if (_advOn) url += _advParams(!!year);   // 年/月筛选已经带了 minDate/maxDate 时, 筛选面板里的日期不再重复追加
     // 点标签之前如果已经选了年/月,这里要跟着带上,不然点标签会把日期筛选丢掉
     if (year) {
       const from = month ? new Date(year, month - 1, 1) : new Date(year, 0, 1);
@@ -597,12 +642,15 @@ const _thumbObserver = new IntersectionObserver((entries) => {
 function renderGrid(photos, clear) {
   const grid = document.getElementById('photo-grid');
   if (clear) grid.innerHTML = '';
+  setTimeout(() => { if (typeof _applyLayout === 'function') _applyLayout(); }, 0);   // 等这批卡片入 DOM 后按平均宽高比重算行高
 
   photos.forEach((p, i) => {
     const idx      = clear ? i : state.photos.length - photos.length + i;
     const item     = document.createElement('div');
     item.className = 'photo-item';
     item.dataset.idx = idx;
+    item.dataset.id  = p.id;
+    item.style.setProperty('--r', _ratioOf(p));   // 等高行排布用: 宽高比
     // 鼠标移到其他图片时自动关闭右键菜单
     item.onmouseenter = function() { ctxMenu.hide(); };
     const tags     = [..._parseTags(p.user_tags), ..._parseTags(p.ai_tags)].slice(0,3);
@@ -612,6 +660,7 @@ function renderGrid(photos, clear) {
     // 差不多大小的骨架框, 不会"缩成一条缝、图片一起炸出来"; 拿不到宽高就退回4:3兜底比例。
     const ratio = (p.width && p.height) ? `${p.width}/${p.height}` : '4/3';
     item.innerHTML = `
+      <input type="checkbox" class="sel-check" onclick="event.stopPropagation(); onSelCheckChange(this, ${p.id})">
       <img data-src="${p.thumb_path ? '/thumbs2/' + _relUnder(p.thumb_path, 'thumbs') : ''}"
           class="loading" alt="" style="aspect-ratio:${ratio}"
           onload="this.classList.remove('loading');this.classList.add('loaded')"
@@ -623,7 +672,15 @@ function renderGrid(photos, clear) {
       </div>
       <button class="fav-btn ${favClass}" onclick="toggleFav(event,${p.id})">${p.favorite?'❤️':'🤍'}</button>`;
 
-    item.addEventListener('click', () => openViewer(idx));
+    item.addEventListener('click', () => {
+      if (state.selectMode) {
+        const cb = item.querySelector('.sel-check');
+        cb.checked = !cb.checked;
+        onSelCheckChange(cb, p.id);
+        return;
+      }
+      openViewer(idx);
+    });
     item.addEventListener("contextmenu", (e) => {
       e.preventDefault();
       e.stopPropagation();
@@ -635,13 +692,113 @@ function renderGrid(photos, clear) {
         { icon: "🏷",  text: "编辑标签",      action: () => addTagModal(photo.md5) },
         { icon: "❤️", text: photo.favorite ? "取消收藏" : "收藏", action: () => toggleFav(e, photo.id) },
         { sep: true },
-        { icon: "🗑",  text: "彻底删除（含原文件）",    action: () => deletePhoto(photo.id), danger: true },
+        { icon: "🗑",  text: "放入回收站",    action: () => softDeleteGridPhoto(photo) },
       ]);
     });
     grid.appendChild(item);
     const img = item.querySelector('img[data-src]');
     if (img) _thumbObserver.observe(img);
+    if (state.selectMode && state.selectedIds.has(p.id)) {
+      item.classList.add('selected');
+      const cb = item.querySelector('.sel-check');
+      if (cb) cb.checked = true;
+    }
   });
+}
+
+// ── 列数调节(2~5列, 默认3, 记到localStorage) ────────────
+const COL_MIN = 1, COL_MAX = 20, COL_DEFAULT = 3;   // 2026-10-01: 列数 1~20(原来 2~5)
+function _loadColCount() {
+  const v = parseInt(localStorage.getItem('viewerColCount') || '3', 10);
+  return (v >= COL_MIN && v <= COL_MAX) ? v : COL_DEFAULT;
+}
+function _applyColCount(n) {
+  const grid = document.getElementById('photo-grid');
+  if (grid) { grid.style.setProperty('--col-count', n); grid.dataset.cols = String(n); }
+  if (typeof _applyLayout === 'function') _applyLayout(true);
+  const _sl = document.getElementById('col-count-slider'); if (_sl) _sl.value = n;
+  const val = document.getElementById('col-count-val');
+  if (val) val.textContent = n;
+  const minusBtn = document.getElementById('col-count-minus');
+  const plusBtn  = document.getElementById('col-count-plus');
+  if (minusBtn) minusBtn.disabled = n <= COL_MIN;
+  if (plusBtn)  plusBtn.disabled  = n >= COL_MAX;
+  localStorage.setItem('viewerColCount', String(n));
+}
+function adjustColCount(delta) {
+  const n = Math.max(COL_MIN, Math.min(COL_MAX, _loadColCount() + delta));
+  _applyColCount(n);
+}
+
+// ── 批量选择/软删除(逻辑删除: 只打标记, 不碰文件, 去"回收站"页面才会真的删) ──
+function toggleSelectMode() {
+  if (state.selectMode) exitSelectMode();
+  else enterSelectMode();
+}
+function enterSelectMode() {
+  state.selectMode = true;
+  const grid = document.getElementById('photo-grid');
+  if (grid) grid.classList.add('select-mode');
+  const btn = document.getElementById('btn-select-mode');
+  if (btn) btn.classList.add('active');
+  const ft = document.getElementById('floating-toolbar');
+  if (ft) ft.classList.add('hide');  // 选择模式下用batch-bar顶替这个位置, 两个不同时显示
+  updateBatchBar();
+}
+function exitSelectMode() {
+  state.selectMode = false;
+  state.selectedIds.clear();
+  const grid = document.getElementById('photo-grid');
+  if (grid) grid.classList.remove('select-mode');
+  const btn = document.getElementById('btn-select-mode');
+  if (btn) btn.classList.remove('active');
+  const ft = document.getElementById('floating-toolbar');
+  if (ft) ft.classList.remove('hide');
+  document.querySelectorAll('#photo-grid .photo-item.selected').forEach(el => el.classList.remove('selected'));
+  document.querySelectorAll('#photo-grid .sel-check').forEach(cb => cb.checked = false);
+  updateBatchBar();
+}
+function onSelCheckChange(cb, id) {
+  if (cb.checked) state.selectedIds.add(id); else state.selectedIds.delete(id);
+  const item = cb.closest('.photo-item');
+  if (item) item.classList.toggle('selected', cb.checked);
+  updateBatchBar();
+}
+function selectAllVisible() {
+  document.querySelectorAll('#photo-grid .photo-item').forEach(item => {
+    const idx = parseInt(item.dataset.idx, 10);
+    const photo = state.photos[idx];
+    if (!photo) return;
+    const cb = item.querySelector('.sel-check');
+    if (cb) cb.checked = true;
+    state.selectedIds.add(photo.id);
+    item.classList.add('selected');
+  });
+  updateBatchBar();
+}
+function updateBatchBar() {
+  const bar = document.getElementById('batch-bar');
+  if (!bar) return;
+  const cnt = document.getElementById('batch-count');
+  if (cnt) cnt.textContent = state.selectedIds.size;
+  bar.classList.toggle('show', state.selectMode);
+}
+async function batchSoftDelete() {
+  const ids = [...state.selectedIds];
+  if (!ids.length) { showToast('还没选择任何照片', 'error'); return; }
+  if (!confirm(`确认把选中的${ids.length}张放入回收站？\n(不会立即删除文件, 只是从这里隐藏; 去"回收站"页面确认之后才会真正删除原文件)`)) return;
+  try {
+    const r = await fetch('/api/photos/soft-delete', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ ids }) });
+    if (!r.ok) throw new Error('请求失败');
+    state.photos = state.photos.filter(p => !state.selectedIds.has(p.id));
+    state.total  = Math.max(0, state.total - ids.length);
+    exitSelectMode();
+    renderGrid(state.photos, true);
+    updateStats();
+    showToast(`已放入回收站 ${ids.length} 张`);
+  } catch (e) {
+    showToast('操作失败', 'error');
+  }
 }
 
 // ── 无限滚动 ──────────────────────────────────────────
@@ -654,6 +811,7 @@ function setupIntersectionObserver() {
 
 // ── 预览器 ────────────────────────────────────────────
 function openViewer(idx) {
+  _undoClear();
   state.viewer.index = idx;
   resetViewerTransform();
   showViewerPhoto();
@@ -663,6 +821,7 @@ function openViewer(idx) {
 }
 
 function closeViewer() {
+  _undoClear();
   setTimeout(_saveBrowseState, 100);
   document.getElementById('viewer').classList.remove('show');
   document.body.style.overflow = '';
@@ -689,7 +848,9 @@ function photoSrc(photo) {
     : (isPc ? "/api/pc/file/" + encodeURIComponent(photo.path) : "/original" + photo.path);
 }
 function preloadNeighbors(idx) {
-  [idx - 1, idx + 1, idx + 2].forEach(function (i) {
+  // 之前是[-1,+1,+2](前面只预加载1张), 连续往回滑几张时后面几张会等网络卡一下,
+  // 改成前后对称各2张
+  [idx - 2, idx - 1, idx + 1, idx + 2].forEach(function (i) {
     const ph = state.photos[i];
     if (!ph) return;
     const src = photoSrc(ph);
@@ -858,6 +1019,7 @@ function showViewerPhoto() {
 
   const img = document.getElementById('viewer-img');
   img.dataset.mode = 'preview';
+  state.viewer.rotate = 0;  // 旋转只对当前这张生效, 切到下一张自动清零
   const _src = photoSrc(photo);
   const _token = ++_loadToken;
   preloadNeighbors(state.viewer.index);
@@ -1161,27 +1323,68 @@ async function submitAddTag(md5) {
 function updateViewerNav() {
   const idx   = state.viewer.index;
   const total = state.photos.length;
-  document.getElementById('viewer-counter').textContent = `${idx+1} / ${state.total}`;
+  { const _t = Math.max(state.total || 0, state.photos.length), _left = Math.max(0, _t - (idx + 1));
+    document.getElementById('viewer-counter').textContent = `${idx+1} / ${_t}` + (_left ? ` · 还剩 ${_left} 张` : ' · 最后一张');
+    const _pb = document.getElementById('viewer-progress-bar'); if (_pb) _pb.style.width = (_t ? (idx + 1) / _t * 100 : 0) + '%'; }
   document.getElementById('btn-prev').style.opacity = idx > 0 ? '1' : '0.3';
   document.getElementById('btn-next').style.opacity = idx < total-1 || state.hasMore ? '1' : '0.3';
 }
 
 function viewerPrev() {
+  _undoClear();
   if (state.viewer.index > 0) { state.viewer.index--; resetViewerTransform(); showViewerPhoto(); }
 }
 
 function viewerNext() {
+  _undoClear();
   if (state.viewer.index < state.photos.length - 1) {
     state.viewer.index++;
     resetViewerTransform();
     showViewerPhoto();
     if (state.viewer.index > state.photos.length - 10) loadPhotos();
+  } else if (!state.hasMore) {
+    _viewerNextDir();   // 当前目录播完了: 接着播离它最近的下一个目录
   }
+}
+
+// 当前列表播完后, 自动切到"离当前目录最近的下一个有照片的目录"并从第一张开始(幻灯片/手动翻页都适用)
+let _edgeBusy = false;
+async function _viewerNextDir() {
+  if (_edgeBusy || state.loading || state.pcMode) return;
+  _edgeBusy = true;
+  try {
+    const cur = state.photos[state.viewer.index];
+    let scope = state.filter.dirPath || (cur ? _dirFull(cur) : '');
+    for (let i = 0; i < 15 && scope; i++) {
+      const u = '/api/photo-tags/dir-neighbor?media=photo&dir=next&path=' + encodeURIComponent(scope) + (_familyGateActive ? '&category=family' : '');
+      const r = await fetch(u).then(x => x.json());
+      if (!r.dir) { if (typeof showToast === 'function') showToast('已经是最后一个目录了', 'info'); return; }
+      state.filter.dirPath = r.dir;
+      await loadPhotos(true);
+      if (state.photos.length) {
+        state.viewer.index = 0;
+        resetViewerTransform();
+        showViewerPhoto();
+        if (typeof showToast === 'function') showToast('下一个目录: ' + r.dir.split('/').slice(-2).join('/'), 'info');
+        return;
+      }
+      scope = r.dir;   // 这个目录在当前筛选下没有内容, 继续找下一个
+    }
+  } catch (e) { console.error('下一个目录失败', e); }
+  finally { _edgeBusy = false; }
 }
 
 // ── 缩放拖拽 ──────────────────────────────────────────
 function setupViewer() {
   const wrap = document.getElementById('viewer-img-wrap');
+  // iOS Safari双指捏合会额外触发一套独立的gesture*事件(非标准, 只有WebKit有),
+  // 这套事件不受touch-action/touchmove里的preventDefault约束, 会绕过下面的
+  // touchstart/touchmove自己实现的缩放逻辑, 直接触发系统级整页缩放(缩放的是已经
+  // 显示出来的小图, 越放越糊, 而且state.viewer.zoom完全没变, 换原图的判断也就
+  // 永远不会触发)。这里专门拦一下gesture*事件, 强制走自己这套跟手缩放。
+  wrap.addEventListener('gesturestart',  (e) => e.preventDefault());
+  wrap.addEventListener('gesturechange', (e) => e.preventDefault());
+  wrap.addEventListener('gestureend',    (e) => e.preventDefault());
   wrap.addEventListener('wheel', (e) => {
     e.preventDefault();
     const delta = e.deltaY > 0 ? 0.9 : 1.1;
@@ -1235,6 +1438,10 @@ function setupViewer() {
   });
 
   let lastDist = 0, pinchCX = 0, pinchCY = 0, oneX = 0, oneY = 0, touchMode = 0;
+  // 滑动切换上一张/下一张: 只在没缩放(zoom<=1.01)、单指移动时才判定, 跟双指缩放/
+  // 放大后单指平移互不干扰。swipeAxis为null时先看移动方向再"锁定"横滑还是竖滑,
+  // 竖滑直接忽略(灯箱里没有竖向可滚动的内容, 忽略掉是安全的空操作)。
+  let swipeStartX = 0, swipeStartY = 0, swipeStartT = 0, swipeAxis = null;
   function centerOf(t0, t1, rect) {
     return {
       x: (t0.clientX + t1.clientX) / 2 - (rect.left + rect.width / 2),
@@ -1243,6 +1450,7 @@ function setupViewer() {
   }
   wrap.addEventListener('touchstart', (e) => {
     const rect = wrap.getBoundingClientRect();
+    swipeAxis = null;
     if (e.touches.length === 2) {
       touchMode = 2;
       lastDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
@@ -1251,6 +1459,7 @@ function setupViewer() {
     } else if (e.touches.length === 1) {
       touchMode = 1;
       oneX = e.touches[0].clientX; oneY = e.touches[0].clientY;
+      swipeStartX = oneX; swipeStartY = oneY; swipeStartT = Date.now();
     }
   }, { passive: true });
   wrap.addEventListener('touchmove', (e) => {
@@ -1273,26 +1482,100 @@ function setupViewer() {
       state.viewer.panY += e.touches[0].clientY - oneY;
       oneX = e.touches[0].clientX; oneY = e.touches[0].clientY;
       applyTransform();
+    } else if (e.touches.length === 1 && touchMode === 1) {
+      const dx = e.touches[0].clientX - swipeStartX;
+      const dy = e.touches[0].clientY - swipeStartY;
+      if (swipeAxis === null && (Math.abs(dx) > 10 || Math.abs(dy) > 10)) {
+        swipeAxis = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
+      }
+      if (swipeAxis === 'x') {
+        e.preventDefault();
+        // 2026-09-20: 之前松手才判定, 手指划的过程画面完全不跟手, 体感生硬——
+        // 改成跟手实时位移, 松手后再补一段短渡场(下面slideCommitNext/slideSnapBack)
+        wrap.style.transition = 'none';
+        wrap.style.transform = 'translateX(' + dx + 'px)';
+      }
     }
   }, { passive: false });
+
+  // 滑动松手后的收尾动画: 达到阈值就顺势滑完整程切到下一张/上一张, 没到阈值就弹回原位。
+  // 幻灯片自动播放时wrap的transform/transition归state.slideshow那套转场系统管,
+  // 这里让位, 不跟它抢——避免两套动画同时改同一个元素打架。
+  function slideCommitNext(dir) {
+    if (state.slideshow.active) { if (dir > 0) viewerNext(); else viewerPrev(); return; }
+    const w = wrap.getBoundingClientRect().width || window.innerWidth;
+    wrap.style.transition = 'transform .14s ease-in';
+    wrap.style.transform = 'translateX(' + (dir > 0 ? -w : w) + 'px)';
+    setTimeout(function () {
+      if (dir > 0) viewerNext(); else viewerPrev();
+      // viewerNext/viewerPrev最终会走到swapPhoto, 非幻灯片分支里会把wrap的
+      // transform/opacity/transition同步重置成默认值——这里要在同一个事件循环内
+      // 紧接着覆盖回"从对侧进入"的起始位置才能接上滑入动画(浏览器不会画出中间那一帧)
+      wrap.style.transition = 'none';
+      wrap.style.transform = 'translateX(' + (dir > 0 ? w : -w) + 'px)';
+      requestAnimationFrame(function () {
+        requestAnimationFrame(function () {
+          wrap.style.transition = 'transform .22s cubic-bezier(.22,.61,.36,1)';
+          wrap.style.transform = 'translateX(0)';
+        });
+      });
+    }, 140);
+  }
+  function slideSnapBack() {
+    if (state.slideshow.active) return;
+    wrap.style.transition = 'transform .2s ease-out';
+    wrap.style.transform = 'translateX(0)';
+  }
+
   wrap.addEventListener('touchend', (e) => {
-    if (e.touches.length === 0) touchMode = 0;
-    else if (e.touches.length === 1) {
+    if (touchMode === 1 && swipeAxis === 'x') {
+      if (state.viewer.zoom <= 1.01) {
+        // touchend时e.touches已经空了, 手指最终位置要从changedTouches拿
+        const endX = e.changedTouches[0].clientX;
+        const dx = endX - swipeStartX;
+        const dt = Date.now() - swipeStartT;
+        const velocity = Math.abs(dx) / Math.max(dt, 1);
+        if (Math.abs(dx) > 50 || (Math.abs(dx) > 24 && velocity > 0.5)) {
+          slideCommitNext(dx < 0 ? 1 : -1);
+        } else {
+          slideSnapBack();
+        }
+      } else {
+        slideSnapBack();
+      }
+    }
+    swipeAxis = null;
+    if (e.touches.length === 0) {
+      touchMode = 0;
+    } else if (e.touches.length === 1) {
+      // 双指缩放松开一根手指变成单指: 重新记录起点, 避免残留坐标触发一次误判的滑动切换
       touchMode = 1;
       oneX = e.touches[0].clientX; oneY = e.touches[0].clientY;
+      swipeStartX = oneX; swipeStartY = oneY; swipeStartT = Date.now();
     }
   }, { passive: true });
+  wrap.addEventListener('touchcancel', () => {
+    if (swipeAxis === 'x') { wrap.style.transition = 'none'; wrap.style.transform = 'translateX(0)'; }
+    swipeAxis = null; touchMode = 0;
+  });
 }
 
 function applyTransform() {
   const img   = document.getElementById('viewer-img');
   const photo = state.photos[state.viewer.index];
   img.style.transition = 'none';
-  img.style.transform  = `translate(${state.viewer.panX}px, ${state.viewer.panY}px) scale(${state.viewer.zoom})`;
+  img.style.transform  = `translate(${state.viewer.panX}px, ${state.viewer.panY}px) scale(${state.viewer.zoom}) rotate(${state.viewer.rotate}deg)`;
 
   const isPcPath = photo && /^[A-Za-z]:/.test(photo.path);
   const getOrigSrc = (ph) => isPcPath ? `/api/pc/file/${encodeURIComponent(ph.path)}` : `/original${ph.path}`;
-  if (state.viewer.zoom > 2 && photo && img.dataset.mode !== 'original') {
+  // preview固定按1920px长边生成, 但手机屏幕devicePixelRatio普遍是2~3(高分屏),
+  // 同样的CSS缩放倍数在手机上实际占用的物理像素比桌面(DPR通常=1)多得多——原来固定
+  // "zoom>2"才换原图是按桌面DPR=1估的, 手机上放大到2倍以内预览图物理像素就已经不够
+  // 用了(被浏览器拉伸糊掉), 看起来"怎么放大都是糊的缩略图"。改成按DPR动态算阈值:
+  // DPR越高, 越早换原图; 桌面(DPR=1)保持原来的2倍不变。
+  const _dpr = window.devicePixelRatio || 1;
+  const ZOOM_SWAP = Math.max(1.15, 2 / _dpr);
+  if (state.viewer.zoom > ZOOM_SWAP && photo && img.dataset.mode !== 'original') {
     img.dataset.mode = 'original';
     const src = getOrigSrc(photo);
     const currentId = photo.id;
@@ -1302,16 +1585,71 @@ function applyTransform() {
       if (curPhoto && curPhoto.id === currentId) { img.src = src; img.dataset.mode = 'original'; }
     };
     tmp.src = src;
-  } else if (state.viewer.zoom <= 2 && img.dataset.mode === 'original') {
+  } else if (state.viewer.zoom <= ZOOM_SWAP && img.dataset.mode === 'original') {
     img.dataset.mode = 'preview';
     if (photo) img.src = photo.preview_path ? `/preview/${_relUnder(photo.preview_path, 'preview')}` : getOrigSrc(photo);
   }
 }
 
 function resetViewerTransform() {
-  state.viewer.zoom = 1; state.viewer.panX = 0; state.viewer.panY = 0;
+  state.viewer.zoom = 1; state.viewer.panX = 0; state.viewer.panY = 0; state.viewer.rotate = 0;
   const img = document.getElementById('viewer-img');
   if (img) { img.style.transition = 'none'; applyTransform(); }
+}
+
+// 2026-09-23改回手动按钮: 原计划用CSS的orientation媒体查询跟随手机横竖屏自动转,
+// 但那个只在系统"自动旋转"开着、屏幕真的跟着物理转向变化时才生效——用户关掉了系统的
+// 自动旋转锁定, 屏幕不会跟着转, 检测直接失效。改用accelerometer(DeviceOrientationEvent)
+// 的话又要求页面跑在HTTPS上(这里是局域网http, 传感器API会被浏览器直接屏蔽), 不现实。
+// 所以改回最简单可靠的方案: 手动点按钮转90°, 不依赖系统设置/协议, 稳定能用。
+function rotateViewer() {
+  state.viewer.rotate = (state.viewer.rotate + 90) % 360;
+  applyTransform();
+}
+
+// 全屏: 让图片撑满整个屏幕(object-fit:contain保比例, 见CSS, 不裁剪不拉伸)。
+// Android/桌面浏览器支持元素级Fullscreen API, 直接调用, 隐藏浏览器地址栏等系统UI,
+// 已有的fullscreenchange监听会自动隐藏header/footer腾出空间。iOS Safari完全不支持
+// 这个API(webkit前缀也没有), 退化成手动隐藏header/footer(见CSS里.manual-fs规则),
+// 拿不到"真全屏"(地址栏还在), 但图片本身能占满除地址栏外的所有空间。
+function toggleFullscreen() {
+  const el = document.getElementById('viewer');
+  const supportsFs = !!(el.requestFullscreen || el.webkitRequestFullscreen);
+  if (supportsFs) {
+    const isFs = !!(document.fullscreenElement || document.webkitFullscreenElement);
+    if (isFs) {
+      if (document.exitFullscreen) document.exitFullscreen();
+      else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+    } else {
+      if (el.requestFullscreen) el.requestFullscreen();
+      else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+    }
+  } else {
+    el.classList.toggle('manual-fs');
+  }
+}
+
+// 下载当前大图原图。iOS Safari不支持<a download>强制下载(点了会直接在新标签页打开图片),
+// 这是iOS系统限制, 不是bug——检测到iOS就换成"新标签页打开+提示长按保存"这条路径;
+// Android/桌面浏览器都支持download属性, 直接触发下载, 文件名用原始文件名。
+function downloadCurrentPhoto() {
+  const photo = state.photos[state.viewer.index];
+  if (!photo) return;
+  const isPcPath = /^[A-Za-z]:/.test(photo.path);
+  const url = isPcPath ? `/api/pc/file/${encodeURIComponent(photo.path)}` : `/original${photo.path}`;
+  const filename = photo.path.split(/[\\/]/).pop() || 'photo.jpg';
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  if (isIOS) {
+    window.open(url, '_blank');
+    if (typeof showToast === 'function') showToast('苹果浏览器不支持直接下载, 长按图片选择"存储图像"即可保存');
+    return;
+  }
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
 }
 
 function showZoomIndicator() {
@@ -1381,7 +1719,14 @@ document.addEventListener('fullscreenchange', () => {
 });
 
 // ── 键盘 ──────────────────────────────────────────────
+let _delArmed = false;
 function setupKeyboard() {
+  document.addEventListener('keyup', (e) => {
+    if (e.key !== 'Delete' || !_delArmed) return;
+    _delArmed = false;
+    if (!document.getElementById('viewer').classList.contains('show')) return;
+    softDeleteCurrentPhoto();
+  });
   document.addEventListener('keydown', (e) => {
     if (!document.getElementById('viewer').classList.contains('show')) return;
     switch(e.key) {
@@ -1397,6 +1742,11 @@ function setupKeyboard() {
         break;
       case ' ':          e.preventDefault(); toggleSlideshow(); break;
       case 'f':          toggleFavCurrent(); break;
+      case 'Delete': {
+        // 2026-10-01: Del 键: 按下只是"待命", 抬起(keyup)时才执行, 和右键菜单的"放入回收站"是同一个动作; 按多久都无所谓, 只会删一次
+        const t = e.target; if ((t && /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName || '')) || (t && t.isContentEditable)) break;
+        e.preventDefault(); _delArmed = true; break;
+      }
       case '+': case '=': state.viewer.zoom = Math.min(10, state.viewer.zoom*1.2); applyTransform(); showZoomIndicator(); break;
       case '-':           state.viewer.zoom = Math.max(0.5, state.viewer.zoom*0.8); applyTransform(); showZoomIndicator(); break;
       case '0':           resetViewerTransform(); break;
@@ -1495,6 +1845,19 @@ function setFilter(type) {
   loadPhotos(true);
 }
 
+// 2026-09-30: 标签云放到最后加载——页面(照片/缩略图)全部加载完、浏览器空闲后再取, 不抢首屏。
+// 标签云查询在后端冷启动要5秒多(同步查询会卡住整个 nas-media), 所以宁可晚一点。
+let _tagsLastDone = false;
+function _loadTagsLast() {
+  if (_tagsLastDone) return;
+  _tagsLastDone = true;
+  const go = function () {
+    const idle = window.requestIdleCallback || function (f) { return setTimeout(f, 1); };
+    idle(function () { loadTags().catch(function (e) { console.error('tags', e); }); }, { timeout: 15000 });
+  };
+  if (document.readyState === 'complete') setTimeout(go, 6000);
+  else window.addEventListener('load', function () { setTimeout(go, 6000); });
+}
 async function loadTags() {
   const r    = await fetch('/api/photo-tags/cloud?threshold=' + tagThreshold);
   state.tags = await r.json();
@@ -1884,18 +2247,25 @@ function startSeekDrag(e) {
   const audio = state.music.audio;
   if (!audio || !audio.duration) return;
   const move = function (ev) {
+    const t = ev.touches ? ev.touches[0] : ev;
     const rect = bar.getBoundingClientRect();
-    let r = (ev.clientX - rect.left) / rect.width;
+    let r = (t.clientX - rect.left) / rect.width;
     r = Math.max(0, Math.min(1, r));
     audio.currentTime = r * audio.duration;
     updateProgress();
+    if (ev.cancelable) ev.preventDefault();
   };
   const up = function () {
     document.removeEventListener('mousemove', move);
     document.removeEventListener('mouseup', up);
+    document.removeEventListener('touchmove', move);
+    document.removeEventListener('touchend', up);
   };
   document.addEventListener('mousemove', move);
   document.addEventListener('mouseup', up);
+  document.addEventListener('touchmove', move, { passive: false });
+  document.addEventListener('touchend', up);
+  if (e.cancelable) e.preventDefault();
   move(e);
 }
 
@@ -2002,7 +2372,10 @@ function toggleMusicBar() {
 }
 
 // ── 工具 ──────────────────────────────────────────────
-function updateStats() { const el = document.getElementById('stats-total'); if(el) el.textContent = state.total; }
+function updateStats() {
+  const el = document.getElementById('stats-total'); if (el) el.textContent = state.total;
+  const el2 = document.getElementById('float-stats-total'); if (el2) el2.textContent = state.total;
+}
 function showSpinner(show) { document.getElementById('spinner').style.display = show ? 'block' : 'none'; }
 function formatDate(ts) { if (!ts) return ''; return new Date(ts * 1000).toLocaleDateString('ja-JP'); }
 function formatSize(bytes) {
@@ -2082,13 +2455,45 @@ function toggleSlideshowCfg() {
   panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
 }
 
-function updateSlideshowInterval(val) {
-  state.slideshow.interval = parseInt(val) * 1000;
-  document.getElementById('slideshow-interval-val').textContent = val + '秒';
+// 2026-09-20: 间隔范围从1~30秒线性拉宽到0.3~60秒后, 滑块如果还是线性映射,
+// 拖动1像素在高端(60秒附近)就能跳好几秒, 低端(0.3~3秒)又挤在一起根本调不精细。
+// 改成对数刻度: 滑块本身还是0~100这个普通range, 但换算成秒数时按指数插值,
+// 前半段(滑块靠左)专门覆盖0.3~5秒左右的精细档位, 后半段覆盖到60秒的粗调档位,
+// 跟人手实际想要的"低端精细/高端粗放"直觉一致。另外数字本身可以点击手动输入精确值,
+// 兼顾"想要正好5秒"这种滑块很难精准停住的场景。
+const SLIDESHOW_MIN = 0.3, SLIDESHOW_MAX = 60;
+function _slideshowPosToSec(pos) {
+  const p = Math.max(0, Math.min(100, parseFloat(pos) || 0));
+  return SLIDESHOW_MIN * Math.pow(SLIDESHOW_MAX / SLIDESHOW_MIN, p / 100);
+}
+function _slideshowSecToPos(sec) {
+  const s = Math.max(SLIDESHOW_MIN, Math.min(SLIDESHOW_MAX, sec));
+  return 100 * Math.log(s / SLIDESHOW_MIN) / Math.log(SLIDESHOW_MAX / SLIDESHOW_MIN);
+}
+function _fmtSlideshowSec(sec) {
+  return (sec < 10 ? Math.round(sec * 10) / 10 : Math.round(sec)) + '秒';
+}
+function _applySlideshowInterval(sec) {
+  state.slideshow.interval = Math.round(sec * 1000);
+  document.getElementById('slideshow-interval-val').textContent = _fmtSlideshowSec(sec);
   if (state.slideshow.active) {
     clearInterval(state.slideshow.timer);
     state.slideshow.timer = setInterval(() => viewerNext(), state.slideshow.interval);
   }
+}
+function updateSlideshowInterval(pos) {
+  _applySlideshowInterval(_slideshowPosToSec(pos));
+}
+function editSlideshowInterval() {
+  const cur = state.slideshow.interval / 1000;
+  const input = prompt('幻灯片切换间隔(0.3~60秒):', String(cur));
+  if (input === null) return;
+  const sec = parseFloat(input);
+  if (!isFinite(sec) || sec <= 0) { if (typeof showToast === 'function') showToast('请输入有效数字', 'error'); return; }
+  const clamped = Math.max(SLIDESHOW_MIN, Math.min(SLIDESHOW_MAX, sec));
+  const slider = document.getElementById('slideshow-interval');
+  if (slider) slider.value = _slideshowSecToPos(clamped);
+  _applySlideshowInterval(clamped);
 }
 
 document.addEventListener('click', (e) => {
@@ -2106,18 +2511,35 @@ function openGpsMap() {
   window.open(`https://maps.google.com/maps?q=${lat},${lng}`, '_blank');
 }
 
-// ── 侧边栏折叠/拖拽 ──────────────────────────────────
+// ── 侧边栏折叠/拖拽(桌面) + 抽屉开关(手机) ────────────
 (function() {
   let collapsed = false;
-  let sidebar, toggle, resizer;
-  function applyState() {
+  let sidebar, toggle, resizer, backdrop;
+  function isMobileViewport() { return window.matchMedia('(max-width:768px)').matches; }
 
+  function applyState() {
     if (!sidebar) return;
-    const w = collapsed ? 0 : (parseInt(localStorage.getItem("sidebar-width")) || 260);
-    sidebar.classList.toggle('collapsed', collapsed);
-    if (toggle) { toggle.textContent = collapsed ? '▶' : '◀'; toggle.style.left = (collapsed ? 0 : w) + 'px'; }
-    if (resizer) resizer.style.left = (collapsed ? 0 : w) + 'px';
+    if (isMobileViewport()) {
+      // 手机: collapsed=true 表示抽屉收起(默认), false表示展开覆盖在内容上。
+      // 折叠箭头(#sidebar-toggle)和拖拽手柄(#sidebar-resizer)手机上都用不到——
+      // 注意这两个元素HTML里写了内联style(其中#sidebar-toggle还内联了display:flex),
+      // CSS的@media规则改不动内联style, 必须在JS里直接置style.display才能真正隐藏。
+      sidebar.classList.remove('collapsed');
+      sidebar.style.width = '';
+      sidebar.classList.toggle('drawer-open', !collapsed);
+      if (backdrop) backdrop.classList.toggle('show', !collapsed);
+      if (toggle)  toggle.style.display  = 'none';
+      if (resizer) resizer.style.display = 'none';
+    } else {
+      if (backdrop) backdrop.classList.remove('show');
+      sidebar.classList.remove('drawer-open');
+      const w = collapsed ? 0 : (parseInt(localStorage.getItem("sidebar-width")) || 260);
+      sidebar.classList.toggle('collapsed', collapsed);
+      if (toggle) { toggle.style.display = 'flex'; toggle.textContent = collapsed ? '▶' : '◀'; toggle.style.left = (collapsed ? 0 : w) + 'px'; }
+      if (resizer) { resizer.style.display = collapsed ? 'none' : ''; resizer.style.left = (collapsed ? 0 : w) + 'px'; }   // 折叠时隐藏拖拽条
+    }
     localStorage.setItem('sidebar-collapsed', collapsed ? '1' : '0');
+    const _bd = document.getElementById('btn-dirs'); if (_bd) _bd.classList.toggle('active', !collapsed);   // 顶栏"目录"按钮: 目录栏显示时高亮
   }
 
   window.toggleSidebar = function() {
@@ -2125,12 +2547,22 @@ function openGpsMap() {
     applyState();
   };
 
+  // 手机上选中目录/标签/年份等筛选条件后自动收起抽屉, 不用手动关一次;
+  // 桌面端调用这个函数是无害的空操作(isMobileViewport()为false时直接跳过)。
+  window.closeSidebarDrawer = function() {
+    if (isMobileViewport() && !collapsed) { collapsed = true; applyState(); }
+  };
+
   document.addEventListener('DOMContentLoaded', () => {
-    sidebar = document.getElementById('sidebar');
-    toggle  = document.getElementById('sidebar-toggle');
-    resizer = document.getElementById('sidebar-resizer');
+    sidebar  = document.getElementById('sidebar');
+    toggle   = document.getElementById('sidebar-toggle');
+    resizer  = document.getElementById('sidebar-resizer');
+    backdrop = document.getElementById('sidebar-backdrop');
+    const neverToggled = localStorage.getItem('sidebar-collapsed') === null;
     if (localStorage.getItem('sidebar-collapsed') === '1') {
       collapsed = true;
+    } else if (neverToggled && isMobileViewport()) {
+      collapsed = true;   // 手机上第一次打开: 默认收起抽屉
     }
     applyState();
 
@@ -2141,10 +2573,14 @@ function openGpsMap() {
       if (toggle) toggle.style.left = savedW + 'px';
     }
 
+    // 转屏/改变窗口宽度时重新计算一次抽屉 vs 折叠的呈现方式
+    window.addEventListener('resize', () => {
+      clearTimeout(window._sbResizeT);
+      window._sbResizeT = setTimeout(applyState, 150);
+    });
+
     if (!resizer || !sidebar) return;
 
-    resizer.addEventListener('mouseenter', () => resizer.style.background = 'rgba(64,208,255,.4)');
-    resizer.addEventListener('mouseleave', () => resizer.style.background = 'transparent');
 
     let startX = 0, startW = 0;
     resizer.addEventListener('mousedown', (e) => {
@@ -2153,8 +2589,10 @@ function openGpsMap() {
       startW = sidebar.offsetWidth;
       document.body.style.cursor = 'col-resize';
       document.body.style.userSelect = 'none';
+      resizer.classList.add('dragging');
       const onMove = (e) => {
-        const newW = Math.max(160, Math.min(480, startW + e.clientX - startX));
+        const maxW = Math.max(300, Math.min(800, Math.floor(window.innerWidth * 0.7)));   // 最宽 800px(原来 400), 但不超过窗口的 70%
+        const newW = Math.max(160, Math.min(maxW, startW + e.clientX - startX));
         sidebar.style.width = newW + 'px';
         if (resizer) resizer.style.left = newW + 'px';
         if (toggle) toggle.style.left = newW + 'px';
@@ -2162,6 +2600,7 @@ function openGpsMap() {
       const onUp = () => {
         document.body.style.cursor = '';
         document.body.style.userSelect = '';
+        resizer.classList.remove('dragging');
         localStorage.setItem('sidebar-width', sidebar.offsetWidth);
         window.removeEventListener('mousemove', onMove);
         window.removeEventListener('mouseup', onUp);
@@ -2176,6 +2615,11 @@ function openGpsMap() {
 // ── 身份切换(角色) ──────────────────────────────────────
 const ROLE_STORAGE_KEY = 'viewer_current_role';
 
+// 2026-09-20加: 当前是否处于"家庭"限制模式——loadSidebar()算出有效角色后设置这个值,
+// loadPhotos()读它决定要不要在查询里强制加category=family(修复"选收藏/全部就能看到
+// 所有内容"那个bug, 见loadPhotos里的说明)。
+let _familyGateActive = false;
+
 function getCurrentRole() {
   try {
     const raw = localStorage.getItem(ROLE_STORAGE_KEY);
@@ -2186,6 +2630,237 @@ function getCurrentRole() {
 function setCurrentRole(role) {
   if (role) localStorage.setItem(ROLE_STORAGE_KEY, JSON.stringify(role));
   else localStorage.removeItem(ROLE_STORAGE_KEY);
+}
+
+// 2026-09-20加: 默认家庭身份, 切到"全部"或家庭以外的其他角色要输密码, 密码只在
+// 当前浏览器会话(sessionStorage, 关标签页/浏览器失效)内记住, 不写进localStorage长期免密。
+const NONFAMILY_PASSWORD = '1';
+function isNonFamilyUnlocked() {
+  try { return sessionStorage.getItem('viewer_nonfamily_unlocked') === '1'; } catch (e) { return false; }
+}
+function unlockNonFamily() {
+  try { sessionStorage.setItem('viewer_nonfamily_unlocked', '1'); } catch (e) {}
+}
+
+// ══ 2026-10-01 筛选面板(🔎 筛选): 大小/分辨率/日期/文件名/文件夹名/方向/格式/相机/定位, 全部走 /api/photo-tags/photos ══
+// 条件存在 sessionStorage('viewerAdv'), 刷新页面还在; 用顶部小标签显示当前生效的条件, 可单个取消或一键清除。
+const ADV_LABELS = { minSizeMB: '大小≥', maxSizeMB: '大小≤', minWidth: '宽≥', maxWidth: '宽≤', dateFrom: '从', dateTo: '到', fileName: '文件名', folderName: '文件夹', orient: '方向', ext: '格式', camera: '相机', hasGps: '定位' };
+const ADV_ORIENT = { landscape: '横图', portrait: '竖图', square: '方图' };
+function _advLoad() { try { return JSON.parse(sessionStorage.getItem('viewerAdv') || '{}') || {}; } catch (e) { return {}; } }
+function _advSave(a) { try { sessionStorage.setItem('viewerAdv', JSON.stringify(a)); } catch (e) {} }
+function _advClean(a) { const o = {}; Object.keys(a || {}).forEach(k => { const v = a[k]; if (v === '' || v == null || (Array.isArray(v) && !v.length)) return; o[k] = v; }); return o; }
+function _advActive() { return Object.keys(_advClean(_advLoad())).length > 0; }
+function _advParams(skipDate) {
+  const a = _advClean(_advLoad()); let u = '';
+  if (a.minSizeMB) u += '&minSize=' + Math.round(parseFloat(a.minSizeMB) * 1048576);
+  if (a.maxSizeMB) u += '&maxSize=' + Math.round(parseFloat(a.maxSizeMB) * 1048576);
+  if (a.minWidth) u += '&minWidth=' + parseInt(a.minWidth, 10);
+  if (a.maxWidth) u += '&maxWidth=' + parseInt(a.maxWidth, 10);
+  if (!skipDate) {
+    if (a.dateFrom) u += '&minDate=' + Math.floor(new Date(a.dateFrom + 'T00:00:00').getTime() / 1000);
+    if (a.dateTo) u += '&maxDate=' + Math.floor(new Date(a.dateTo + 'T23:59:59').getTime() / 1000);
+  }
+  if (a.fileName) u += '&fileName=' + encodeURIComponent(a.fileName);
+  if (a.folderName) u += '&folderName=' + encodeURIComponent(a.folderName);
+  if (a.orient) u += '&orient=' + a.orient;
+  if (a.ext && a.ext.length) u += '&ext=' + a.ext.join(',');
+  if (a.camera) u += '&camera=' + encodeURIComponent(a.camera);
+  if (a.hasGps) u += '&hasGps=' + a.hasGps;
+  return u;
+}
+// 面板外观(记在浏览器): dock=float(悬浮在页面最上层, 默认, 可拖动)|left(左侧一列)|top(顶部工具栏) 停靠位置; pin=停靠顶部时是否吸附置顶(滚动页面时一直可见); collapsed=折叠(只留标题栏); open=上次是否打开
+let _fp = (() => { const d = { dock: 'float', pin: true, collapsed: false, open: false, pos: null }; try { return Object.assign(d, JSON.parse(localStorage.getItem('viewerFilterUi2') || '{}')); } catch (e) { return d; } })();
+function _fpSave() { try { localStorage.setItem('viewerFilterUi2', JSON.stringify(_fp)); } catch (e) {} }
+let _camLoaded = false;
+function _fpEl() { return document.getElementById('adv-panel'); }
+function _fpIsOpen() { const p = _fpEl(); return !!p && p.style.display !== 'none'; }
+// 按设置把面板放到正确位置: 左侧(侧边栏旁边的一列, 一直吸附) / 顶部吸顶(在滚动不走的工具栏里) / 顶部不吸顶(跟着页面滚走); 窄屏(<900px)不支持左侧, 自动退回顶部
+function _fpLayout() {
+  const p = _fpEl(); if (!p) return;
+  const left = document.getElementById('adv-dock-left');
+  const wide = window.innerWidth >= 900;
+  const dock = _fp.dock === 'float' ? 'float' : ((_fp.dock === 'left' && wide) ? 'left' : 'top');
+  const open = _fpIsOpen();
+  p.dataset.dock = dock; p.dataset.pin = _fp.pin ? '1' : '0';
+  if (dock === 'float') {
+    // 悬浮: 挂到 body 上, position:fixed 盖在页面最上层(样式见 CSS), 记住拖动后的位置
+    if (p.parentNode !== document.body) document.body.appendChild(p);
+    if (left) left.style.display = 'none';
+    if (_fp.pos) { p.style.left = Math.max(0, Math.min(_fp.pos.x, window.innerWidth - 120)) + 'px'; p.style.top = Math.max(0, Math.min(_fp.pos.y, window.innerHeight - 60)) + 'px'; p.style.right = 'auto'; }
+    else { p.style.left = ''; p.style.top = ''; p.style.right = ''; }
+  } else if (dock === 'left') {
+    p.style.left = ''; p.style.top = ''; p.style.right = '';
+    if (p.parentNode !== left) left.appendChild(p);
+    left.style.display = open ? 'block' : 'none';
+  } else {
+    p.style.left = ''; p.style.top = ''; p.style.right = '';
+    if (left) left.style.display = 'none';
+    const anchor = document.getElementById('ai-tag-panel');
+    const sticky = document.querySelector('.page-toolbar-sticky');
+    if (_fp.pin) { if (anchor && p.nextSibling !== anchor) anchor.parentNode.insertBefore(p, anchor); }
+    else if (sticky && sticky.nextSibling !== p) sticky.parentNode.insertBefore(p, sticky.nextSibling);
+  }
+  const body = document.getElementById('adv-body'); if (body) body.style.display = _fp.collapsed ? 'none' : 'block';
+  const set = (id, t) => { const el = document.getElementById(id); if (el) el.textContent = t; };
+  set('adv-btn-collapse', _fp.collapsed ? '▸ 展开' : '▾ 折叠');
+  set('adv-btn-dock', dock === 'float' ? '⬅ 停靠左侧' : (dock === 'left' ? '⬆ 停靠顶部' : '🪟 悬浮'));
+  set('adv-btn-pin', _fp.pin ? '📌 已吸顶' : '📍 吸顶');
+  const pin = document.getElementById('adv-btn-pin'); if (pin) pin.style.display = dock === 'top' ? '' : 'none';
+  const hd = document.getElementById('adv-head'); if (hd) hd.style.cursor = dock === 'float' ? 'move' : '';
+  const rs = document.getElementById('adv-btn-reset'); if (rs) rs.style.display = (dock === 'float' && _fp.pos) ? '' : 'none';
+}
+function _fpRebuildIfOpen() { if (_fpIsOpen()) { _buildFilterPanel(); _fpLayout(); } }
+function _buildFilterPanel() {
+  const p = _fpEl(); if (!p) return;
+  const a = _advLoad();
+  const inp = (id, ph, w, v, type) => '<input id="' + id + '" type="' + (type || 'text') + '" placeholder="' + ph + '" value="' + (v == null ? '' : String(v).replace(/"/g, '&quot;')) + '" style="width:' + w + ';background:#0f1620;border:1px solid #263548;border-radius:6px;color:#f0f6ff;padding:5px 8px;font-size:.78rem" onkeydown="if(event.key===\'Enter\')applyFilter()">';
+  const lab = (t) => '<span style="font-size:.76rem;color:#8fa8c4;min-width:64px;display:inline-block">' + t + '</span>';
+  const row = (inner) => '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:7px">' + inner + '</div>';
+  const hb = (id, click, tip) => '<button id="' + id + '" class="nav-btn" onclick="' + click + '" title="' + tip + '" style="padding:2px 9px;font-size:.72rem"></button>';
+  const exts = ['jpg', 'png', 'webp', 'gif', 'heic', 'bmp'];
+  const radio = (name, val, text, cur) => '<label style="font-size:.78rem;color:#8fa8c4;cursor:pointer"><input type="radio" name="' + name + '" value="' + val + '" ' + ((cur || '') === val ? 'checked' : '') + '> ' + text + '</label>';
+  p.innerHTML = '<div id="adv-box" style="background:#101823;border:1px solid #1e2838;border-radius:10px;padding:10px 14px;max-width:760px">'
+    + '<div id="adv-head" title="悬浮模式下可以按住这一栏拖动面板" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:8px;user-select:none"><b style="font-size:.84rem;color:#f0f6ff">🔎 筛选</b><span style="flex:1"></span>'
+    + hb('adv-btn-reset', 'fpResetPos()', '把面板放回默认位置') + hb('adv-btn-collapse', 'fpToggleCollapse()', '折叠/展开(折叠后只留标题栏)') + hb('adv-btn-dock', 'fpToggleDock()', '把面板停靠到左侧或顶部') + hb('adv-btn-pin', 'fpTogglePin()', '吸附置顶: 滚动页面时一直显示在顶部') + hb('adv-btn-close', 'toggleAdvPanel()', '关闭面板') + '</div>'
+    + '<div id="adv-body">'
+    + row(lab('文件大小') + inp('adv-minSizeMB', '最小(MB)', '90px', a.minSizeMB, 'number') + '<span style="color:#507090">~</span>' + inp('adv-maxSizeMB', '最大(MB)', '90px', a.maxSizeMB, 'number'))
+    + row(lab('宽度(像素)') + inp('adv-minWidth', '最小', '90px', a.minWidth, 'number') + '<span style="color:#507090">~</span>' + inp('adv-maxWidth', '最大', '90px', a.maxWidth, 'number')
+          + '<button class="nav-btn" style="padding:2px 8px;font-size:.72rem" onclick="advPreset(1920)">≥1080P</button><button class="nav-btn" style="padding:2px 8px;font-size:.72rem" onclick="advPreset(3840)">≥4K</button>')
+    + row(lab('拍摄日期') + inp('adv-dateFrom', '', '140px', a.dateFrom, 'date') + '<span style="color:#507090">~</span>' + inp('adv-dateTo', '', '140px', a.dateTo, 'date'))
+    + row(lab('文件名含') + inp('adv-fileName', '关键词(空格分隔多个)', '200px', a.fileName))
+    + row(lab('文件夹含') + inp('adv-folderName', '关键词', '200px', a.folderName))
+    + row(lab('方向') + radio('adv-orient', '', '不限', a.orient) + radio('adv-orient', 'landscape', '横图', a.orient) + radio('adv-orient', 'portrait', '竖图', a.orient) + radio('adv-orient', 'square', '方图', a.orient))
+    + row(lab('格式') + exts.map(e => '<label style="font-size:.78rem;color:#8fa8c4;cursor:pointer"><input type="checkbox" class="adv-ext" value="' + e + '" ' + ((a.ext || []).includes(e) ? 'checked' : '') + '> ' + e + '</label>').join(' '))
+    + row(lab('相机') + inp('adv-camera', '型号(可输入或下拉选)', '200px', a.camera) + '<datalist id="adv-cam-list"></datalist>')
+    + row(lab('定位') + radio('adv-gps', '', '不限', a.hasGps) + radio('adv-gps', '1', '有', a.hasGps) + radio('adv-gps', '0', '无', a.hasGps))
+    + '<div style="display:flex;gap:8px;margin-top:4px"><button class="nav-btn" onclick="applyFilter()" style="padding:5px 18px;font-size:.8rem;background:#40d0ff;color:#000;border:none;font-weight:700">应用筛选</button>'
+    + '<button class="nav-btn" onclick="clearFilter()" style="padding:5px 14px;font-size:.8rem">清除全部</button></div></div></div>';
+  const cam = document.getElementById('adv-camera'); if (cam) cam.setAttribute('list', 'adv-cam-list');
+  if (!_camLoaded) {
+    _camLoaded = true;
+    fetch('/api/photo-tags/cameras?mediaType=photo').then(r => r.json()).then(list => {
+      const dl = document.getElementById('adv-cam-list'); if (!dl || !Array.isArray(list)) return;
+      dl.innerHTML = list.map(c => '<option value="' + String(c.name).replace(/"/g, '&quot;') + '">' + c.n + ' 张</option>').join('');
+    }).catch(() => { _camLoaded = false; });
+  }
+}
+function toggleAdvPanel() {
+  const p = _fpEl(); if (!p) return;
+  const show = p.style.display === 'none';
+  if (show) _buildFilterPanel();
+  p.style.display = show ? 'block' : 'none';
+  _fp.open = show; _fpSave();
+  _fpLayout();
+  const b = document.getElementById('btn-filter'); if (b) b.classList.toggle('active', show);
+  const fab = document.getElementById('fp-fab'); if (fab) fab.classList.toggle('on', show);
+}
+function fpToggleCollapse() { _fp.collapsed = !_fp.collapsed; _fpSave(); _fpLayout(); }
+function fpToggleDock() {
+  const wide = window.innerWidth >= 900;
+  _fp.dock = _fp.dock === 'float' ? (wide ? 'left' : 'top') : (_fp.dock === 'left' ? 'top' : 'float');
+  _fpSave(); _fpLayout();
+}
+function fpResetPos() { _fp.pos = null; _fpSave(); _fpLayout(); }
+function fpTogglePin() { _fp.pin = !_fp.pin; _fpSave(); _fpLayout(); }
+function advPreset(w) { const el = document.getElementById('adv-minWidth'); if (el) el.value = w; }
+function applyFilter() {
+  const v = (id) => { const el = document.getElementById(id); return el ? el.value.trim() : ''; };
+  const rv = (name) => { const el = document.querySelector('input[name="' + name + '"]:checked'); return el ? el.value : ''; };
+  const a = {
+    minSizeMB: v('adv-minSizeMB'), maxSizeMB: v('adv-maxSizeMB'), minWidth: v('adv-minWidth'), maxWidth: v('adv-maxWidth'),
+    dateFrom: v('adv-dateFrom'), dateTo: v('adv-dateTo'), fileName: v('adv-fileName'), folderName: v('adv-folderName'),
+    orient: rv('adv-orient'), ext: [...document.querySelectorAll('.adv-ext:checked')].map(e => e.value), camera: v('adv-camera'), hasGps: rv('adv-gps'),
+  };
+  _advSave(_advClean(a)); renderFilterChips(); loadPhotos(true);
+}
+function clearFilter() { _advSave({}); _fpRebuildIfOpen(); renderFilterChips(); loadPhotos(true); }
+function removeAdv(k) { const a = _advLoad(); delete a[k]; _advSave(a); _fpRebuildIfOpen(); renderFilterChips(); loadPhotos(true); }
+function renderFilterChips() {
+  const el = document.getElementById('filter-chips'); const cnt = document.getElementById('filter-count'); if (!el) return;
+  const a = _advClean(_advLoad()); const keys = Object.keys(a);
+  if (cnt) cnt.textContent = keys.length ? ' (' + keys.length + ')' : '';
+  const fab = document.getElementById('fp-fab'), fc = document.getElementById('fp-fab-count');
+  if (fc) { fc.textContent = keys.length ? String(keys.length) : ''; fc.style.display = keys.length ? 'flex' : 'none'; }
+  if (fab) fab.classList.toggle('has', keys.length > 0);
+  if (!keys.length) { el.style.display = 'none'; el.innerHTML = ''; return; }
+  el.style.display = 'block';
+  el.innerHTML = '<span style="font-size:.74rem;color:#507090;margin-right:6px">筛选中：</span>' + keys.map(k => {
+    let t = a[k]; if (k === 'orient') t = ADV_ORIENT[t] || t; else if (k === 'hasGps') t = t === '1' ? '有' : '无'; else if (k === 'ext') t = t.join('/'); else if (/SizeMB$/.test(k)) t += 'MB';
+    return '<span style="display:inline-block;margin:0 6px 4px 0;padding:2px 9px;border:1px solid #40d0ff;border-radius:12px;font-size:.74rem;color:#40d0ff;cursor:pointer" title="点击取消这个条件" onclick="removeAdv(\'' + k + '\')">' + ADV_LABELS[k] + ' ' + String(t).replace(/</g, '&lt;') + ' ✕</span>';
+  }).join('') + '<span style="font-size:.74rem;color:#8aa8c8;cursor:pointer;margin-left:4px" onclick="clearFilter()">清除全部</span>';
+}
+document.addEventListener('DOMContentLoaded', () => { renderFilterChips(); if (_fp.open) toggleAdvPanel(); });
+window.addEventListener('resize', () => { if (_fpIsOpen()) _fpLayout(); });
+// 悬浮模式: 按住标题栏拖动面板, 位置记住; 按 Esc 关闭面板(大图打开时 Esc 仍是关大图; 在输入框里按 Esc 也不关)
+(function () {
+  let drag = null;
+  document.addEventListener('mousedown', (e) => {
+    const hd = e.target.closest && e.target.closest('#adv-head'); const p = _fpEl();
+    if (!hd || !p || p.dataset.dock !== 'float' || e.target.closest('button')) return;
+    const r = p.getBoundingClientRect(); drag = { dx: e.clientX - r.left, dy: e.clientY - r.top }; e.preventDefault();
+  });
+  document.addEventListener('mousemove', (e) => {
+    if (!drag) return; const p = _fpEl(); if (!p) return;
+    const x = Math.max(0, Math.min(e.clientX - drag.dx, window.innerWidth - 120)), y = Math.max(0, Math.min(e.clientY - drag.dy, window.innerHeight - 60));
+    p.style.left = x + 'px'; p.style.top = y + 'px'; p.style.right = 'auto'; _fp.pos = { x, y };
+  });
+  document.addEventListener('mouseup', () => { if (drag) { drag = null; _fpSave(); _fpLayout(); } });
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape' || !_fpIsOpen()) return;
+    const vw = document.getElementById('viewer'); if (vw && vw.classList.contains('show')) return;
+    const t = e.target; if (t && /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName || '')) return;
+    if (_fpEl().dataset.dock === 'float') toggleAdvPanel();
+  });
+})();
+
+// 2026-10-01: 浏览顺序可选: folder=文件夹乱序(默认, 目录随机、目录内按原顺序) / random=全部乱序 / desc=时间倒序 / asc=时间正序;
+// "换一波"=换一个新的随机种子。选择记在浏览器里(localStorage), 种子只在本次会话(sessionStorage)内保持稳定, 翻页不重不漏。
+function _getSortMode() { try { const m = localStorage.getItem('viewerSortMode'); return ['folder', 'random', 'name', 'desc', 'asc', 'res_desc', 'res_asc', 'ratio'].includes(m) ? m : 'folder'; } catch (e) { return 'folder'; } }
+function _getSeed() {
+  try { let s = sessionStorage.getItem('viewer_seed'); if (!s) { s = String(1 + Math.floor(Math.random() * 999999937)); sessionStorage.setItem('viewer_seed', s); } return s; } catch (e) { return '1'; }
+}
+function setSortMode(m) {
+  try { localStorage.setItem('viewerSortMode', m); } catch (e) {}
+  loadPhotos(true);
+}
+function reshuffle() {
+  const ns = String(1 + Math.floor(Math.random() * 999999937));
+  try { sessionStorage.setItem('viewer_seed', ns); sessionStorage.setItem('viewer_dir_seed', ns); } catch (e) {}
+  const m = _getSortMode();
+  if (typeof showToast === 'function') showToast(m === 'folder' || m === 'random' ? '已换一波' : '当前是时间排序，"换一波"只对乱序生效', 'info');
+  loadPhotos(true);
+}
+document.addEventListener('DOMContentLoaded', () => { const el = document.getElementById('sort-mode'); if (el) el.value = _getSortMode(); });
+
+// 2026-09-23加: "全部"默认浏览用的文件夹随机种子, 存sessionStorage——同一次浏览器
+// 会话内保持不变(翻页顺序稳定, 不重不漏), 关掉标签页/浏览器再打开才会换一批顺序,
+// 不会每次loadPhotos(比如无限滚动加载下一页)都生成新种子导致顺序跳来跳去。
+function _getDirSeed() {
+  try {
+    let s = sessionStorage.getItem('viewer_dir_seed');
+    if (!s) { s = String(1 + Math.floor(Math.random() * 999999937)); sessionStorage.setItem('viewer_dir_seed', s); }
+    return s;
+  } catch (e) { return '1'; }
+}
+function _isFamilyRole(role) { return !!(role && String(role.name || '').indexOf('家庭') >= 0); }
+// 算出"本次实际生效"的角色: 存的是家庭角色就直接用; 不是家庭角色但本次会话已解锁过也直接用;
+// 否则(没解锁又不是家庭)一律强制退回家庭角色——哪怕localStorage里存的是上线前选的"全部"。
+// familyRole找不到(角色被删了/改了名字)时退回null(全部), 避免功能配置一变就整个用不了。
+// 2026-09-23修复真正的根因: localStorage里存的角色(setCurrentRole存的)只有
+// {id,name,icon}三个字段, 是角色切换弹窗界面上读的dataset, 没有allowed_roots——
+// 之前这里逻辑一旦命中"就用存的那份"分支, 返回的就是这个缺allowed_roots的精简对象,
+// 后面_nasViewRoots.fn读.allowed_roots直接是undefined, 目录树一个目录都加载不出来。
+// 改成永远拿id去这次新拉取的完整rolesList里查, 只用localStorage记"选的是哪个id"这一件事,
+// 绝不直接把存储对象本身当作最终生效角色使用。
+function getEffectiveRole(rolesList) {
+  const stored = getCurrentRole();
+  const familyRole = (rolesList || []).find(_isFamilyRole) || null;
+  if (familyRole && stored && stored.id === familyRole.id) return familyRole;
+  if (isNonFamilyUnlocked() && stored) {
+    const full = (rolesList || []).find(r => r.id === stored.id);
+    return full || familyRole;  // 存的角色已经被删了/改了, 退回家庭兜底, 不要整个崩掉
+  }
+  return familyRole;
 }
 
 async function openRoleSwitcher() {
@@ -2217,11 +2892,15 @@ async function openRoleSwitcher() {
     const item = e.target.closest('.role-switch-item');
     if (!item) return;
     const id = item.dataset.id;
-    if (!id) {
-      setCurrentRole(null);
-    } else {
-      setCurrentRole({ id: id, name: item.dataset.name, icon: item.dataset.icon });
+    const targetRole = id ? { id: id, name: item.dataset.name, icon: item.dataset.icon } : null;
+    // 2026-09-20加: 选的不是家庭角色, 本次会话又没解锁过, 弹密码框拦一下
+    if (!_isFamilyRole(targetRole) && !isNonFamilyUnlocked()) {
+      const pwd = prompt('切换到"' + (targetRole ? targetRole.name : '全部(无限制)') + '"需要输入密码:');
+      if (pwd === null) return;   // 取消, 菜单继续开着, 不做任何事
+      if (pwd !== NONFAMILY_PASSWORD) { if (typeof showToast === 'function') showToast('密码错误', 'error'); return; }
+      unlockNonFamily();
     }
+    setCurrentRole(targetRole);
     overlay.remove();
     location.reload();
   });
@@ -3134,4 +3813,181 @@ document.addEventListener("DOMContentLoaded", function () {
     a.style.cssText += ";position:fixed;top:10px;right:14px;z-index:120;background:#141d29";
     document.body.appendChild(a);
   }, 500);
+});
+// ══ 2026-10-01 大图(灯箱)右键菜单: 对"当前这张"生效, 功能与网格右键菜单一致, 另加几个大图里常用的 ══
+function _vwOrigUrl(ph) { return /^[A-Za-z]:/.test(ph.path || '') ? '/api/pc/file/' + encodeURIComponent(ph.path) : '/original' + ph.path; }
+function _vwCopy(text) {
+  const done = () => showToast('已复制路径');
+  if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(text).then(done, () => _vwCopyFallback(text, done)); }
+  else _vwCopyFallback(text, done);
+}
+function _vwCopyFallback(text, done) {
+  const t = document.createElement('textarea'); t.value = text; t.style.cssText = 'position:fixed;left:-9999px;top:0';
+  document.body.appendChild(t); t.select(); try { document.execCommand('copy'); done(); } catch (e) { showToast('复制失败'); } t.remove();
+}
+// 大图里"放入待删除"(逻辑删除, 只打标记不动文件; 去"回收站"页面才会真的删): 删完自动显示下一张, 没有了就关掉大图
+var _vwDeleting = false;
+async function softDeleteCurrentPhoto(noConfirm) {
+  if (_vwDeleting) return;
+  const idx = state.viewer.index, photo = state.photos[idx]; if (!photo) return;
+  // 2026-10-01: 不再弹确认——只是放进回收站(不动文件), 回收站里随时能恢复
+  _vwDeleting = true;
+  try {
+    const r = await fetch('/api/photos/soft-delete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ids: [photo.id] }) });
+    if (!r.ok) throw new Error('请求失败');
+    _lastDel = { photo, idx };      // 只记刚删的这一张(Ctrl+Z 用); 翻页/关闭大图/换列表后作废
+    state.photos = state.photos.filter(p => p.id !== photo.id);
+    state.total = Math.max(0, (state.total || 0) - 1);
+    renderGrid(state.photos, true);
+    if (typeof updateStats === 'function') updateStats();
+    if (!state.photos.length) { closeViewer(); }
+    else { state.viewer.index = Math.min(idx, state.photos.length - 1); resetViewerTransform(); showViewerPhoto(); }
+    showToast('已放入回收站（Ctrl+Z 撤销）');
+  } catch (e) { showToast('操作失败'); }
+  finally { _vwDeleting = false; }
+}
+function openViewerMenu(e) {
+  const idx = state.viewer.index, photo = state.photos[idx];
+  if (!photo) return;
+  const url = _vwOrigUrl(photo);
+  ctxMenu.show(e.clientX, e.clientY, [
+    { icon: photo.favorite ? '💔' : '❤️', text: photo.favorite ? '取消收藏' : '收藏', action: () => toggleFav({ stopPropagation: () => {} }, photo.id) },
+    { icon: '🏷', text: '编辑标签', action: () => addTagModal(photo.md5) },
+    { sep: true },
+    { icon: '📋', text: '复制路径', action: () => _vwCopy(photo.path) },
+    { icon: '🔗', text: '在新标签页打开原图', action: () => window.open(url, '_blank') },
+    { icon: '⬇', text: '下载原图', action: () => { const a = document.createElement('a'); a.href = url; a.download = String(photo.path).split('/').pop(); document.body.appendChild(a); a.click(); a.remove(); } },
+    { icon: '📁', text: '定位到所在目录', action: () => { const d = _dirFull(photo); closeViewer(); jumpToDir({ stopPropagation: () => {} }, d); } },
+    { sep: true },
+    { icon: '▶', text: '重新处理', action: () => reprocessPhoto(photo.id) },
+    { icon: '🗑', text: '放入回收站', action: () => softDeleteCurrentPhoto() },
+  ]);
+}
+(function () {
+  const bind = () => {
+    const vw = document.getElementById('viewer'); if (!vw || vw._ctxBound) return; vw._ctxBound = true;
+    vw.addEventListener('contextmenu', (e) => {
+      // 只在大图区域(图片/空白处)弹出; 顶部工具栏、音乐栏、输入框里保持浏览器默认右键(复制粘贴等)
+      if (e.target.closest('.viewer-header, .viewer-footer, .viewer-prev, .viewer-next, input, textarea, select, button')) return;
+      e.preventDefault(); e.stopPropagation();
+      openViewerMenu(e);
+    });
+  };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bind); else bind();
+})();
+
+// 2026-10-01: 网格右键"放入回收站"(逻辑删除, 只打标记不动文件; 统一回收站里恢复或彻底删除)
+async function softDeleteGridPhoto(photo) {
+  if (!photo) return;
+  try {
+    const r = await fetch('/api/photos/soft-delete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ids: [photo.id] }) });
+    if (!r.ok) throw new Error('请求失败');
+    state.photos = state.photos.filter(p => p.id !== photo.id);
+    state.total = Math.max(0, (state.total || 0) - 1);
+    renderGrid(state.photos, true);
+    if (typeof updateStats === 'function') updateStats();
+    showToast('已放入回收站（右上角"🗑 回收站"可恢复）');
+  } catch (e) { showToast('操作失败'); }
+}
+
+// ══ 2026-10-01 撤销删除(Ctrl+Z / Cmd+Z): 只针对"大图里刚删除的这一张"——删完立刻按 Ctrl+Z 就直接恢复(只是清掉回收站标记, 文件本来就没动)。
+// 一旦切换(翻到别的图 / 关闭大图 / 换了列表)就不能再恢复了(想找回去回收站里恢复)。
+var _lastDel = null;
+var _undoBusy = false;
+function _undoClear() { _lastDel = null; }
+async function undoDelete() {
+  if (_vwDeleting || _undoBusy || !_lastDel) return;
+  if (!document.getElementById('viewer').classList.contains('show')) { _lastDel = null; return; }
+  const ent = _lastDel; _lastDel = null; _undoBusy = true;
+  try {
+    const r = await fetch('/api/photos/restore', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ids: [ent.photo.id] }) });
+    if (!r.ok) throw new Error('请求失败');
+    if (!state.photos.some(p => p.id === ent.photo.id)) state.photos.splice(Math.min(ent.idx, state.photos.length), 0, ent.photo);
+    state.total = (state.total || 0) + 1;
+    renderGrid(state.photos, true);
+    if (typeof updateStats === 'function') updateStats();
+    state.viewer.index = state.photos.findIndex(p => p.id === ent.photo.id);
+    resetViewerTransform(); showViewerPhoto();
+    showToast('已恢复');
+  } catch (e) { _lastDel = ent; showToast('恢复失败'); }
+  finally { _undoBusy = false; }
+}
+document.addEventListener('keydown', (e) => {
+  if (!(e.ctrlKey || e.metaKey) || e.shiftKey || e.altKey || String(e.key).toLowerCase() !== 'z') return;
+  const t = e.target; if ((t && /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName || '')) || (t && t.isContentEditable)) return;   // 输入框里的 Ctrl+Z 留给输入框自己撤销文字
+  e.preventDefault(); undoDelete();
+});
+
+// ══ 2026-10-01 排布模式: 等高行(justified, 默认) / 瀑布(masonry, 不对齐) / 网格(grid, 原样) ══
+// 等高行: 一行里每张图的宽度按各自宽高比分配 → 同一行高度完全相同、铺满整行; 不改变图片先后顺序。目标行高 = 每列宽度 ÷ 平均宽高比, 所以"列数"仍然有意义(1~10)。
+function _ratioOf(p) { return (p && p.width > 0 && p.height > 0) ? Math.max(0.35, Math.min(3, p.width / p.height)) : 1.33; }
+function _getLayout() { try { const m = localStorage.getItem('viewerLayout'); return ['justified', 'masonry', 'grid'].includes(m) ? m : 'justified'; } catch (e) { return 'justified'; } }
+function setLayout(m) { try { localStorage.setItem('viewerLayout', m); } catch (e) {} _applyLayout(true); }
+// 等高行算法(类似 Flickr/Google 相册): 从头往后一张张放进当前行, 当行高降到目标行高以下时, 比较"带上这张"和"不带这张"哪个更接近目标行高, 在那里换行;
+// 每一行里每张图的宽度 = 宽高比 × 该行行高, 行宽刚好铺满 → 一行内高度完全相同。最后一行不拉伸(行高不超过目标的 1.3 倍)。
+let _lastLayoutSig = '';
+function _justify(grid, force) {
+  const items = [...grid.children].filter(el => el.classList && el.classList.contains('photo-item'));
+  const W = grid.clientWidth, target = parseFloat(getComputedStyle(grid).getPropertyValue('--row-h')) || 180, gap = 6;
+  const sig = W + '|' + items.length + '|' + Math.round(target);
+  if (!force && sig === _lastLayoutSig) return;
+  _lastLayoutSig = sig;
+  if (!W) return;
+  let row = [], sum = 0;
+  const flush = (last) => {
+    if (!row.length) return;
+    let h = (W - gap * (row.length - 1)) / sum;
+    if (last) h = Math.min(h, target * 1.3);
+    row.forEach(it => { it.el.style.flex = 'none'; it.el.style.width = Math.floor(it.r * h) + 'px'; });
+    row = []; sum = 0;
+  };
+  for (const el of items) {
+    const r = parseFloat(el.style.getPropertyValue('--r')) || 1.33;
+    row.push({ el, r }); sum += r;
+    let h = (W - gap * (row.length - 1)) / sum;
+    if (h < target) {                                           // 这一行已经"满"了
+      if (row.length > 1) {
+        const hWithout = (W - gap * (row.length - 2)) / (sum - r);
+        if (Math.abs(hWithout - target) < Math.abs(h - target)) {   // 不带最后这张更接近目标 → 在它前面换行, 它另起一行
+          const last = row.pop(); sum -= last.r; flush(false); row = [last]; sum = last.r;
+          if ((W - gap * (row.length - 1)) / sum >= target) continue;
+        }
+      }
+      flush(false);
+    }
+  }
+  flush(true);
+}
+function _clearJustify(grid) { [...grid.children].forEach(el => { if (el.style) { el.style.width = ''; el.style.flex = ''; } }); _lastLayoutSig = ''; }
+function _applyLayout(force) {
+  const grid = document.getElementById('photo-grid'); if (!grid) return;
+  const mode = _getLayout();
+  if (grid.dataset.layout !== mode) { grid.dataset.layout = mode; if (mode !== 'justified') _clearJustify(grid); force = true; }
+  const n = _loadColCount();
+  const w = grid.clientWidth || (grid.parentElement && grid.parentElement.clientWidth) || 1000;
+  const rs = (state.photos || []).slice(-200).map(_ratioOf);
+  const avg = rs.length ? rs.reduce((a, b) => a + b, 0) / rs.length : 1.4;
+  grid.style.setProperty('--row-h', Math.round(Math.max(28, (w / n) / Math.max(0.6, Math.min(1.8, avg)))) + 'px');
+  if (mode === 'justified') _justify(grid, force);
+  const sel = document.getElementById('layout-mode'); if (sel && sel.value !== mode) sel.value = mode;
+}
+document.addEventListener('DOMContentLoaded', () => {
+  _applyLayout();
+  const grid = document.getElementById('photo-grid');
+  if (grid && window.ResizeObserver) new ResizeObserver(() => _applyLayout()).observe(grid);   // 窗口/侧边栏/左侧筛选栏宽度变化时重算行高
+});
+
+// 列数滑块: 拖动直接设置(1~COL_MAX 步长 1)
+function setColCount(v) { const n = Math.max(COL_MIN, Math.min(COL_MAX, parseInt(v, 10) || COL_DEFAULT)); _applyColCount(n); }
+
+// ── 目录栏: 双击拖拽条恢复默认宽度; 按 [ 键折叠/展开 ──
+document.addEventListener('DOMContentLoaded', () => {
+  const r = document.getElementById('sidebar-resizer'), sb = document.getElementById('sidebar'), tg = document.getElementById('sidebar-toggle');
+  if (r && sb) r.addEventListener('dblclick', () => { sb.style.width = '260px'; r.style.left = '260px'; if (tg) tg.style.left = '260px'; try { localStorage.setItem('sidebar-width', 260); } catch (e) {} });
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key !== '[' || e.ctrlKey || e.metaKey || e.altKey) return;
+  const t = e.target; if (t && (/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName || '') || t.isContentEditable)) return;
+  const vw = document.getElementById('viewer'); if (vw && vw.classList.contains('show')) return;
+  if (typeof toggleSidebar === 'function') toggleSidebar();
 });

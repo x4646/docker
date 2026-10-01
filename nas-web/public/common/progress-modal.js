@@ -20,6 +20,7 @@
   let timer = null;
   let opts = {};
   let _escHandler = null;
+  let _misses = 0;   // 连续请求失败次数(服务卡住/重启期间)
 
   function esc(s) { const d = document.createElement('div'); d.textContent = s == null ? '' : s; return d.innerHTML; }
 
@@ -30,7 +31,9 @@
     modal.id = ID;
     modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.75);z-index:99999;display:flex;align-items:center;justify-content:center';
     modal.innerHTML =
-      '<div style="background:#161d28;border:1px solid #2a3d55;border-radius:14px;padding:24px 28px;min-width:520px;max-width:680px;max-height:82vh;overflow:auto">'
+      // 2026-09-20: 原来min-width:520px, 手机上会把弹窗撑出屏幕——改用width:min(680px,92vw),
+      // 不需要额外写媒体查询, 桌面上还是680px封顶, 窄屏自动收到视口的92%
+      '<div style="background:#161d28;border:1px solid #2a3d55;border-radius:14px;padding:clamp(14px,4vw,28px);width:min(680px,92vw);box-sizing:border-box;max-height:82vh;overflow:auto">'
       + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">'
       + '<span id="cpm-title" style="font-size:1rem;font-weight:700;color:#f0f6ff">' + esc(title || '进度') + '</span>'
       + '<span id="cpm-pool" style="font-size:.74rem;color:#507090">—</span>'
@@ -115,8 +118,24 @@
     const base = opts.endpoint || '/api/process/progress';
     let d;
     try {
-      d = await apiFetch(base + '/' + encodeURIComponent(opts.taskId));
-    } catch (e) { return; }
+      // 2026-09-30: 不再每次失败都弹"请求失败"(服务卡一下/重启时会连弹一串, 还会遮住内容); 改成窗口里提示并继续重试
+      d = await apiFetch(base + '/' + encodeURIComponent(opts.taskId), { showError: false });
+      _misses = 0;
+    } catch (e) {
+      _misses++;
+      const totEl = document.getElementById('cpm-total');
+      if (totEl) totEl.innerHTML = '<span style="color:#ffa500">连接不上服务（可能正在重启），已重试 ' + _misses + ' 次，会自动继续…</span>';
+      return;
+    }
+    // 服务里找不到这个任务 = 服务重启过, 后台已经没有在跑(已处理的照片不会丢, 重新点"处理"即可接着做)
+    if (d && d.status === 'unknown') {
+      if (timer) { clearInterval(timer); timer = null; }
+      const listEl = document.getElementById('cpm-list');
+      if (listEl) listEl.innerHTML = '<div style="color:#ffa500;padding:8px 0">⚠ 服务里找不到这个任务（服务可能重启过），后台没有在处理。<br>请重新点"处理"，已经处理好的不会重复。</div>';
+      const btn = document.getElementById('cpm-close');
+      if (btn) { btn.textContent = '关闭'; btn.style.background = '#ffa500'; }
+      return;
+    }
     render(d);
     // 完成或出错 → 停止轮询(保留弹窗显示结果),按钮变"关闭"
     if (d && (d.status === 'done' || d.status === 'error')) {

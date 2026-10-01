@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>回收站</title>
+<style>
+  :root { --bg:#0a0a0a; --surface:#141414; --surface2:#1a1a1a; --border:#2a2a2a; --text:#f0f0f0; --text2:#909090; --accent:#40d0ff; --ok:#3ddc84; --warn:#ffb020; --err:#ff5567; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif; padding:16px 20px 60px; }
+  h1 { font-size:1.2rem; margin:0; } a { color:var(--accent); }
+  .top { display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin-bottom:6px; }
+  .sum { color:var(--text2); font-size:.82rem; } .sum b { color:var(--text); }
+  .hint { font-size:.74rem; color:#607080; line-height:1.6; margin:4px 0 10px; }
+  .bar { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin:10px 0; position:sticky; top:0; background:var(--bg); padding:8px 0; z-index:5; border-bottom:1px solid var(--border); }
+  .btn { padding:6px 13px; border-radius:6px; border:1px solid var(--border); background:transparent; color:var(--text2); font-size:.8rem; cursor:pointer; text-decoration:none; }
+  .btn:hover:not(:disabled) { border-color:var(--accent); color:var(--accent); } .btn:disabled { opacity:.4; cursor:not-allowed; }
+  .btn.primary, .chip.on { border-color:var(--accent); color:var(--accent); } .btn.warn { border-color:var(--warn); color:var(--warn); } .btn.danger { border-color:var(--err); color:var(--err); }
+  .chip { padding:6px 14px; border-radius:16px; border:1px solid var(--border); background:transparent; color:var(--text2); font-size:.82rem; cursor:pointer; }
+  input[type=text], select { padding:6px 9px; background:var(--surface2); border:1px solid var(--border); border-radius:6px; color:var(--text); font-size:.8rem; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:12px; }
+  .card { background:var(--surface); border:1px solid var(--border); border-radius:10px; overflow:hidden; position:relative; cursor:pointer; }
+  .card.sel { border-color:var(--accent); box-shadow:0 0 0 1px var(--accent); } .card.gone { opacity:.55; }
+  .th { width:100%; aspect-ratio:16/10; background:#0e0e0e; display:flex; align-items:center; justify-content:center; color:#405060; font-size:.75rem; overflow:hidden; }
+  .th img { width:100%; height:100%; object-fit:contain; }
+  .ck { position:absolute; top:8px; left:8px; width:20px; height:20px; accent-color:var(--accent); }
+  .kind { position:absolute; top:8px; right:8px; font-size:.7rem; padding:1px 8px; border-radius:9px; background:#000a; border:1px solid var(--border); color:var(--text2); }
+  .gonetag { position:absolute; top:34px; right:8px; font-size:.66rem; padding:1px 7px; border-radius:9px; background:#000a; border:1px solid var(--err); color:var(--err); }
+  .open { position:absolute; bottom:6px; right:6px; font-size:.7rem; padding:1px 7px; border-radius:9px; background:#000a; border:1px solid var(--border); color:var(--text2); text-decoration:none; }
+  .info { padding:8px 10px; font-size:.75rem; }
+  .nm { color:var(--text); word-break:break-all; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+  .dir { color:#607080; font-size:.68rem; word-break:break-all; margin-top:2px; display:-webkit-box; -webkit-line-clamp:1; -webkit-box-orient:vertical; overflow:hidden; }
+  .meta { color:var(--text2); margin-top:4px; display:flex; gap:10px; flex-wrap:wrap; }
+  .empty { text-align:center; color:var(--text2); padding:60px 0; }
+  .mask { position:fixed; inset:0; background:rgba(0,0,0,.7); z-index:200; display:flex; align-items:center; justify-content:center; padding:16px; }
+  .dlg { background:#161d28; border:1px solid #2a3d55; border-radius:14px; padding:22px 24px; width:min(480px,100%); box-shadow:0 12px 44px rgba(0,0,0,.7); }
+  .dlg h3 { margin:0 0 10px; font-size:1.05rem; } .dlg .body { font-size:.84rem; line-height:1.7; color:#c8d6e5; }
+  .dlg .body b { color:#fff; } .dlg .warnbox { margin-top:10px; padding:8px 12px; border:1px solid var(--err); border-radius:8px; color:#ff9aa6; background:#2a1218; }
+  .dlg .btns { display:flex; gap:10px; margin-top:18px; } .dlg .btns .btn { flex:1; padding:11px 8px; font-size:.9rem; font-weight:700; }
+  .btn.dangerfill { background:var(--err); color:#fff; border-color:var(--err); } .btn.dangerfill:hover:not(:disabled) { background:#ff7585; border-color:#ff7585; color:#fff; }
+  .toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:#1e2838; border:1px solid #2a3d55; padding:8px 18px; border-radius:8px; font-size:.82rem; opacity:0; transition:opacity .25s; pointer-events:none; z-index:99; }
+  .toast.show { opacity:1; }
+</style>
+</head>
+<body>
+<div class="top">
+  <h1>🗑 回收站</h1>
+  <a class="btn" href="/viewer/">← 图片库</a>
+  <a class="btn" href="/videoer/">← 视频库</a>
+  <span class="sum" id="sum">加载中…</span>
+</div>
+<div class="hint">
+  图片库、视频库里的所有"删除"都只是<b>放进这里</b>，<b>不动任何文件</b>，条目会从库里隐藏。在这里你可以<b>恢复</b>，或者<b>彻底删除</b>（删原文件 + 转码副本 + 库记录；缩略图/标签/收藏只有在没有别的重复文件共用时才会一起清掉；<b>不能恢复</b>）。BAK 备份盘里的文件彻底删除需要二次确认。
+</div>
+<div class="bar" id="chips"></div>
+<div class="bar">
+  <input type="text" id="q" placeholder="按路径搜索…" style="width:200px" oninput="onSearch()">
+  <select id="sort" onchange="load(1)"><option value="time">按删除时间（新→旧）</option><option value="size">按大小（大→小）</option><option value="path">按路径</option></select>
+  <button class="btn" onclick="selAll()">全选本页</button>
+  <button class="btn" onclick="selNone()">清除选择</button>
+  <span class="sum" id="selinfo"></span>
+  <button class="btn primary" id="b-restore" onclick="restoreSel()" disabled>↩ 恢复选中</button>
+  <button class="btn danger" id="b-del" onclick="deleteSel()" disabled>💥 彻底删除选中</button>
+  <a class="btn" id="b-export" href="#" onclick="this.href='/api/trash/export?type='+type;return true;" download>⬇ 导出清单</a>
+  <button class="btn warn" onclick="purgeMissing()">清理"文件已不在盘"的记录</button>
+</div>
+<div id="grid" class="grid"></div>
+<div class="bar" style="border:none;justify-content:center;position:static">
+  <button class="btn" id="prev" onclick="load(page-1)">上一页</button><span class="sum" id="pg"></span><button class="btn" id="next" onclick="load(page+1)">下一页</button>
+</div>
+<div class="toast" id="toast"></div>
+<script>
+  const LIMIT = 60;
+  let type = (new URLSearchParams(location.search).get('type') || 'all'); if (!['all', 'photo', 'video'].includes(type)) type = 'all';
+  let page = 1, total = 0, items = [], sel = new Set(), summary = null, qTimer = null;
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const fmtSize = (b) => b >= 1e9 ? (b / 1e9).toFixed(2) + ' GB' : b >= 1e6 ? (b / 1e6).toFixed(0) + ' MB' : (b / 1e3).toFixed(0) + ' KB';
+  const fmtDur = (s) => { s = s | 0; return s >= 3600 ? Math.floor(s / 3600) + ':' + String(Math.floor(s % 3600 / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0') : Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
+  const fmtDate = (t) => { if (!t) return ''; const d = new Date(t * 1000); return (d.getMonth() + 1) + '-' + d.getDate() + ' ' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); };
+  const isBak = (p) => /^\/share\/bak\//i.test(p || '');
+  function toast(m) { const t = $('toast'); t.textContent = m; t.classList.add('show'); clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove('show'), 2600); }
+  const post = (u, b) => fetch(u, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b || {}) }).then((r) => r.json());
+  // 按钮式确认窗口: 返回 Promise<boolean>。不需要输入任何文字, 点红色按钮即确认, 点"取消"/空白处/Esc 取消
+  function ask({ title, html, okText, danger, warn }) {
+    return new Promise((resolve) => {
+      const m = document.createElement('div'); m.className = 'mask';
+      m.innerHTML = '<div class="dlg"><h3>' + title + '</h3><div class="body">' + html + (warn ? '<div class="warnbox">' + warn + '</div>' : '') + '</div>'
+        + '<div class="btns"><button class="btn" id="dlg-no">取消</button><button class="btn ' + (danger ? 'dangerfill' : 'primary') + '" id="dlg-ok">' + okText + '</button></div></div>';
+      const done = (v) => { document.removeEventListener('keydown', onKey); m.remove(); resolve(v); };
+      const onKey = (e) => { if (e.key === 'Escape') done(false); };
+      document.addEventListener('keydown', onKey);
+      m.addEventListener('mousedown', (e) => { if (e.target === m) done(false); });
+      document.body.appendChild(m);
+      m.querySelector('#dlg-no').onclick = () => done(false);
+      m.querySelector('#dlg-ok').onclick = () => done(true);
+      m.querySelector('#dlg-no').focus();       // 默认焦点放在"取消"上, 手滑按回车不会误删
+    });
+  }
+  function onSearch() { clearTimeout(qTimer); qTimer = setTimeout(() => load(1), 350); }
+  function setType(t) { type = t; sel.clear(); history.replaceState(null, '', t === 'all' ? location.pathname : location.pathname + '?type=' + t); load(1); }
+
+  async function load(p) {
+    page = Math.max(1, p || 1);
+    let d; try { d = await fetch(`/api/trash/list?type=${type}&page=${page}&limit=${LIMIT}&sort=${$('sort').value}&q=${encodeURIComponent($('q').value.trim())}`).then((r) => r.json()); } catch (e) { return toast('连不上服务器，稍后重试'); }
+    if (d.error) return toast(d.error);
+    items = d.items || []; total = d.total || 0; summary = d.summary;
+    const s = summary;
+    $('sum').innerHTML = `回收站共 <b>${s.all.count}</b> 个（图片 ${s.photo.count} · 视频 ${s.video.count}），合计 <b>${fmtSize(s.all.bytes)}</b>`;
+    $('chips').innerHTML = [['all', '全部', s.all], ['photo', '🖼 图片', s.photo], ['video', '🎬 视频', s.video]].map(([k, n, v]) => `<button class="chip ${type === k ? 'on' : ''}" onclick="setType('${k}')">${n} ${v.count}（${fmtSize(v.bytes)}）</button>`).join('');
+    render();
+  }
+  function thumbOf(v) {
+    if (v.media_type === 'video') return v.md5 && v.shots > 0 ? `/vthumbs/${v.md5.slice(0, 2)}/${v.md5}_01.jpg` : '';
+    return v.thumb_path ? '/thumbs2/' + String(v.thumb_path).replace(/^thumbs[\\/]/, '') : '';
+  }
+  function render() {
+    const pages = Math.max(1, Math.ceil(total / LIMIT));
+    $('pg').textContent = `第 ${page} / ${pages} 页（共 ${total} 个）`; $('prev').disabled = page <= 1; $('next').disabled = page >= pages;
+    if (!items.length) { $('grid').innerHTML = '<div class="empty">回收站是空的 🎉</div>'; updSel(); return; }
+    $('grid').innerHTML = items.map((v) => {
+      const name = v.path.split('/').pop(), dir = v.path.split('/').slice(2, -1).join('/'), t = thumbOf(v), vid = v.media_type === 'video';
+      const meta = [fmtSize(v.size || 0), vid && v.duration ? fmtDur(v.duration) : '', v.width ? v.width + '×' + v.height : '', vid ? (v.vcodec || '') : '', '删于 ' + fmtDate(v.pending_delete_at)].filter(Boolean).map((x) => `<span>${esc(x)}</span>`).join('');
+      const orig = /^\/share\//.test(v.path) ? `<a class="open" href="/original${encodeURI(v.path)}" target="_blank" onclick="event.stopPropagation()" title="新标签页打开原文件">🔍 打开</a>` : '';
+      return `<div class="card${sel.has(v.id) ? ' sel' : ''}${v.exists === false ? ' gone' : ''}" onclick="tog(${v.id})">
+        <input type="checkbox" class="ck" ${sel.has(v.id) ? 'checked' : ''} onclick="event.stopPropagation();tog(${v.id})">
+        <span class="kind">${vid ? '🎬 视频' : '🖼 图片'}</span>${v.exists === false ? '<span class="gonetag">文件已不在盘</span>' : ''}
+        <div class="th">${t ? `<img loading="lazy" src="${t}" onerror="this.replaceWith('无缩略图')">` : '无缩略图'}</div>${orig}
+        <div class="info"><div class="nm">${esc(name)}</div><div class="dir">${esc(isBak(v.path) ? '🔴BAK · ' : '')}${esc(dir)}</div><div class="meta">${meta}</div></div></div>`;
+    }).join('');
+    updSel();
+  }
+  function tog(id) { sel.has(id) ? sel.delete(id) : sel.add(id); render(); }
+  function selAll() { items.forEach((v) => sel.add(v.id)); render(); }
+  function selNone() { sel.clear(); render(); }
+  function updSel() { const n = sel.size; $('selinfo').textContent = n ? `已选 ${n} 个` : ''; $('b-restore').disabled = $('b-del').disabled = !n; }
+  const selItems = () => items.filter((v) => sel.has(v.id));
+
+  async function restoreSel() {
+    const ids = [...sel]; if (!ids.length) return;
+    const r = await post('/api/photos/restore', { ids }); if (r.error) return toast(r.error);
+    toast(`已恢复 ${r.count} 个，会重新出现在图片库/视频库里`); sel.clear(); load(page);
+  }
+  async function deleteSel() {
+    const list = selItems(); if (!list.length) return;
+    const bytes = list.reduce((a, v) => a + (v.size || 0), 0), bak = list.filter((v) => isBak(v.path)).length;
+    const nv = list.filter((v) => v.media_type === 'video').length;
+    const ok1 = await ask({
+      title: '💥 彻底删除 ' + list.length + ' 个文件？', danger: true, okText: '彻底删除（不能恢复）',
+      html: '图片 <b>' + (list.length - nv) + '</b> · 视频 <b>' + nv + '</b>，合计 <b>' + fmtSize(bytes) + '</b><br>会删除<b>原文件</b>' + (nv ? '和视频的转码/换壳副本' : '') + '、库记录；缩略图/标签/收藏在没有重复文件共用时一并清掉。',
+      warn: '⚠ 删除后<b>无法恢复</b>。只想让它们从库里消失的话，请点"取消"，它们在回收站里一直可以恢复。',
+    });
+    if (!ok1) return toast('已取消');
+    if (bak) {
+      const ok2 = await ask({
+        title: '🔴 其中 ' + bak + ' 个在 BAK 备份盘里', danger: true, okText: '我确认，连 BAK 里的一起删除',
+        html: 'BAK 是备份盘，这 <b>' + bak + '</b> 个文件删除后就<b>没有备份</b>了。',
+        warn: '请再确认一次：真的要把 BAK 里的这些文件也彻底删除吗？',
+      });
+      if (!ok2) return toast('已取消');
+    }
+    const r = await post('/api/trash/delete', { ids: list.map((v) => v.id), confirmBak: bak > 0 });
+    if (r.error) return toast(r.error);
+    toast('已彻底删除 ' + r.deleted + ' 个（' + fmtSize(r.bytes) + '）' + (r.errors && r.errors.length ? '，' + r.errors.length + ' 个失败：' + r.errors[0].error : ''));
+    sel.clear(); load(page);
+  }
+  async function purgeMissing() {
+    const m = await fetch('/api/trash/missing-count?type=' + type).then((r) => r.json());
+    if (!m.missing) return toast('没有"文件已不在磁盘"的记录；还在盘上的 ' + m.stillOnDisk + ' 个不会动');
+    if (!(await ask({ title: '🧹 清理已不在盘的记录', okText: '清理这 ' + m.missing + ' 条记录', html: `有 <b>${m.missing}</b> 个回收站条目的文件已经不在磁盘上（约 ${fmtSize(m.missingBytes)}，你已手动删除）。<br>把它们在库里的记录、缩略图一并清掉？不影响仍在盘上的 ${m.stillOnDisk} 个。` }))) return;
+    const r = await post('/api/trash/purge-missing', { type }); if (r.error) return toast(r.error);
+    toast(`已清理 ${r.purged} 条记录、${r.thumbsRemoved} 张缩略图`); load(1);
+  }
+  load(1);
+</script>
+</body>
+</html>

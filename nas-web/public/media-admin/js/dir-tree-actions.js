@@ -181,7 +181,7 @@ async function dtwClipTag(path) {
       body: JSON.stringify({ path })
     });
     const d = await r.json();
-    if (d.error) { showToast('设置失败: ' + d.error, 'error'); return; }
+    if (d.error) { showToast('设置失败: ' + d.error, 'error'); if (typeof _dtwLogError === 'function') _dtwLogError(path, 'CLIP设置目标目录失败: ' + d.error); return; }
     showToast('已设为CLIP目标目录: ' + path + '\n请在PC上运行 clip_batch.py 开始处理', 'success');
-  } catch (e) { showToast('失败: ' + e.message, 'error'); }
+  } catch (e) { showToast('失败: ' + e.message, 'error'); if (typeof _dtwLogError === 'function') _dtwLogError(path, 'CLIP设置目标目录异常: ' + e.message); }
 }

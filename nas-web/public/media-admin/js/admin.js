@@ -696,6 +696,8 @@ let _processModalTimer = null;
 
 async function processPcDir(btn) {
   const path = btn.dataset.path;
+  // 2026-09-30: NAS 目录(/share/...)一律追加到统一的处理队列, 进度在 nasmgr ⑬ 和本页队列条; 只有电脑盘符目录才走 PC 处理
+  if (String(path).startsWith('/share/')) { await igAddPaths([path]); return; }
   try {
     const r = await fetch('/api/pc/process-dir', {
       method: 'POST', headers: {'Content-Type':'application/json'},
@@ -711,7 +713,9 @@ async function processPcDir(btn) {
 async function batchProcessPc() {
   const checked = [...document.querySelectorAll('.pc-dir-check:checked')].map(c => c.value);
   if (!checked.length) { showToast('请先勾选目录', 'error'); return; }
-  for (const path of checked) {
+  const nasPaths = checked.filter(p => String(p).startsWith('/share/'));
+  if (nasPaths.length) await igAddPaths(nasPaths);          // NAS 目录 → 处理队列
+  for (const path of checked.filter(p => !String(p).startsWith('/share/'))) {   // 电脑盘符目录 → 仍走 PC 处理
     try {
       await fetch('/api/pc/process-dir', {
         method: 'POST', headers: {'Content-Type':'application/json'},
@@ -719,8 +723,8 @@ async function batchProcessPc() {
       });
  } catch(e) { if(typeof showToast==="function")showToast("失败: "+e.message,"error"); }
   }
-  showToast(`已提交 ${checked.length} 个目录`, 'success');
-  openProcessModal();
+  const pcCount = checked.length - nasPaths.length;
+  if (pcCount) { showToast(`已提交 ${pcCount} 个电脑目录`, 'success'); openProcessModal(); }
 }
 
 function openProcessModal() {
@@ -848,14 +852,15 @@ async function showDirErrors(path, singleFeature) {
         method: 'POST', headers: {'Content-Type':'application/json'},
         body: JSON.stringify({ sql: "UPDATE photos SET status='pending' WHERE id IN (" + ids + ")" })
       });
-      // 2. 直接触发worker处理该目录
-      const r = await fetch('/api/pc/process-dir', {
-        method: 'POST', headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({ path: path })
-      });
+      // 2. 触发处理: NAS 目录(/share/...)加入统一的处理队列(进度在 nasmgr ⑬ / 本页队列条); PC 目录仍走原来的 PC 处理
+      const isNas = String(path).startsWith('/share/');
+      const r = isNas
+        ? await fetch('/api/ingest/add', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ paths: [path], retryErrors: true }) })
+        : await fetch('/api/pc/process-dir', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ path: path }) });
       const d = await r.json();
       modal.remove();
       if (d.error) { showToast('已重置但启动失败: ' + d.error, 'error'); }
+      else if (isNas) { showToast('已重置 ' + rows.length + ' 张并加入处理队列，进度见本页顶部队列条 / nasmgr ⑬', 'success'); igStripLoad(); }
       else { showToast('已重置 ' + rows.length + ' 张并开始处理', 'success'); openProcessModal(); }
       loadPcRoots();
     } catch(e) { showToast('失败: ' + e.message, 'error'); }
@@ -950,8 +955,10 @@ function clearPcFilter() {
 
 
 async function killAllWorkers() {
-  if (!confirm('停止所有正在处理的worker？\n(主服务不受影响，待处理图片保留，可稍后继续)')) return;
+  if (!confirm('停止所有正在处理的worker，并暂停"处理队列"？\n(主服务不受影响，待处理图片保留；队列可在 nasmgr ⑬ 或本页队列条上点"继续")')) return;
   try {
+    // 2026-09-30: 同时暂停新的照片处理队列(否则只停了旧线程, 队列工人还在跑)
+    try { await fetch('/api/ingest/control', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'pause'})}); } catch (e) {}
     const r = await fetch('/api/pc/kill-workers', {method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});
     const d = await r.json();
     if (d.error) showToast('失败: ' + d.error, 'error');
@@ -981,6 +988,7 @@ async function loadNasDirs() {
     <button class="btn-sm" style="border-color:#ff5fa8;color:#ff5fa8" onclick="dtwBatchSetCategory(nasTreeWidget,false)">🔞 标记成人</button>
     <button class="btn-sm" style="margin-left:auto" onclick="loadNasDirs()">🔄 刷新</button>
   </div>
+  <div id="nas-queue-strip" style="padding:8px 12px;margin:0 0 8px;border:1px solid #2a3d55;border-radius:8px;background:#0f1620;font-size:.76rem;color:#8fa8c4">加载处理队列状态…</div>
   <div id="nas-feature-filter" style="display:flex;align-items:center;gap:10px;padding:6px 0 10px;flex-wrap:wrap;font-size:.74rem;color:#8fa8c4">加载功能列表…</div>
   <div style="display:flex;align-items:center;gap:8px;padding:8px 0;flex-wrap:wrap;border-bottom:1px solid #2a3d55;margin-bottom:8px">
     <input id="nas-filter-name" placeholder="目录名关键词" style="padding:5px 8px;border-radius:6px;border:1px solid #2a3d55;background:#0f1620;color:#c8dff5;font-size:.78rem;width:140px">
@@ -1053,7 +1061,21 @@ function _nasFeatureAll(on) {
 
 // NAS批量操作（读nasTreeWidget勾选）
 function batchWriteMd5Nas() { _batchRun(nasTreeWidget, dtwWriteMd5); }
-function batchProcessNas() { _batchRun(nasTreeWidget, dtwProcess); }
+// 2026-09-30: 批量处理 = 把勾选的目录一次性加入"照片入库+处理队列"(后台一个工人按顺序处理, 不卡服务器)。
+// 进度/明细/暂停/重置/调速度都在 nasmgr ⑬。原来这里"每个目录开一个处理线程 + 自己轮询进度"的做法已去掉。
+async function batchProcessNas() {
+  if (!nasTreeWidget) return;
+  const checked = nasTreeWidget.getChecked();
+  if (!checked.length) { showToast('请先勾选目录', 'error'); return; }
+  try {
+    const r = await fetch('/api/ingest/add', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ paths: checked }) }).then(x => x.json());
+    if (r.error) { showToast('加入队列失败: ' + r.error, 'error'); return; }
+    let msg = '已加入处理队列 ' + r.added + ' 个目录' + (r.duplicated ? '（' + r.duplicated + ' 个本来就在队列里）' : '');
+    if (r.rejected && r.rejected.length) msg += '；' + r.rejected.length + ' 个不是 NAS 目录(/share/...)没加入';
+    showToast(msg + '。进度请在 nasmgr ⑬ 查看', 'success');
+    if (confirm(msg + '\n\n现在打开 nasmgr 查看处理进度吗？')) window.open('/nasmgr/', '_blank');
+  } catch (e) { showToast('加入队列失败: ' + e.message, 'error'); }
+}
 function batchCleanOrphanNas() { _batchRun(nasTreeWidget, dtwCleanOrphan); }
 async function _batchRun(widget, fn) {
   if (!widget) return;
@@ -2530,3 +2552,38 @@ async function renamePlaylist(id) {
 
 // apiFetch 已挪到 /common/api-fetch.js (photo/viewer/videoer三个页面共用,
 // 之前只在这里定义导致viewer/videoer页面里依赖它的dir-tree-widget.js调用报错)
+
+
+// ── 2026-09-30: 照片"入库+处理"队列状态条(NAS 目录页顶部) ──
+// 与 nasmgr ⑬ 是同一个队列: 这里看概况、暂停/继续, 明细(逐张状态、分页、失败原因)去 nasmgr。
+async function igStripLoad() {
+  const el = document.getElementById('nas-queue-strip');
+  if (!el) return;
+  try {
+    const s = await fetch('/api/ingest/status').then(x => { if (!x.ok) throw new Error('HTTP ' + x.status); return x.json(); });
+    const c = s.counts, left = c.queued + c.running;
+    const st = !s.workerAlive ? '<b style="color:#ff5567">工人离线</b>' : (s.running ? '<b style="color:#3ddc84">▶ 运行中</b>' : '<b style="color:#ffa500">⏸ 已暂停</b>');
+    const jobs = (s.jobs || []).length ? ' · 扫描入库中：' + s.jobs.map(j => (j.path.split('/').pop() || j.path) + '(' + j.found + ')').join('，') : '';
+    const eta = s.etaSec ? '，约还要 ' + (s.etaSec >= 3600 ? Math.floor(s.etaSec / 3600) + '小时' : '') + Math.round((s.etaSec % 3600) / 60) + '分钟' : '';
+    el.innerHTML = '📥 处理队列 ' + st + ' · 排队 <b>' + c.queued + '</b> · 处理中 <b>' + c.running + '</b> · 完成 <b style="color:#3ddc84">' + c.done + '</b> · 失败 <b style="color:' + (c.error ? '#ff5567' : 'inherit') + '">' + c.error + '</b>'
+      + (s.ratePerMin ? ' · ' + s.ratePerMin + ' 张/分钟' + eta : '') + jobs
+      + ' <button class="btn-sm" style="margin-left:8px" onclick="igStripToggle(' + (s.running ? 'false' : 'true') + ')">' + (s.running ? '⏸ 暂停' : '▶ 继续') + '</button>'
+      + ' <a class="btn-sm" style="margin-left:4px;text-decoration:none" href="/nasmgr/" target="_blank">📋 在 nasmgr 查看明细</a>';
+  } catch (e) { el.innerHTML = '处理队列状态暂时读不到（服务忙或正在重启），稍后会自动重试…'; }
+}
+async function igStripToggle(run) {
+  try { await fetch('/api/ingest/control', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: run ? 'start' : 'pause' }) }); } catch (e) {}
+  igStripLoad();
+}
+setInterval(igStripLoad, 4000);
+
+// 追加目录到处理队列(所有 NAS 目录的"处理"入口共用): 已处理的自动跳过, 进度看本页队列条 / nasmgr ⑬
+async function igAddPaths(paths) {
+  try {
+    const r = await fetch('/api/ingest/add', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ paths }) }).then(x => x.json());
+    if (r.error) { showToast('加入队列失败: ' + r.error, 'error'); return r; }
+    showToast('已追加到处理队列 ' + r.added + ' 个目录' + (r.duplicated ? '（' + r.duplicated + ' 个本来就在队列里）' : '') + '，进度见 nasmgr ⑬', 'success');
+    igStripLoad();
+    return r;
+  } catch (e) { showToast('加入队列失败: ' + e.message, 'error'); }
+}

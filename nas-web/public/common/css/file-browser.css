@@ -92,7 +92,7 @@
 }
 .fb-selected-path {
   font-size: .78rem; color: #40d0ff; font-family: monospace;
-  flex: 1; margin-right: 16px;
+  flex: 1; min-width: 0; margin-right: 16px;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .fb-actions { display: flex; gap: 8px; flex-shrink: 0; }
@@ -108,3 +108,15 @@
   color: #000; cursor: pointer; font-size: .82rem; font-weight: 700;
 }
 .fb-btn-confirm:hover { filter: brightness(1.1); }
+
+@media (max-width:700px) {
+  .fb-modal { width:96%; max-height:90vh; }
+  /* 侧边栏140px+网格最小180px一列, 在手机92%宽的弹窗里根本放不下——侧栏收窄,
+     文件列表改单列, 触控区域也稍微加大一点 */
+  .fb-sidebar { width:92px; }
+  .fb-root-item { padding:10px 8px; font-size:.76rem; }
+  .fb-list { grid-template-columns:1fr; }
+  .fb-toolbar { flex-wrap:wrap; }
+  .fb-footer { flex-wrap:wrap; gap:8px; }
+  .fb-selected-path { flex:1 1 100%; margin-right:0; }
+}

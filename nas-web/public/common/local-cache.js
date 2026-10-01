@@ -47,21 +47,31 @@
     if (!db) return undefined;
     return new Promise((resolve) => {
       try {
-        const tx = db.transaction(STORE, 'readwrite');
+        // 2026-09-20: 原来读也开readwrite事务(为了顺手更新命中计数), 多个get()并发时
+        // (比如目录树一次性并行展开很多个目录, 见dir-tree-widget.js的_restoreExpanded)
+        // readwrite事务互相排队, 并发读退化成变相串行。改成readonly读, 真正能并发;
+        // 命中计数挪到读完之后一个独立的readwrite事务里做, 不卡在返回结果的路径上。
+        const tx = db.transaction(STORE, 'readonly');
         const os = tx.objectStore(STORE);
         const req = os.get(k);
         req.onsuccess = () => {
           const row = req.result;
           if (!row) return resolve(undefined);
-          // 命中计数(供LFU淘汰用), 顺手更新, 不等这个事务结果
-          row.hitCount = (row.hitCount || 0) + 1;
-          row.lastAccess = Date.now();
-          try { os.put(row); } catch (e) {}
           resolve(row.value);
+          _bumpHit(db, row);
         };
         req.onerror = () => resolve(undefined);
       } catch (e) { resolve(undefined); }
     });
+  }
+
+  function _bumpHit(db, row) {
+    try {
+      const tx = db.transaction(STORE, 'readwrite');
+      row.hitCount = (row.hitCount || 0) + 1;
+      row.lastAccess = Date.now();
+      tx.objectStore(STORE).put(row);
+    } catch (e) {}
   }
 
   async function set(k, value) {

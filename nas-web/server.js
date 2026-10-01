@@ -26,6 +26,9 @@ const keepAliveAgent = new http.Agent({
   keepAliveMsecs: 30000,
   maxSockets: 256,
   maxFreeSockets: 32,
+  // 2026-09-30: 空闲连接超过4秒就丢弃。nas-media 的 keepAliveTimeout 是 Node 默认的5秒, 网关若一直复用空闲连接,
+  // 会在服务器刚好关掉它的那一刻发请求 → ECONNRESET → 504(实测日志里出现过 GET /api/video-rename/status ECONNRESET)。
+  timeout: 4000,
 });
 
 // 2026-08-21: NAS地址/端口统一从共享配置读取, 见 data/nas-config.json
@@ -65,6 +68,20 @@ const PROXY_TIMEOUT_MS = 30000;
 // 这层隐式行为(不复用连接时, 底层socket关闭天然会级联; 复用之后未必)。
 // 显式监听客户端断开(res close), 主动destroy转发给nas-media的上游请求, 把这条链路
 // 的中断信号补回来。
+
+// 客户端中途断开(拖进度条/关页面)时, 中断转给 nas-media 的上游请求, 避免读流孤儿化。
+// 注意: 只在"响应还没写完"时才中断——响应已经正常结束后上游连接已放回连接池、可能正被别的请求复用, 这时绝不能销毁它。
+function gwOnProxyReq(proxyReq, req, res) {
+  const abort = () => { if (!res.writableFinished && !proxyReq.destroyed) proxyReq.destroy(); };
+  res.on('close', abort);
+  req.on('aborted', abort);
+}
+function gwOnError(err, req, res) {
+  console.log('[proxy-error]', new Date().toISOString(), req.method, req.url.slice(0, 120), err.code || '', err.message);
+  if (res.writeHead && !res.headersSent) res.writeHead(504, { 'Content-Type': 'text/plain' });
+  if (res.end && !res.writableEnded) res.end('Upstream timeout: ' + (err.code || err.message));
+}
+
 app.use(
   ['/api', '/thumbs', '/thumbs2', '/vthumbs', '/preview', '/original', '/music', '/convfiles'],
   createProxyMiddleware({
@@ -73,18 +90,12 @@ app.use(
     agent: keepAliveAgent,
     proxyTimeout: PROXY_TIMEOUT_MS,
     timeout: PROXY_TIMEOUT_MS,
-    on: {
-      proxyReq: (proxyReq, req, res) => {
-        const abort = () => { if (!proxyReq.destroyed) proxyReq.destroy(); };
-        res.on('close', abort);
-        req.on('aborted', abort);
-      },
-      error: (err, req, res) => {
-        console.log('[proxy-timeout-or-error]', req.method, req.url, err.message);
-        if (res.writeHead && !res.headersSent) res.writeHead(504, { 'Content-Type': 'text/plain' });
-        if (res.end && !res.writableEnded) res.end('Upstream timeout');
-      },
-    },
+    // 2026-09-30: 网关实际装的是 http-proxy-middleware 2.x, 它只认 onProxyReq/onError(3.x 才是 on:{proxyReq,error}),
+    // 原来的 on:{...} 整段被忽略 → 出错走库默认的 504 "Error occurred while trying to proxy"、日志里没有任何记录,
+    // "客户端断开就中断上游请求"的修复也一直没生效。这里改成 2.x 的写法, 并保留 3.x 写法以便将来升级。
+    onProxyReq: gwOnProxyReq,
+    onError: gwOnError,
+    on: { proxyReq: gwOnProxyReq, error: gwOnError },
   })
 );
 

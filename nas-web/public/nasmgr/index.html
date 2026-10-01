@@ -1,0 +1,1298 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NAS管理</title>
+<link rel="stylesheet" href="/common/css/file-browser.css">
+<style>
+  :root { --bg:#0a0a0a; --surface:#141414; --surface2:#1a1a1a; --border:#2a2a2a; --text:#f0f0f0; --text2:#909090; --accent:#40d0ff; --ok:#3ddc84; --warn:#ffb020; --err:#ff5567; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif; padding:20px; max-width:1000px; margin:0 auto; }
+  h1 { font-size:1.3rem; margin:0 0 6px; }
+  .sub { color:var(--text2); font-size:.85rem; margin-bottom:20px; }
+  .card { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:18px 20px; margin-bottom:16px; }
+  .card h2 { font-size:1rem; margin:0 0 12px; }
+  label { display:block; font-size:.8rem; color:var(--text2); margin:10px 0 4px; }
+  input[type=text], input[type=number] { padding:8px 10px; background:var(--surface2); border:1px solid var(--border); border-radius:6px; color:var(--text); font-size:.85rem; }
+  input[type=text]:focus, input[type=number]:focus { outline:none; border-color:var(--accent); }
+  .path-row { display:flex; gap:8px; align-items:center; }
+  .path-row input[type=text] { flex:1; }
+  .btn { padding:7px 16px; border-radius:6px; border:1px solid var(--border); background:transparent; color:var(--text2); font-size:.82rem; cursor:pointer; transition:all .15s; }
+  .btn:hover:not(:disabled) { border-color:var(--accent); color:var(--accent); }
+  .btn:disabled { opacity:.4; cursor:not-allowed; }
+  .btn.primary { border-color:var(--accent); color:var(--accent); }
+  .btn.danger { border-color:var(--err); color:var(--err); }
+  .btn.sm { padding:4px 10px; font-size:.75rem; }
+  .row { display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-top:10px; }
+
+  .disk-list { display:flex; flex-direction:column; gap:12px; }
+  .disk-item { }
+  .disk-head { display:flex; justify-content:space-between; font-size:.85rem; margin-bottom:4px; }
+  .disk-head .mount { font-weight:600; }
+  .disk-head .nums { color:var(--text2); font-size:.78rem; }
+  .disk-bar-outer { height:10px; background:var(--surface2); border-radius:5px; overflow:hidden; }
+  .disk-bar-inner { height:100%; border-radius:5px; transition:width .4s; }
+
+  .progress-outer { height:8px; background:var(--surface2); border-radius:4px; overflow:hidden; margin:10px 0 6px; }
+  .progress-inner { height:100%; background:var(--accent); width:0%; transition:width .3s; }
+  .stat-line { font-size:.78rem; color:var(--text2); display:flex; gap:16px; flex-wrap:wrap; }
+  .stat-line b { color:var(--text); }
+  .current-path { font-size:.7rem; color:#607080; margin-top:4px; word-break:break-all; }
+  .status-badge { font-size:.72rem; padding:2px 8px; border-radius:10px; border:1px solid var(--border); }
+  .status-badge.running { border-color:var(--accent); color:var(--accent); }
+  .status-badge.done { border-color:var(--ok); color:var(--ok); }
+  .status-badge.error, .status-badge.stopped { border-color:var(--err); color:var(--err); }
+
+  table.result-table { width:100%; font-size:.78rem; border-collapse:collapse; margin-top:12px; }
+  table.result-table th { text-align:left; color:var(--text2); font-weight:600; padding:6px; border-bottom:1px solid var(--border); position:sticky; top:0; background:var(--surface); cursor:pointer; }
+  table.result-table td { padding:6px; border-bottom:1px solid var(--border); color:var(--text); word-break:break-all; }
+  table.result-table td.sz { text-align:right; white-space:nowrap; color:var(--accent); font-weight:600; }
+  table.result-table td.cnt { text-align:right; white-space:nowrap; color:var(--text2); }
+  .result-scroll { max-height:520px; overflow-y:auto; }
+  .hint { font-size:.72rem; color:#607080; margin-top:8px; line-height:1.6; }
+
+  /* 视频省空间向导 */
+  .wz-step { border-left:3px solid var(--border); padding:8px 0 8px 14px; margin:12px 0; }
+  .wz-step.wz-key { border-left-color:var(--ok); }
+  .wz-t { font-size:.92rem; font-weight:600; display:flex; align-items:center; gap:8px; }
+  .wz-n { display:inline-flex; width:22px; height:22px; border-radius:50%; background:var(--accent); color:#000; align-items:center; justify-content:center; font-size:.8rem; }
+  .wz-d { font-size:.78rem; color:var(--text2); margin:4px 0 6px; line-height:1.6; }
+  .wz-cmd { display:flex; gap:6px; margin:6px 0; }
+  .wz-cmd input { flex:1; padding:6px; background:#0d1420; color:var(--ok); border:1px solid var(--border); border-radius:5px; font-family:monospace; font-size:.74rem; }
+</style>
+</head>
+<body>
+  <h1>🖥 NAS管理</h1>
+  <div class="sub">磁盘使用情况 + 大文件查找 + 目录占用排行——长耗时扫描全部丢在后台线程跑，不影响NAS上其他服务。 &nbsp;<a href="/videoer/trash.html" style="color:var(--accent)">🗑 视频回收站</a></div>
+
+  <!-- ══ 视频省空间向导: 按 ①→⑨ 顺序点, 每步都是"先看数字 → 点一下 → 看进度" ══ -->
+  <div class="card" id="wz">
+    <h2>🎬 视频省空间向导 <a href="runbook.html" target="_blank" class="btn sm" style="text-decoration:none;font-weight:400">📖 操作手册（规则/步骤/踩坑复盘）</a> <span class="hint" style="font-weight:400">— 从上到下一步步来，每步只要：看数字 → 点按钮 → 等进度条跑完</span></h2>
+    <div class="hint" style="margin:-4px 0 6px">右边的小标签只表示"<b>现在有没有在跑的任务</b>"：<b>空闲</b>=当前没在跑（不代表没做过，用每步里的<b>数字</b>判断还剩多少；数字是 0 就不用点）；<b>运行中</b>=在跑，不用重复点；<b>已完成</b>=刚跑完。⑦的抽帧是<b>你电脑上的程序在跑</b>，页面不用点，只看进度。</div>
+
+    <div class="wz-step">
+      <div class="wz-t"><span class="wz-n">①</span>先看现状<button class="btn sm" onclick="wzLoadAll()">刷新</button></div>
+      <div class="wz-d">系统把所有视频分成三类：</div>
+      <div class="stat-line" id="wz1-stats">加载中…</div>
+    </div>
+
+    <div class="wz-step">
+      <div class="wz-t"><span class="wz-n">②</span>无损修复（能播但网页黑屏的视频）</div>
+      <div class="wz-d">编码没问题，只是封装/时间戳坏了。只重新封装、不动画面，修好后原文件会先挪进回收目录。修不了的会自动跳过、原文件不动，放心点。</div>
+      <div class="row">
+        <button class="btn primary" id="wz2-btn" onclick="wzStart('zm')">开始修复</button>
+        <span class="status-badge" id="wz2-status">空闲</span>
+      </div>
+      <div class="progress-outer"><div class="progress-inner" id="wz2-bar"></div></div>
+      <div class="stat-line" id="wz2-stats"></div>
+    </div>
+
+    <div class="wz-step wz-key">
+      <div class="wz-t"><span class="wz-n">③</span>释放空间（真正省空间的是这一步！）</div>
+      <div class="wz-d">第②步和第④步只是把旧文件挪进回收目录，<b>磁盘并没有变空</b>。这一步会先检查新文件能正常读出时长，通过了才删回收目录里的旧文件，没通过的旧文件保留不删。</div>
+      <div class="stat-line" id="wz3-stats">加载中…</div>
+      <div class="row">
+        <button class="btn primary" id="wz3-btn" onclick="wzStart('clear')">验证并释放空间</button>
+        <span class="status-badge" id="wz3-status">空闲</span>
+      </div>
+      <div class="progress-outer"><div class="progress-inner" id="wz3-bar"></div></div>
+      <div class="stat-line" id="wz3-run"></div>
+    </div>
+
+    <div class="wz-step">
+      <div class="wz-t"><span class="wz-n">④</span>换壳替换（用"转换/"目录里的副本顶替原视频）</div>
+      <div class="wz-d">有些视频以前做过"换壳"副本放在旁边，两份重复占地方。体检通过的可以用副本顶替原文件，做完记得再点一次③释放空间。</div>
+      <div class="stat-line" id="wz4-stats">加载中…</div>
+      <div class="row">
+        <button class="btn primary" id="wz4-btn" onclick="wzStart('apply')">替换体检通过的</button>
+        <span class="status-badge" id="wz4-status">空闲</span>
+        <span class="hint">（没体检过的，先用下面"换壳去重体检"卡片点"开始体检"）</span>
+      </div>
+      <div class="progress-outer"><div class="progress-inner" id="wz4-bar"></div></div>
+      <div class="stat-line" id="wz4-run"></div>
+    </div>
+
+    <div class="wz-step wz-key">
+      <div class="wz-t"><span class="wz-n">⑤</span>转码副本顶替原文件（BAK 除外）</div>
+      <div class="wz-d">有些视频（hevc 等浏览器不认的编码）已经转过码，"转换/"目录里有一份 _转码.mp4 副本，原文件和副本两份都占地方。这一步用副本顶替原文件、删掉原来的 hevc（<b>不可恢复</b>）。<b>BAK 共享下的一律保留原文件不动</b>。每个视频先核对副本时长和编码，对不上就跳过，顶替后再验一遍，没通过自动还原。</div>
+      <div class="stat-line" id="wz6-stats">加载中…</div>
+      <div class="row">
+        <button class="btn primary" id="wz6-btn" onclick="wzStart('replace')">顶替原文件并释放空间</button>
+        <span class="status-badge" id="wz6-status">空闲</span>
+      </div>
+      <div class="progress-outer"><div class="progress-inner" id="wz6-bar"></div></div>
+      <div class="stat-line" id="wz6-run"></div>
+    </div>
+
+    <div class="wz-step wz-key">
+      <div class="wz-t"><span class="wz-n">⑥</span>统一视频身份 key（快速内容指纹）</div>
+      <div class="wz-d">视频的缩略图、标签、收藏都是按一个 key 关联的。以前用文件名做 key，一改名就全断链；现在统一改成<b>「文件大小 + 头/中/尾各 1MB」的指纹</b>：改名、搬目录 key 不变，只有文件字节真的变了（换壳/转码）才会变，变的时候标签、收藏、缩略图会自动跟过去，并记录在 key 变更历史里。
+        <b>点之前必须先在电脑上 Ctrl+C 停掉抽帧程序</b>（否则它会按旧 key 写缩略图）。开始前会自动备份数据库；已经对的会跳过，可以重复点。</div>
+      <div class="stat-line" id="wz8-stats">加载中…</div>
+      <div class="row">
+        <button class="btn primary" id="wz8-btn" onclick="wzStart('key')">开始统一 key</button>
+        <button class="btn danger sm" id="wz8-stop" onclick="wzStopKey()" disabled>停止</button>
+        <span class="status-badge" id="wz8-status">空闲</span>
+      </div>
+      <div class="progress-outer"><div class="progress-inner" id="wz8-bar"></div></div>
+      <div class="stat-line" id="wz8-run"></div>
+    </div>
+
+    <div class="wz-step">
+      <div class="wz-t"><span class="wz-n">⑦</span>补缩略图（视频卡片显示灰块的原因）</div>
+      <div class="wz-d">数据库记着"已截图"，但图片文件其实不在了。截图要靠你电脑上的抽帧程序跑，所以要先确认它开着。</div>
+      <div class="stat-line" id="wz5-agent">检测中…</div>
+      <div id="wz5-cmd"></div>
+      <div class="stat-line" id="wz5-stats"></div>
+      <div class="row">
+        <button class="btn" id="wz5-check" onclick="wzThumbCheck(true)">检查缺多少</button>
+        <button class="btn primary" id="wz5-btn" onclick="wzThumbReset()" disabled>让电脑补截图</button>
+      </div>
+      <div class="progress-outer"><div class="progress-inner" id="wz5-bar"></div></div>
+      <div class="stat-line" id="wz5-run"></div>
+    </div>
+
+    <div class="wz-step">
+      <div class="wz-t"><span class="wz-n">⑧</span>清理孤立缩略图</div>
+      <div class="wz-d">改 key、删视频之后，缩略图目录里会留下没有任何视频在用的旧图片，只是占地方。等⑦补完再清（清之前会再确认一遍这个 key 确实没人用，用得上的不会删）。</div>
+      <div class="stat-line" id="wz9-stats">加载中…</div>
+      <div class="row">
+        <button class="btn" onclick="wzOrphanCheck(true)">重新统计</button>
+        <button class="btn primary" id="wz9-btn" onclick="wzOrphanClean()" disabled>清理孤立缩略图</button>
+        <span class="status-badge" id="wz9-status">空闲</span>
+      </div>
+      <div class="progress-outer"><div class="progress-inner" id="wz9-bar"></div></div>
+      <div class="stat-line" id="wz9-run"></div>
+    </div>
+
+    <div class="wz-step">
+      <div class="wz-t"><span class="wz-n">⑨</span>有损转码（还没转过的）</div>
+      <div class="wz-d">这类视频（mpeg4/wmv/hevc等）无损做不到，必须用电脑显卡重新编码，耗时长、会略微降画质，转完再用⑤顶替原文件能省空间。上面①里的"只能有损转码"数字是<b>还没转过</b>的。</div>
+      <div class="row"><a class="btn primary" href="/videoer/convert.html" target="_blank" style="text-decoration:none">打开视频转换页面</a></div>
+    </div>
+
+    <div class="wz-step wz-key">
+      <div class="wz-t"><span class="wz-n">⑩</span>检查能否在线播放</div>
+      <div class="wz-d">后台逐个用 ffprobe 检查每个视频：容器格式、视频/音频编码、10 位色深、分辨率、能否读出时长，判断浏览器<b>能不能直接播</b>。<b>点开始后可以关页面</b>，结果逐条存进数据库，服务重启也会自动接着跑；检查完，videoer 里判定为"不能播"的视频不再显示"在线"标签，"可能有问题"的显示成半亮。这是预测，最终以浏览器实际播放为准（播放器遇到真的解码失败会自己记住）。</div>
+      <div class="stat-line" id="wz10-stats">加载中…</div>
+      <div class="row">
+        <button class="btn primary" id="wz10-btn" onclick="wzStart('play')">开始检查（只查没检查过的）</button>
+        <button class="btn" id="wz10-all" onclick="wzStart('playall')">全部重新检查</button>
+        <label style="margin:0;display:inline-flex;align-items:center;gap:4px"><input type="checkbox" id="wz10-deep"> 深度检查（再解码开头2秒，更准但慢很多）</label>
+        <button class="btn danger sm" id="wz10-stop" onclick="wzStopPlay()" disabled>停止</button>
+        <span class="status-badge" id="wz10-status">空闲</span>
+      </div>
+      <div class="progress-outer"><div class="progress-inner" id="wz10-bar"></div></div>
+      <div class="stat-line" id="wz10-run"></div>
+      <div class="stat-line" id="wz10-reasons" style="flex-direction:column;gap:2px"></div>
+      <div class="row">
+        <button class="btn sm" onclick="wzPlayList('bad')">查看"不能播"的清单</button>
+        <button class="btn sm" onclick="wzPlayList('warn')">查看"可能有问题"的清单</button>
+      </div>
+      <div id="wz10-list"></div>
+    </div>
+
+    <div class="wz-step wz-key">
+      <div class="wz-t"><span class="wz-n">⑪</span>转码"不能播"的 H.264 10 位视频（用你电脑的显卡）</div>
+      <div class="wz-d">⑩检查出的"H.264 10 位 / 4:4:4"视频浏览器解不了，只能用电脑显卡（NVENC）重新编码成 8 位。点"加入转码队列"把它们排进去，再在电脑上启动转码程序，<b>它会一个个处理，转完的副本放在各共享的"转换/"目录，播放器自动使用</b>；原文件先不动（想省空间用⑤顶替，BAK 除外）。<b>规则：超过 6GB 的视频不转码、保留源文件</b>（也不会被⑤顶替），它们只能用 PotPlayer 看；BAK 里的转码后也保留源文件。<b>自动排队只包含 Person 下的视频</b>（Media 等其它目录不自动转，要转请在视频库右键"转码"手动加）。队列存在服务内存里，服务重启会清空，重启后再点一次即可（只会排还没转完的）。</div>
+      <div class="stat-line" id="wz11-stats">加载中…</div>
+      <div class="stat-line" id="wz11-agent"></div>
+      <div id="wz11-cmd"></div>
+      <div class="row">
+        <button class="btn primary" id="wz11-btn" onclick="wzTcEnqueue()">加入转码队列</button>
+        <button class="btn" id="wz11-recheck" onclick="wzTcRecheck()">转完了，重新检查这批</button>
+        <span class="hint">转码程序：电脑上运行一个窗口就行（一次只转一个，GPU 只有一块）</span>
+      </div>
+      <div class="progress-outer"><div class="progress-inner" id="wz11-bar"></div></div>
+      <div class="stat-line" id="wz11-run"></div>
+    </div>
+
+    <div class="wz-step wz-key">
+      <div class="wz-t"><span class="wz-n">⑫</span>清理文件名里的特殊字符（视频 / 照片，可含 BAK）</div>
+      <div class="wz-d">把视频文件名里的<b>括号、emoji、全角标点、@#&amp;'!~ 等特殊字符和 www.xxx.la 这类推广域名</b>去掉（换成空格），保留中日韩文/字母/数字和空格 . - _；扩展名转小写；全角转半角；同目录撞名自动加 _2。<b>只改文件名，不改目录名；视频和照片分开做（下面选类型）。</b>照片会同时更新库里用文件名算出来的 file_key，避免下次扫描被当成"变了"重新处理；电脑盘符（D:/E:/F:）里的记录不动。步骤：先点"生成预演"看清单 → 点"先试改 30 个"检查没问题 → 再"改完剩下的"。每次改动都记日志，<b>随时可以整批回滚</b>；改名会同步更新库里的路径和 转换/ 里的转码副本，缩略图/标签/收藏不受影响（视频key是内容指纹）。建议改名时先关掉电脑上的抽帧/转码窗口。BAK 里的文件也会改名，改完你的备份工具会看到名字变化。</div>
+      <div class="row" style="gap:14px"><label><input type="radio" name="wz12-type" value="video" checked onchange="wzRenType()"> 视频</label><label><input type="radio" name="wz12-type" value="photo" onchange="wzRenType()"> 照片</label><label><input type="checkbox" id="wz12-nobak"> 跳过 BAK 备份盘</label></div>
+      <div class="stat-line" id="wz12-plan">还没有预演。</div>
+      <div class="row">
+        <button class="btn primary" id="wz12-prev" onclick="wzRenPreview()">生成预演</button>
+        <a class="btn" id="wz12-dl" href="/api/video-rename/plan.tsv?type=video" download style="display:none">⬇ 下载完整清单</a>
+        <button class="btn" id="wz12-try" onclick="wzRenStart(30)" disabled>先试改 30 个</button>
+        <button class="btn warn" id="wz12-all" onclick="wzRenStart(0)" disabled>改完剩下的</button>
+        <button class="btn" id="wz12-stop" onclick="wzRenStop()" style="display:none">停止</button>
+      </div>
+      <div id="wz12-samples" class="hint" style="max-height:220px;overflow:auto;line-height:1.7"></div>
+      <div class="progress-outer"><div class="progress-inner" id="wz12-bar"></div></div>
+      <div class="stat-line" id="wz12-run"></div>
+      <div class="stat-line" id="wz12-logs"></div>
+    </div>
+
+    <div class="wz-step wz-key">
+      <div class="wz-t"><span class="wz-n">⑬</span>照片入库 + 处理队列（一条龙：扫描入库 → 写 md5 标记 → 缩略图）</div>
+      <div class="wz-d">在目录树里<b>右键"处理"</b>、或勾选目录点<b>"批量处理"</b>（viewer / videoer / media-admin 都一样），都只是把目录<b>加入这个队列</b>；也可以在下面直接输入目录加入。NAS 后台一个工人<b>按顺序</b>处理：先<b>扫描目录、把新图片登记入库</b>，再逐张处理（图片里已有 md5 标记就沿用，没有才算一次并写入，写入前先校验、保持修改时间；生成缩略图和预览图）。已处理完的图片自动跳过。<b>不会卡住服务器</b>，关掉页面也继续；暂停后再开始会接着做，服务重启也会自动接着做。速度可在下面调。</div>
+      <div class="stat-line" id="wz13-stat">加载中…</div>
+      <div class="progress-outer"><div class="progress-inner" id="wz13-bar"></div></div>
+      <div class="stat-line" id="wz13-run"></div>
+      <div class="row">
+        <button class="btn primary" id="wz13-start" onclick="igCtl('start')">▶ 开始 / 继续</button>
+        <button class="btn" id="wz13-pause" onclick="igCtl('pause')">⏸ 暂停</button>
+        <button class="btn" onclick="igCtl('retry-failed')">↻ 重试失败的</button>
+        <button class="btn" onclick="igCtl('clear-done')">🧹 清除已完成记录</button>
+        <button class="btn warn" onclick="igCtl('reset')">⟲ 重置队列</button>
+        <span class="hint">速度：</span>
+        <select id="wz13-speed" onchange="igCtl('speed', this.value)"><option value="slow">慢（1张，最不占资源）</option><option value="stable">稳（2张，推荐）</option><option value="fast">快（4张，处理时页面可能变慢）</option></select>
+      </div>
+      <div class="row">
+        <input id="wz13-path" placeholder="/share/Person/pic/某个目录（NAS 路径）" style="flex:1;min-width:260px">
+        <button class="btn" onclick="igAdd()">➕ 加入队列</button>
+        <button class="btn" onclick="igAddPending()">把库里已有的"待处理"照片加入队列</button>
+      </div>
+      <div id="wz13-jobs" class="hint" style="line-height:1.7"></div>
+      <div id="wz13-now" style="margin:8px 0;padding:8px 12px;border:1px solid var(--border);border-radius:8px;background:var(--surface2)"></div>
+      <div class="row" id="wz13-filters"></div>
+      <div style="overflow-x:auto"><table id="wz13-tbl" style="width:100%;border-collapse:collapse;font-size:.78rem"></table></div>
+      <div class="row">
+        <button class="btn sm" onclick="igGo(-1)">上一页</button>
+        <span class="hint" id="wz13-pg"></span>
+        <button class="btn sm" onclick="igGo(1)">下一页</button>
+      </div>
+    </div>
+
+    <div class="wz-step wz-key">
+      <div class="wz-t"><span class="wz-n">⑭</span>待入库目录（磁盘上有图片、库里还没有的目录）</div>
+      <div class="wz-d">点"扫描待入库"，NAS 会在后台读一遍照片所在的目录（<b>只读目录名，不读图片内容，不改任何文件，不卡服务器</b>），找出<b>磁盘上的图片比库里多</b>的目录，按"待入库数量"从多到少列在下面。每行的<b>"入库"</b>按钮会把<b>这个目录本身</b>的图片加入 ⑬ 的处理队列（不会连带子目录，子目录是单独一行）；也可以勾选多行批量入库。扫描结果会保存，关掉页面也不丢；入库后再扫描一次，列表就会更新。</div>
+      <div class="stat-line" id="wz14-stat">还没有扫描结果。</div>
+      <div class="row">
+        <button class="btn primary" id="wz14-scan" onclick="dcScan()">🔍 扫描待入库</button>
+        <button class="btn" id="wz14-stop" onclick="dcStop()" style="display:none">停止扫描</button>
+        <button class="btn" onclick="dcSelPage()">全选本页</button>
+        <button class="btn" onclick="dcSelNone()">清除选择</button>
+        <button class="btn warn" id="wz14-addsel" onclick="dcAddSel()" disabled>入库所选</button>
+        <button class="btn warn" id="wz14-addall" onclick="dcAddAll()" disabled>全部入库</button>
+        <input id="wz14-q" placeholder="按路径搜索" style="width:180px" onkeydown="if(event.key==='Enter'){dcQ=this.value.trim();dcPageNo=1;dcLoad();}">
+      </div>
+      <div style="overflow-x:auto"><table id="wz14-tbl" style="width:100%;border-collapse:collapse;font-size:.78rem"></table></div>
+      <div class="row">
+        <button class="btn sm" onclick="dcGo(-1)">上一页</button>
+        <span class="hint" id="wz14-pg"></span>
+        <button class="btn sm" onclick="dcGo(1)">下一页</button>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="card">
+    <h2>💾 磁盘使用情况</h2>
+    <div class="disk-list" id="disk-list">加载中...</div>
+  </div>
+
+  <div class="card">
+    <h2>🔍 大文件查找</h2>
+    <label>扫描目录</label>
+    <div class="path-row">
+      <input type="text" id="bf-path" placeholder="/share/Media" value="/share">
+      <button class="btn sm" onclick="pickInto(document.getElementById('bf-path'),'选择扫描目录')">选择目录</button>
+    </div>
+    <label>最小文件大小(MB)</label>
+    <input type="number" id="bf-minsize" value="100" min="0" style="width:120px">
+    <div class="row">
+      <button class="btn primary" id="bf-start" onclick="startBigFiles()">开始扫描</button>
+      <button class="btn danger" id="bf-stop" onclick="stopTask('bf')" disabled>停止</button>
+      <span class="status-badge" id="bf-status">未开始</span>
+    </div>
+    <div class="progress-outer"><div class="progress-inner" id="bf-progress"></div></div>
+    <div class="stat-line" id="bf-stats"></div>
+    <div class="current-path" id="bf-current"></div>
+    <div id="bf-result"></div>
+  </div>
+
+  <div class="card">
+    <h2>📂 目录占用排行(看下一层每个子文件夹/文件各占多大)</h2>
+    <label>目录</label>
+    <div class="path-row">
+      <input type="text" id="ds-path" placeholder="/share/Media" value="/share/Media">
+      <button class="btn sm" onclick="pickInto(document.getElementById('ds-path'),'选择目录')">选择目录</button>
+    </div>
+    <div class="row">
+      <button class="btn primary" id="ds-start" onclick="startDirSizes()">开始统计</button>
+      <button class="btn danger" id="ds-stop" onclick="stopTask('ds')" disabled>停止</button>
+      <span class="status-badge" id="ds-status">未开始</span>
+    </div>
+    <div class="progress-outer"><div class="progress-inner" id="ds-progress"></div></div>
+    <div class="stat-line" id="ds-stats"></div>
+    <div class="current-path" id="ds-current"></div>
+    <div class="hint">子文件夹会递归统计里面所有文件总大小, 目录越大扫描越久; 想继续往下钻, 把上面"目录"改成某个子文件夹路径再统计一次即可。</div>
+    <div id="ds-result"></div>
+  </div>
+
+  <div class="card">
+    <h2>🎬 换壳去重体检(把"换壳"过的视频顶替原文件, 省一份重复空间)</h2>
+    <div class="hint">
+      有些视频原文件浏览器播不了, 系统会做一份"换壳"版本(只换容器不重新编码, 无损)放在旁边的"转换/"目录里长期占地方。
+      这里先做体检(只读, 不动任何文件): 用ffprobe比对原文件和换壳文件的音视频/字幕轨道数、时长是否完全一致——
+      体检通过的, 才能点"替换"用换壳版本顶替原文件(原文件不会直接删, 挪进同目录下的<code>.video_migrate_trash</code>留着)。
+      体检没过的(比如少了字幕轨), 不会出现"替换"按钮, 需要人工看。
+    </div>
+    <div class="row">
+      <button class="btn primary" id="vm-start" onclick="startVideoMigrateCheck()">开始体检</button>
+      <button class="btn danger" id="vm-stop" onclick="stopTask('vm')" disabled>停止</button>
+      <span class="status-badge" id="vm-status">未开始</span>
+    </div>
+    <div class="progress-outer"><div class="progress-inner" id="vm-progress"></div></div>
+    <div class="stat-line" id="vm-stats"></div>
+    <div class="current-path" id="vm-current"></div>
+    <div class="row">
+      <button class="btn sm" onclick="loadVmResults('ok')">只看体检通过的</button>
+      <button class="btn sm" onclick="loadVmResults('mismatch')">只看没通过的</button>
+      <button class="btn sm" onclick="loadVmResults('')">查看全部结果</button>
+    </div>
+    <div id="vm-result"></div>
+    <div class="row" style="margin-top:10px">
+      <button class="btn danger" id="va-stop" onclick="stopVaTask()" disabled>停止替换</button>
+      <span class="status-badge" id="va-status">未开始</span>
+    </div>
+    <div class="progress-outer"><div class="progress-inner" id="va-progress"></div></div>
+    <div class="stat-line" id="va-stats"></div>
+    <div class="current-path" id="va-current"></div>
+  </div>
+
+  <div class="card">
+    <h2>🎬 无损转码(zhuanma)</h2>
+    <div class="hint">
+      有些视频编码本身浏览器完全认(h264/vp8/vp9/av1/theora), 只是容器格式不对或者内部时间戳(DTS)损坏,
+      导致网页播放黑屏/播不出来, 但本地播放器(PotPlayer等)能正常播——这种情况用不着重新编码画面,
+      只需要"流拷贝+重建时间戳", 修复前后内容逐帧一致, 是真正的无损。<br>
+      编码格式本身浏览器不认的(mpeg4/wmv系/rv系/hevc等), 无损做不到, 这里只标记列出来, 不会处理,
+      需要走"视频转换"页面那套有损转码流程(依赖PC端GPU代理)。
+    </div>
+    <div class="row">
+      <button class="btn primary" onclick="zmScan()">扫描统计</button>
+      <button class="btn sm" onclick="zmLoadList('lossless')">查看能无损修复的</button>
+      <button class="btn sm" onclick="zmLoadList('lossy')">查看做不到的(需转码)</button>
+    </div>
+    <div class="row" style="margin-top:6px">
+      <span class="hint" style="align-self:center">处理记录(存本浏览器本地, 换设备/清缓存看不到):</span>
+      <button class="btn sm" onclick="zmShowHistory('all')">查看全部</button>
+      <button class="btn sm" onclick="zmShowHistory('ok')">只看成功</button>
+      <button class="btn sm" onclick="zmShowHistory('fail')">只看失败</button>
+    </div>
+    <div class="stat-line" id="zm-scan-result"></div>
+    <div class="row" style="margin-top:8px">
+      <button class="btn primary" onclick="zmStartFix()">开始批量无损修复</button>
+      <button class="btn danger" id="zm-stop" onclick="zmStopTask()" disabled>停止</button>
+      <span class="status-badge" id="zm-status">未开始</span>
+    </div>
+    <div class="progress-outer"><div class="progress-inner" id="zm-progress"></div></div>
+    <div class="stat-line" id="zm-stats"></div>
+    <div class="current-path" id="zm-current"></div>
+    <div id="zm-list-result"></div>
+  </div>
+
+<script>
+  const taskIds = {};
+  const pollTimers = {};
+
+  function fmtSize(b) {
+    if (!b && b !== 0) return '-';
+    const u = ['B','KB','MB','GB','TB']; let i = 0;
+    while (b >= 1024 && i < u.length - 1) { b /= 1024; i++; }
+    return b.toFixed(1) + u[i];
+  }
+
+  function pickInto(inputEl, title) {
+    const browser = new FileBrowser({
+      mode: 'dir', source: 'nas', title: title || '选择目录',
+      onConfirm: (path) => { inputEl.value = path; }
+    });
+    browser.open();
+  }
+
+  // ── 磁盘使用情况 ──
+  async function loadDisks() {
+    const list = document.getElementById('disk-list');
+    try {
+      const disks = await fetch('/api/nasmgr/disks').then(r => r.json());
+      if (!disks.length) { list.innerHTML = '<div class="hint">没找到磁盘信息</div>'; return; }
+      list.innerHTML = disks.map(d => {
+        const color = d.pct >= 90 ? 'var(--err)' : d.pct >= 75 ? 'var(--warn)' : 'var(--accent)';
+        return `<div class="disk-item">
+          <div class="disk-head">
+            <span class="mount">${d.mount}</span>
+            <span class="nums">${fmtSize(d.used)} / ${fmtSize(d.size)} (剩 ${fmtSize(d.avail)}) · ${d.pct}%</span>
+          </div>
+          <div class="disk-bar-outer"><div class="disk-bar-inner" style="width:${d.pct}%;background:${color}"></div></div>
+        </div>`;
+      }).join('');
+    } catch (e) { list.innerHTML = '<div class="hint">加载失败: ' + e.message + '</div>'; }
+  }
+
+  // ── 通用: 启动/轮询/停止任务 ──
+  async function startTask(kind, url, body, onDone) {
+    document.getElementById(kind + '-start').disabled = true;
+    document.getElementById(kind + '-result').innerHTML = '';
+    const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    const d = await r.json();
+    if (!r.ok) {
+      alert(d.error || '启动失败');
+      document.getElementById(kind + '-start').disabled = false;
+      return;
+    }
+    taskIds[kind] = d.taskId;
+    document.getElementById(kind + '-stop').disabled = false;
+    poll(kind, onDone);
+  }
+
+  async function stopTask(kind) {
+    if (!taskIds[kind]) return;
+    const base = kind === 'vm' ? '/api/video-migrate/stop/' : '/api/nasmgr/stop/';
+    await fetch(base + taskIds[kind], { method: 'POST' });
+  }
+
+  function poll(kind, onDone) {
+    clearTimeout(pollTimers[kind]);
+    const tick = async () => {
+      if (!taskIds[kind]) return;
+      const d = await fetch(`/api/nasmgr/progress/${taskIds[kind]}`).then(x => x.json());
+      renderProgress(kind, d);
+      if (d.status === 'running') pollTimers[kind] = setTimeout(tick, 1200);
+      else {
+        document.getElementById(kind + '-start').disabled = false;
+        document.getElementById(kind + '-stop').disabled = true;
+        if (d.status === 'done' && d.result) onDone(d.result);
+      }
+    };
+    tick();
+  }
+
+  function renderProgress(kind, d) {
+    const badge = document.getElementById(kind + '-status');
+    badge.textContent = { running:'进行中', done:'已完成', error:'出错', stopped:'已停止', unknown:'未开始' }[d.status] || d.status;
+    badge.className = 'status-badge ' + (d.status || '');
+    const total = d.total || d.scanned || 0;
+    const done = d.done !== undefined ? d.done : (d.scanned || 0);
+    const pct = total ? Math.min(100, Math.round((done / total) * 100)) : (d.status === 'running' ? 0 : 100);
+    document.getElementById(kind + '-progress').style.width = pct + '%';
+    let statLine = '';
+    if (kind === 'bf') statLine = `已扫描 <b>${d.scanned||0}</b> 个文件 · 命中 <b>${d.matched||0}</b> 个`;
+    else if (kind === 'vm') statLine = `已处理 <b>${d.done||0}</b> / <b>${d.total||0}</b> · 通过 <b>${d.ok||0}</b> · 未通过 <b>${d.mismatch||0}</b> · 跳过 <b>${d.skipped||0}</b>`;
+    else if (kind === 'va') statLine = `已处理 <b>${d.done||0}</b> / <b>${d.total||0}</b> · 成功 <b>${d.okCount||0}</b> · 失败 <b>${d.failCount||0}</b>`;
+    else if (kind === 'zm') statLine = `已处理 <b>${d.done||0}</b> / <b>${d.total||0}</b> · 成功 <b>${d.okCount||0}</b> · 失败 <b>${d.failCount||0}</b>`;
+    else statLine = `已处理 <b>${d.done||0}</b> / <b>${d.total||0}</b>`;
+    document.getElementById(kind + '-stats').innerHTML = statLine;
+    document.getElementById(kind + '-current').textContent = d.currentPath || '';
+    if (d.error) document.getElementById(kind + '-current').textContent = '错误: ' + d.error;
+  }
+
+  function startBigFiles() {
+    const path = document.getElementById('bf-path').value.trim();
+    const minSizeMB = parseFloat(document.getElementById('bf-minsize').value) || 0;
+    if (!path) { alert('请先填扫描目录'); return; }
+    startTask('bf', '/api/nasmgr/bigfiles/start', { path, minSizeMB }, renderBigFilesResult);
+  }
+
+  let bfFiles = [];
+  function renderBigFilesResult(result) {
+    bfFiles = result.files || [];
+    const el = document.getElementById('bf-result');
+    if (!bfFiles.length) { el.innerHTML = '<div class="hint">没有找到符合条件的大文件。</div>'; return; }
+    el.innerHTML = `<div class="hint">共命中 ${result.matched} 个文件(下面全部显示)</div>
+      ${selectBarHtml('bf')}
+      <div class="result-scroll"><table class="result-table">
+        <thead><tr><th style="width:28px"><input type="checkbox" onclick="selectAll('bf',this.checked)"></th><th>路径</th><th style="text-align:right">大小</th></tr></thead>
+        <tbody>${bfFiles.map((f, i) => `<tr><td><input type="checkbox" class="chk-bf" data-i="${i}" onclick="updateSelCount('bf')"></td><td>${f.path}</td><td class="sz">${fmtSize(f.size)}</td></tr>`).join('')}</tbody>
+      </table></div>`;
+  }
+
+  // ── 批量选择工具条: bf(大文件)/ds(目录占用)两个列表共用, 选中后"一键移入回收目录" ──
+  function selectBarHtml(prefix) {
+    return `<div class="row" id="${prefix}-selbar">
+      <span id="${prefix}-selcount" class="hint">未选中任何项</span>
+      <button class="btn sm danger" onclick="batchTrash('${prefix}')">批量移入回收目录</button>
+    </div>`;
+  }
+  function selectAll(prefix, checked) {
+    document.querySelectorAll('.chk-' + prefix).forEach(cb => { cb.checked = checked; });
+    updateSelCount(prefix);
+  }
+  function updateSelCount(prefix) {
+    const n = document.querySelectorAll('.chk-' + prefix + ':checked').length;
+    const el = document.getElementById(prefix + '-selcount');
+    if (el) el.textContent = n ? `已选中 ${n} 项` : '未选中任何项';
+  }
+  async function batchTrash(prefix) {
+    const list = prefix === 'bf' ? bfFiles : dsItems;
+    const idxs = [...document.querySelectorAll('.chk-' + prefix + ':checked')].map(cb => parseInt(cb.dataset.i, 10));
+    if (!idxs.length) { alert('先勾选要处理的项'); return; }
+    const paths = idxs.map(i => list[i].path);
+    if (!confirm(`确认把选中的 ${paths.length} 项移入回收目录(.nasmgr_trash, 不是直接删除)?`)) return;
+    const r = await fetch('/api/nasmgr/trash', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ paths }) });
+    const d = await r.json();
+    if (!r.ok) { alert(d.error || '处理失败'); return; }
+    alert(`成功 ${d.okCount} 项, 失败 ${d.failCount} 项`);
+    // 重新拉一遍当前目录, 已经挪走的自然不会再出现
+    if (prefix === 'bf') startBigFiles(); else startDirSizes();
+  }
+
+  function startDirSizes() {
+    const path = document.getElementById('ds-path').value.trim();
+    if (!path) { alert('请先填目录'); return; }
+    startTask('ds', '/api/nasmgr/dirsizes/start', { path }, renderDirSizesResult);
+  }
+
+  let dsItems = [];
+  function renderDirSizesResult(result) {
+    dsItems = result.items || [];
+    const el = document.getElementById('ds-result');
+    if (!dsItems.length) { el.innerHTML = '<div class="hint">这个目录是空的。</div>'; return; }
+    const maxSize = Math.max(...dsItems.map(i => i.size), 1);
+    el.innerHTML = `${selectBarHtml('ds')}
+    <div class="result-scroll"><table class="result-table">
+      <thead><tr><th style="width:28px"><input type="checkbox" onclick="selectAll('ds',this.checked)"></th><th>名称</th><th style="text-align:right">大小</th><th style="text-align:right">文件数</th></tr></thead>
+      <tbody>${dsItems.map((i, idx) => `
+        <tr>
+          <td><input type="checkbox" class="chk-ds" data-i="${idx}" onclick="updateSelCount('ds')"></td>
+          <td ${i.type === 'dir' ? `onclick="document.getElementById('ds-path').value='${i.path.replace(/'/g,"\\'")}'" style="cursor:pointer"` : ''}>${i.type === 'dir' ? '📁' : '📄'} ${i.name}
+            <div class="disk-bar-outer" style="margin-top:3px;width:200px"><div class="disk-bar-inner" style="width:${Math.round(i.size/maxSize*100)}%;background:var(--accent)"></div></div>
+          </td>
+          <td class="sz">${fmtSize(i.size)}</td>
+          <td class="cnt">${i.fileCount}</td>
+        </tr>`).join('')}</tbody>
+    </table></div>
+    <div class="hint">点某一行的文件夹名可以把它填进上面的"目录"框, 再点"开始统计"往下钻一层; 用左边checkbox勾选可以批量移入回收目录。</div>`;
+  }
+
+  // ── 换壳去重体检: 用自己的一套进度接口(/api/video-migrate/...), 跟上面bf/ds共用的
+  // /api/nasmgr/...不是一回事, 所以单独写, 不硬套startTask/poll这两个通用函数。
+  async function startVideoMigrateCheck() {
+    document.getElementById('vm-start').disabled = true;
+    document.getElementById('vm-result').innerHTML = '';
+    const r = await fetch('/api/video-migrate/check/start', { method: 'POST' });
+    const d = await r.json();
+    if (!r.ok) { alert(d.error || '启动失败'); document.getElementById('vm-start').disabled = false; return; }
+    taskIds.vm = d.taskId;
+    document.getElementById('vm-stop').disabled = false;
+    pollVm();
+  }
+
+  function pollVm() {
+    clearTimeout(pollTimers.vm);
+    const tick = async () => {
+      if (!taskIds.vm) return;
+      const d = await fetch(`/api/video-migrate/progress/${taskIds.vm}`).then(x => x.json());
+      renderProgress('vm', d);
+      if (d.status === 'running') pollTimers.vm = setTimeout(tick, 1500);
+      else {
+        document.getElementById('vm-start').disabled = false;
+        document.getElementById('vm-stop').disabled = true;
+        if (d.status === 'done') loadVmResults('');
+      }
+    };
+    tick();
+  }
+
+  // 页面刚打开/刷新时查一下"现在有没有体检正在跑"——不管这次是不是这个浏览器点的开始,
+  // 只要nas-media进程里还记得有个任务在跑, 就把进度条/状态接上, 不会显示成"未开始"
+  // 这种跟实际情况不符的假象。
+  async function resumeVmStatus() {
+    let d;
+    try { d = await fetch('/api/video-migrate/check/current').then(x => x.json()); }
+    catch (e) { return; }
+    if (!d || d.status === 'none' || d.status === 'unknown') return;
+    renderProgress('vm', d);
+    if (d.status === 'running') {
+      taskIds.vm = d.taskId;
+      document.getElementById('vm-start').disabled = true;
+      document.getElementById('vm-stop').disabled = false;
+      pollVm();
+    }
+  }
+
+  let vmItems = [];
+  async function loadVmResults(status) {
+    const url = '/api/video-migrate/results' + (status ? `?status=${status}&limit=20000` : '?limit=20000');
+    const d = await fetch(url).then(x => x.json());
+    vmItems = d.items || [];
+    const el = document.getElementById('vm-result');
+    const summaryLine = (d.summary || []).map(s => `${s.status}: <b>${s.c}</b>`).join(' · ');
+    if (!vmItems.length) { el.innerHTML = `<div class="hint">${summaryLine || '还没有体检结果'}</div>`; return; }
+    const okCount = vmItems.filter(i => i.status === 'ok').length;
+    el.innerHTML = `<div class="hint">${summaryLine}(下面全部显示, 只有"通过"的才能勾选批量替换)</div>
+      <div class="row" id="vmsel-selbar">
+        <span id="vmsel-selcount" class="hint">未选中任何项</span>
+        <button class="btn sm primary" onclick="batchApplyVm()">批量替换</button>
+      </div>
+      <div class="result-scroll"><table class="result-table">
+        <thead><tr><th style="width:28px">${okCount ? `<input type="checkbox" onclick="selectAll('vmsel',this.checked)">` : ''}</th><th>原文件</th><th>状态</th><th></th></tr></thead>
+        <tbody>${vmItems.map((i, idx) => `
+          <tr>
+            <td>${i.status === 'ok' ? `<input type="checkbox" class="chk-vmsel" data-i="${idx}" onclick="updateSelCount('vmsel')">` : ''}</td>
+            <td>${i.orig_path}${i.reason ? `<div class="hint" style="margin-top:2px">${i.reason}</div>` : ''}</td>
+            <td>${i.status === 'ok' ? '<span class="status-badge done">通过</span>' : i.status === 'applied' ? '<span class="status-badge done">已替换</span>' : '<span class="status-badge error">未通过</span>'}</td>
+            <td>${i.status === 'ok' ? `<button class="btn sm primary" onclick="applyVm(this,'${i.orig_path.replace(/'/g,"\\'")}')">替换</button>` : ''}</td>
+          </tr>`).join('')}</tbody>
+      </table></div>`;
+  }
+
+  async function applyVm(btn, origPath) {
+    if (!confirm('确认用换壳版本顶替这个原文件? 原文件会挪进同目录下的.video_migrate_trash, 不会直接删除。')) return;
+    btn.disabled = true; btn.textContent = '处理中...';
+    try {
+      const r = await fetch('/api/video-migrate/apply', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ origPath }) });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error || '替换失败');
+      btn.textContent = '✓ 已替换';
+      btn.closest('tr').querySelector('td:nth-child(2)').innerHTML = '<span class="status-badge done">已替换</span>';
+    } catch (e) { alert('✗ ' + e.message); btn.disabled = false; btn.textContent = '替换'; }
+  }
+
+  // 2026-09-26改: 批量替换原来是"提交一次性等到底", 选多了(几百上千个视频, 每个都要
+  // ffmpeg转封装+算整个文件md5)必然跑很久, 容易撞上网关30秒代理超时, 而且过程中完全
+  // 看不到进度。现在后端改成"立刻返回taskId, 后台异步跑", 这里改成轮询进度, 跟"体检"
+  // 阶段的pollVm是一个路数, 页面能实时看到处理到第几个、成功/失败各多少个。
+  async function batchApplyVm() {
+    const idxs = [...document.querySelectorAll('.chk-vmsel:checked')].map(cb => parseInt(cb.dataset.i, 10));
+    if (!idxs.length) { alert('先勾选要替换的项'); return; }
+    const origPaths = idxs.map(i => vmItems[i].orig_path);
+    if (!confirm(`确认批量替换选中的 ${origPaths.length} 个视频? 原文件会挪进各自目录下的.video_migrate_trash, 不会直接删除。`)) return;
+    const r = await fetch('/api/video-migrate/apply-batch', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ origPaths }) });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) { alert(d.error || `提交失败(HTTP ${r.status})`); return; }
+    taskIds.va = d.taskId;
+    document.getElementById('va-stop').disabled = false;
+    pollVa();
+  }
+
+  function pollVa() {
+    clearTimeout(pollTimers.va);
+    const tick = async () => {
+      if (!taskIds.va) return;
+      const d = await fetch(`/api/video-migrate/apply/progress/${taskIds.va}`).then(x => x.json());
+      renderProgress('va', d);
+      if (d.status === 'running') pollTimers.va = setTimeout(tick, 1500);
+      else {
+        document.getElementById('va-stop').disabled = true;
+        if (d.status === 'done' || d.status === 'stopped') loadVmResults('');
+      }
+    };
+    tick();
+  }
+
+  function stopVaTask() {
+    if (!taskIds.va) return;
+    fetch(`/api/video-migrate/apply/stop/${taskIds.va}`, { method: 'POST' });
+  }
+
+  // 跟resumeVmStatus同一个道理: 页面刷新/重开也能凭"最近一次批量替换"接上进度条,
+  // 不会显示成"未开始"这种跟实际情况不符的假象。
+  async function resumeVaStatus() {
+    let d;
+    try { d = await fetch('/api/video-migrate/apply/current').then(x => x.json()); }
+    catch (e) { return; }
+    if (!d || d.status === 'none' || d.status === 'unknown') return;
+    renderProgress('va', d);
+    if (d.status === 'running') {
+      taskIds.va = d.taskId;
+      document.getElementById('va-stop').disabled = false;
+      pollVa();
+    }
+  }
+
+  loadDisks();
+  // 页面刚打开就把已经存在数据库里的体检结果显示出来(哪怕当前没有正在跑的任务)——
+  // 跟backup页面同一个道理: 结果早就记录下来了, 只是之前没有"自动"这一步, 用户
+  // 得手动点按钮才能看到, 容易被误以为"结果没有被记录"。
+  loadVmResults('');
+  resumeVmStatus();
+  resumeVaStatus();
+
+  // ── 无损转码(zhuanma) ──
+  function fmtSize(n) {
+    if (!n && n !== 0) return '';
+    const units = ['B','KB','MB','GB','TB']; let i=0, v=n;
+    while (v >= 1024 && i < units.length-1) { v/=1024; i++; }
+    return v.toFixed(v>=10?0:1) + units[i];
+  }
+
+  // 处理记录存浏览器localStorage: 服务端进程重启(比如部署代码)只会丢内存里的实时进度,
+  // 不会丢已经处理完的数据(数据库那边是权威); 这里额外在浏览器本地留一份"发生过什么"的
+  // 记录, 换个角度保障——就算服务端重启看起来"好像没跑过", 只要这个浏览器还在,
+  // 之前每一条处理结果、每一轮任务的汇总都还能查到。缺点: 只在这个浏览器/这台设备上有效,
+  // 换个电脑/清了浏览器数据就没了, 这是localStorage的本质限制, 数据库那份才是真正权威。
+  const ZM_LOG_KEY = 'zmItemLog';   // 逐条处理记录, 最多保留最近5000条
+  const ZM_RUNS_KEY = 'zmRuns';     // 每一轮批量任务的汇总, 最多保留最近50轮
+  let zmLastSavedCount = 0;         // 当前这一轮已经存进log的条数, 避免重复存
+
+  function zmLoadLog() { try { return JSON.parse(localStorage.getItem(ZM_LOG_KEY)) || []; } catch (e) { return []; } }
+  function zmSaveLog(log) {
+    if (log.length > 5000) log = log.slice(log.length - 5000);
+    localStorage.setItem(ZM_LOG_KEY, JSON.stringify(log));
+  }
+  function zmLoadRuns() { try { return JSON.parse(localStorage.getItem(ZM_RUNS_KEY)) || []; } catch (e) { return []; } }
+  function zmSaveRuns(runs) { localStorage.setItem(ZM_RUNS_KEY, JSON.stringify(runs.slice(-50))); }
+
+  function zmPersistProgress(taskId, d) {
+    const results = d.results || [];
+    if (results.length > zmLastSavedCount) {
+      const log = zmLoadLog();
+      for (let i = zmLastSavedCount; i < results.length; i++) log.push({ taskId, ts: Date.now(), ...results[i] });
+      zmSaveLog(log);
+      zmLastSavedCount = results.length;
+    }
+    const runs = zmLoadRuns();
+    let run = runs.find(r => r.taskId === taskId);
+    if (!run) { run = { taskId, startedAt: Date.now() }; runs.push(run); }
+    run.total = d.total; run.done = d.done; run.okCount = d.okCount; run.failCount = d.failCount; run.status = d.status;
+    if (d.status !== 'running') run.finishedAt = Date.now();
+    zmSaveRuns(runs);
+  }
+
+  function zmShowHistory(filter) {
+    const log = zmLoadLog().slice().reverse(); // 最新的在前面
+    const filtered = filter === 'ok' ? log.filter(x => x.ok) : filter === 'fail' ? log.filter(x => !x.ok) : log;
+    const runs = zmLoadRuns().slice().reverse();
+    const el = document.getElementById('zm-list-result');
+    const runsHtml = runs.length ? `<div class="hint">最近任务: ${runs.slice(0,5).map(r =>
+      `[${new Date(r.startedAt).toLocaleString()}] ${r.done}/${r.total} 成功${r.okCount||0} 失败${r.failCount||0} (${r.status})`
+    ).join(' · ')}</div>` : '';
+    if (!filtered.length) { el.innerHTML = runsHtml + '<div class="hint">浏览器里还没有处理记录(这台浏览器上还没跑过, 或者记录被清过)</div>'; return; }
+    el.innerHTML = runsHtml + `<div class="hint">共 <b>${filtered.length}</b> 条(本浏览器本地记录, 最新在前)
+        <button class="btn sm" onclick="zmClearHistory()">清空记录</button></div>
+      <div class="result-scroll"><table class="result-table">
+        <thead><tr><th>时间</th><th>路径</th><th>结果</th></tr></thead>
+        <tbody>${filtered.slice(0,1000).map(x => `<tr>
+          <td>${new Date(x.ts).toLocaleTimeString()}</td>
+          <td>${x.path}</td>
+          <td>${x.ok ? '<span class="status-badge done">成功</span>' : `<span class="status-badge error">失败</span><div class="hint">${x.error||''}</div>`}</td>
+        </tr>`).join('')}</tbody>
+      </table></div>`;
+  }
+  function zmClearHistory() {
+    if (!confirm('确认清空浏览器里保存的处理记录? (不影响数据库里已经修复好的文件, 只是清掉这份本地查看记录)')) return;
+    localStorage.removeItem(ZM_LOG_KEY);
+    localStorage.removeItem(ZM_RUNS_KEY);
+    zmShowHistory('all');
+  }
+  async function zmScan() {
+    const d = await fetch('/api/zhuanma/scan').then(r => r.json());
+    document.getElementById('zm-scan-result').innerHTML =
+      `已经没问题 <b>${d.alreadyOk}</b> · 能无损修复 <b style="color:#5a8a68">${d.losslessFixable}</b> · 做不到无损(需转码) <b style="color:#e57373">${d.needsLossyTranscode}</b>`;
+  }
+  async function zmLoadList(type) {
+    const d = await fetch('/api/zhuanma/list?type=' + type + '&limit=500').then(r => r.json());
+    const el = document.getElementById('zm-list-result');
+    if (!d.items.length) { el.innerHTML = '<div class="hint">没有符合条件的视频</div>'; return; }
+    const title = type === 'lossless' ? '能无损修复' : '做不到无损(需要有损转码)';
+    el.innerHTML = `<div class="hint">${title}, 共 <b>${d.total}</b> 个(按大小排序, 最多显示500个)</div>
+      <div class="result-scroll"><table class="result-table">
+        <thead><tr><th>路径</th><th>编码</th><th>大小</th></tr></thead>
+        <tbody>${d.items.map(i => `<tr><td>${i.path}</td><td>${i.vcodec||'?'}</td><td>${fmtSize(i.size)}</td></tr>`).join('')}</tbody>
+      </table></div>`;
+  }
+  async function zmStartFix() {
+    if (!confirm('确认开始批量无损修复? 只处理"编码兼容但容器/时间戳有问题"的视频, 原文件会挪进各自目录下的.zhuanma_trash, 不会直接删除。')) return;
+    const r = await fetch('/api/zhuanma/fix/start', { method: 'POST' });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) { alert(d.error || `提交失败(HTTP ${r.status})`); return; }
+    taskIds.zm = d.taskId;
+    zmLastSavedCount = 0; // 新任务, 记录计数器归零
+    document.getElementById('zm-stop').disabled = false;
+    pollZm();
+  }
+  function pollZm() {
+    clearTimeout(pollTimers.zm);
+    const tick = async () => {
+      if (!taskIds.zm) return;
+      const d = await fetch(`/api/zhuanma/fix/progress/${taskIds.zm}`).then(x => x.json());
+      renderProgress('zm', d);
+      zmPersistProgress(taskIds.zm, d); // 每一轮都往浏览器本地记录里追加新出现的结果
+      if (d.status === 'running') pollTimers.zm = setTimeout(tick, 1500);
+      else {
+        document.getElementById('zm-stop').disabled = true;
+        if (d.status === 'done' || d.status === 'stopped') zmScan();
+      }
+    };
+    tick();
+  }
+  function zmStopTask() {
+    if (!taskIds.zm) return;
+    fetch(`/api/zhuanma/fix/stop/${taskIds.zm}`, { method: 'POST' });
+  }
+  async function resumeZmStatus() {
+    let d;
+    try { d = await fetch('/api/zhuanma/fix/current').then(x => x.json()); }
+    catch (e) { return; }
+    if (!d || d.status === 'none' || d.status === 'unknown') return;
+    renderProgress('zm', d);
+    // 恢复时按这个taskId在本地记录里已经存了多少条来对齐计数器, 避免刷新页面后重复记录
+    zmLastSavedCount = zmLoadLog().filter(x => x.taskId === d.taskId).length;
+    zmPersistProgress(d.taskId, d);
+    if (d.status === 'running') {
+      taskIds.zm = d.taskId;
+      document.getElementById('zm-stop').disabled = false;
+      pollZm();
+    }
+  }
+  zmScan();
+  resumeZmStatus();
+</script>
+<script>
+// ══ 视频省空间向导 ══
+(function () {
+  const $ = (id) => document.getElementById(id);
+  const gj = (url, opt) => fetch(url, opt).then((r) => r.json());
+  const post = (url, body) => gj(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: body ? JSON.stringify(body) : undefined });
+  const fmt = (b) => b >= 1e12 ? (b / 1e12).toFixed(2) + ' TB' : b >= 1e9 ? (b / 1e9).toFixed(1) + ' GB' : (b / 1e6).toFixed(0) + ' MB';
+  const BADGE = { running: '运行中', done: '已完成', error: '出错', stopped: '已停止', none: '空闲' };
+  function badge(id, st) {
+    const el = $(id); if (!el) return;
+    el.className = 'status-badge ' + (st || '');
+    el.textContent = BADGE[st] || '未开始';
+  }
+  function bar(id, done, total) { $(id).style.width = (total ? Math.min(100, done / total * 100) : 0) + '%'; }
+
+  // 通用轮询: 每2秒取一次, 不再是running就停, 并刷新一遍全部数字(空间/数量都变了)
+  const timers = {};
+  function watch(key, fetcher, render) {
+    clearInterval(timers[key]);
+    const tick = async () => {
+      let d; try { d = await fetcher(); } catch (e) { return; }
+      render(d);
+      if (!d || d.status !== 'running') { clearInterval(timers[key]); setTimeout(loadAll, 800); }
+    };
+    tick(); timers[key] = setInterval(tick, 2000);
+  }
+
+  // ── ② 无损修复 ──
+  function renderZm(d) {
+    if (!d || d.status === 'none' || d.status === 'unknown') return;
+    badge('wz2-status', d.status); bar('wz2-bar', d.done, d.total);
+    $('wz2-stats').innerHTML = `已处理 <b>${d.done}</b>/${d.total} · 成功 <b style="color:var(--ok)">${d.okCount}</b> · 修不了已跳过 <b>${d.failCount}</b>（原文件没动）`;
+    $('wz2-btn').disabled = d.status === 'running';
+  }
+  const zmFetch = () => gj('/api/zhuanma/fix/current');
+
+  // ── ③ 释放空间（无损修复回收目录 + 换壳回收目录，两个任务合并显示） ──
+  const clr = { zm: null, vm: null };
+  function renderClear() {
+    const parts = [clr.zm, clr.vm].filter((x) => x && x.status && x.status !== 'none' && x.status !== 'unknown');
+    if (!parts.length) return;
+    const running = parts.some((p) => p.status === 'running');
+    const sum = (k) => parts.reduce((a, p) => a + (p[k] || 0), 0);
+    badge('wz3-status', running ? 'running' : 'done');
+    bar('wz3-bar', sum('done'), sum('total'));
+    $('wz3-run').innerHTML = `已检查 <b>${sum('done')}</b>/${sum('total')} · 已释放 <b style="color:var(--ok)">${fmt(sum('freedBytes'))}</b> · 没通过检查（旧文件保留不删）<b>${sum('verifyFailed')}</b>`;
+    $('wz3-btn').disabled = running;
+  }
+  function watchClear() {
+    clearInterval(timers.clear);
+    const tick = async () => {
+      try {
+        clr.zm = await gj('/api/zhuanma/verify-and-clear/current');
+        clr.vm = await gj('/api/video-migrate/verify-and-clear/current');
+      } catch (e) { return; }
+      renderClear();
+      if (![clr.zm, clr.vm].some((p) => p && p.status === 'running')) { clearInterval(timers.clear); setTimeout(loadAll, 800); }
+    };
+    tick(); timers.clear = setInterval(tick, 2000);
+  }
+
+  // ── ④ 换壳替换 ──
+  function renderApply(d) {
+    if (!d || d.status === 'none' || d.status === 'unknown') return;
+    badge('wz4-status', d.status); bar('wz4-bar', d.done, d.total);
+    $('wz4-run').innerHTML = `已替换 <b>${d.done}</b>/${d.total} · 成功 <b style="color:var(--ok)">${d.okCount}</b> · 失败 <b>${d.failCount}</b>`;
+    $('wz4-btn').disabled = d.status === 'running';
+  }
+  const applyFetch = () => gj('/api/video-migrate/apply/current');
+
+  // ── ⑥ 转码副本顶替原文件 ──
+  function renderReplace(d) {
+    if (!d || d.status === 'none' || d.status === 'unknown') return;
+    badge('wz6-status', d.status); bar('wz6-bar', d.done, d.total);
+    $('wz6-run').innerHTML = `已处理 <b>${d.done}</b>/${d.total} · 成功 <b style="color:var(--ok)">${d.okCount}</b>，已释放 <b style="color:var(--ok)">${fmt(d.freedBytes || 0)}</b> · 跳过/还原 <b>${d.failCount}</b>（原文件没动）`;
+    $('wz6-btn').disabled = d.status === 'running';
+  }
+  const replaceFetch = () => gj('/api/conv-replace/current');
+
+  // ── ⑥ 统一视频 key ──
+  function renderKey(d) {
+    if (!d) return;
+    const hist = d.history != null ? `（累计 key 变更记录 ${d.history} 条，可用于日后救回对不上的缩略图/标记）` : '';
+    if (!d.status || d.status === 'none') { $('wz8-stats').innerHTML = '还没在页面上跑过。' + hist; return; }
+    const st = d.status;
+    badge('wz8-status', st); bar('wz8-bar', d.done, d.total);
+    $('wz8-stop').disabled = st !== 'running';
+    $('wz8-btn').disabled = st === 'running';
+    $('wz8-stats').innerHTML = d.phase === 'backup' ? '正在备份数据库…（几十秒）' : ('上次/本次结果' + hist);
+    $('wz8-run').innerHTML = d.error ? `<span style="color:var(--err)">出错：${d.error}</span>`
+      : `已检查 <b>${d.done}</b>/${d.total} · 换了 key <b style="color:var(--ok)">${d.changed}</b> · 本来就对 <b>${d.same}</b> · 文件不在 <b>${d.missing}</b> · 出错 <b>${d.err}</b> · 缩略图跟着改名 <b>${d.thumbsMoved}</b> 张 · 需要重新抽帧 <b>${d.needRegen}</b> 个` + (d.firstErr ? `<br><span style="color:var(--err)">首个错误：${d.firstErr}</span>` : '');
+  }
+  const keyFetch = async () => { const d = await gj('/api/video-wizard/key-migrate/current'); if (d.status === 'backup') { d.phase = 'backup'; d.status = 'running'; } return d; };
+  window.wzStopKey = () => post('/api/video-wizard/key-migrate/stop');
+
+  // ── ⑧ 清理孤立缩略图 ──
+  window.wzOrphanCheck = async function (force) {
+    let d; try { d = await gj('/api/video-wizard/orphan-thumbs' + (force ? '?force=1' : '')); } catch (e) { return; }
+    const c = d.clean;
+    if (c && c.status) {
+      badge('wz9-status', c.status === 'running' ? 'running' : c.status); bar('wz9-bar', c.done, c.total);
+      $('wz9-run').innerHTML = `已处理 <b>${c.done}</b>/${c.total} · 已释放 <b style="color:var(--ok)">${fmt(c.freedBytes)}</b>`;
+      if (c.status === 'running') { $('wz9-btn').disabled = true; return setTimeout(() => wzOrphanCheck(false), 2000); }
+    }
+    if (d.status === 'computing' || d.status === 'none') { $('wz9-stats').textContent = '统计中…（几十秒）'; return setTimeout(() => wzOrphanCheck(false), 3000); }
+    if (d.status === 'ready') {
+      $('wz9-stats').innerHTML = `缩略图共 <b>${d.total}</b> 张，其中没人用的孤立缩略图 <b style="color:${d.files ? 'var(--warn)' : 'var(--ok)'}">${d.files}</b> 张（对应 ${d.keys} 个旧 key）· 清掉可释放 <b style="color:var(--ok)">${fmt(d.bytes)}</b>`;
+      $('wz9-btn').disabled = !d.files;
+    }
+  };
+  window.wzOrphanClean = async function () {
+    if (!confirm('删除这些没人用的孤立缩略图？（删之前会再确认一遍 key 确实没被任何视频/照片使用）')) return;
+    const r = await post('/api/video-wizard/orphan-thumbs/clean');
+    if (r.error) return alert(r.error);
+    wzOrphanCheck(false);
+  };
+
+  // ── ⑩ 检查能否在线播放（后台任务, 进度存在数据库里） ──
+  const pcFetch = async () => { const d = await gj('/api/video-playcheck/status'); d.status = d.task && d.task.status; return d; };
+  function renderPlay(d) {
+    if (!d || !d.counts) return;
+    const c = d.counts, t = d.task || {};
+    const checked = (c.total || 0) - (c.unchecked || 0);
+    const st = ['running', 'done', 'stopped', 'error'].indexOf(t.status) >= 0 ? t.status : 'none';
+    badge('wz10-status', st); bar('wz10-bar', checked, c.total);
+    $('wz10-btn').disabled = $('wz10-all').disabled = st === 'running';
+    $('wz10-stop').disabled = st !== 'running';
+    $('wz10-stats').innerHTML = `视频共 <b>${c.total}</b> 个 · 已检查 <b>${checked}</b> · 可以播 <b style="color:var(--ok)">${c.ok || 0}</b> · 可能有问题 <b style="color:var(--warn)">${c.warn || 0}</b> · 不能播 <b style="color:var(--err)">${c.bad || 0}</b> · 还没查 <b>${c.unchecked || 0}</b>`;
+    $('wz10-run').innerHTML = st === 'running' ? `本次已检查 <b>${t.checkedThisRun || 0}</b> 个${t.deep ? '（深度）' : ''}，后台运行中，可以关闭页面` : (st === 'error' ? `<span style="color:var(--err)">出错：${t.error || ''}</span>` : '');
+    $('wz10-reasons').innerHTML = (d.reasons || []).map((x) => `<span>${x.reason}：<b>${x.n}</b> 个</span>`).join('');
+  }
+  // ── ⑪ 转码 H.264 10位（电脑GPU）──
+  async function tcLoad() {
+    let d; try { d = await gj('/api/video-playcheck/transcode-status'); } catch (e) { return; }
+    const c = d.counts || {}, q = d.queue || {};
+    const total = c.total || 0, conv = c.converted || 0;
+    bar('wz11-bar', conv, total);
+    $('wz11-stats').innerHTML = `这批"H.264 10位/4:4:4"共 <b>${total}</b> 个 · 已转好 <b style="color:var(--ok)">${conv}</b> · 还没转 <b>${c.waiting || 0}</b>（源文件约 ${fmt(c.waitingBytes || 0)}）` + (c.bigKept ? ` · <span style="color:var(--warn)">超过6GB保留源文件 ${c.bigKept} 个（${fmt(c.bigKeptBytes || 0)}），不转码</span>` : '');
+    $('wz11-run').innerHTML = `转码队列：排队 <b>${q.queued || 0}</b> · 正在转 <b>${q.processing || 0}</b> · 本次已完成 <b style="color:var(--ok)">${q.done || 0}</b> · 失败 <b>${q.failed || 0}</b>` + (d.current ? `<br><span class="hint">正在转：${String(d.current).replace(/^\/share\//, '')}</span>` : '');
+    if (d.agentAlive) {
+      $('wz11-agent').innerHTML = '电脑转码程序：<b style="color:var(--ok)">✅ 在线</b>';
+      $('wz11-cmd').innerHTML = '';
+    } else {
+      $('wz11-agent').innerHTML = '电脑转码程序：<b style="color:var(--warn)">⚠ 没检测到在运行</b>——在电脑上打开 PowerShell，粘贴下面这行执行（窗口别关，队列里有活它才会干）：';
+      if (!$('wz11-cmd').firstChild) {
+        $('wz11-cmd').innerHTML = '<div class="wz-cmd"><input readonly id="wz11-cmdin" onclick="this.select()"><button class="btn sm" onclick="wzCopy11()">复制</button></div>';
+        $('wz11-cmdin').value = d.startCmd || '';
+      }
+    }
+    $('wz11-btn').disabled = !(c.waiting > 0);
+  }
+  window.wzCopy11 = function () { const i = $('wz11-cmdin'); i.select(); (navigator.clipboard ? navigator.clipboard.writeText(i.value) : Promise.reject()).catch(() => document.execCommand('copy')); };
+  window.wzTcEnqueue = async function () {
+    if (!confirm('把这批 H.264 10位/4:4:4 的视频加入 PC 转码队列？（会先把它们标成需要重新编码；原文件不动，转码副本放在"转换/"目录）')) return;
+    const r = await post('/api/video-playcheck/enqueue-transcode', {});
+    if (r.error) return alert(r.error);
+    alert(`已加入队列 ${r.queued} 个（之前已在队列 ${r.alreadyQueued} 个，失败 ${r.failed} 个）` + (r.failed ? '\n' + JSON.stringify(r.errors) : ''));
+    tcLoad();
+  };
+  // ── ⑬ 照片入库 + 处理队列 ──
+  // 状态显示开关(可多选, 记在浏览器里): 默认隐藏"完成"和"跳过", 只看 排队/处理中/失败
+  let igShow = (() => { try { return JSON.parse(localStorage.getItem('igShow')) || null; } catch (e) { return null; } })() || { queued: true, running: true, error: true, done: false, skipped: false };
+  let igPageNo = 1, igTotal = 0, igQ = '';
+  const igStatusParam = () => { const on = Object.keys(igShow).filter((k) => igShow[k]); return on.length === 5 || !on.length ? '' : on.join(','); };
+  const IG_LIMIT = 50;
+  const IG_ST = { queued: '⏳ 排队', running: '▶ 处理中', done: '✅ 完成', error: '❌ 失败', skipped: '⏭ 跳过' };
+  const igEsc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const igTime = (t) => { if (!t) return ''; const d = new Date(t * 1000); return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0') + ':' + String(d.getSeconds()).padStart(2, '0'); };
+  window.igAdd = async function () {
+    const p = $('wz13-path').value.trim(); if (!p) return alert('请先输入目录（NAS 路径，以 /share/ 开头）');
+    const r = await post('/api/ingest/add', { paths: [p] }); if (r.error) return alert(r.error);
+    if (r.rejected && r.rejected.length) return alert('只支持 NAS 上 /share/ 开头的目录：' + r.rejected.join('，'));
+    $('wz13-path').value = ''; ppLoad();
+  };
+  window.igAddPending = async function () {
+    const r = await post('/api/ingest/add-pending', {}); if (r.error) return alert(r.error);
+    alert('已把库里 ' + r.queued + ' 张"待处理"照片加入队列'); ppLoad();
+  };
+  window.igCtl = async function (action, speed) {
+    if (action === 'reset' && !confirm('重置队列？\n会暂停，并清空"排队 / 失败 / 处理中"的记录和扫描任务。已经处理好的照片、已完成记录都不受影响。')) return;
+    const r = await post('/api/ingest/control', { action, speed }); if (r.error) return alert(r.error);
+    if (action === 'retry-failed') alert('已把 ' + (r.requeued || 0) + ' 个失败的重新加入队列');
+    ppLoad();
+    dcLoad();
+  };
+  window.igToggle = function (k) { igShow[k] = !igShow[k]; try { localStorage.setItem('igShow', JSON.stringify(igShow)); } catch (e) {} igPageNo = 1; ppLoad(); };
+  window.igShowAll = function () { igShow = { queued: true, running: true, error: true, done: true, skipped: true }; try { localStorage.setItem('igShow', JSON.stringify(igShow)); } catch (e) {} igPageNo = 1; ppLoad(); };
+  window.igGo = function (d) { const pages = Math.max(1, Math.ceil(igTotal / IG_LIMIT)); igPageNo = Math.min(pages, Math.max(1, igPageNo + d)); ppLoad(); };
+  async function ppLoad() {
+    let s, it; try { s = await gj('/api/ingest/status'); it = await gj('/api/ingest/items?status=' + igStatusParam() + '&page=' + igPageNo + '&limit=' + IG_LIMIT + '&q=' + encodeURIComponent(igQ)); } catch (e) { return; }
+    const c = s.counts, left = c.queued + c.running;
+    igTotal = it.total;
+    const st = !s.workerAlive ? '<span style="color:var(--err)">工人离线（服务刚重启？几秒后会自动恢复）</span>' : (s.running ? '<b style="color:var(--ok)">▶ 运行中</b>' : '<b style="color:var(--warn)">⏸ 已暂停</b>');
+    $('wz13-stat').innerHTML = `${st} · 共 <b>${s.total}</b> 条：排队 <b>${c.queued}</b> · 处理中 <b>${c.running}</b> · 完成 <b style="color:var(--ok)">${c.done}</b> · 失败 <b style="color:${c.error ? 'var(--err)' : 'inherit'}">${c.error}</b>`;
+    bar('wz13-bar', c.done + c.error, s.total || 1);
+    const eta = s.etaSec ? `，预计还要 ${s.etaSec >= 3600 ? Math.floor(s.etaSec / 3600) + ' 小时 ' : ''}${Math.round((s.etaSec % 3600) / 60)} 分钟` : '';
+    $('wz13-run').innerHTML = (left ? `还剩 <b>${left}</b> 张` : '队列已空') + (s.ratePerMin ? `　速度约 ${s.ratePerMin} 张/分钟${eta}` : '') + (s.current.length ? `<br><span class="hint">正在处理：${s.current.map((x) => igEsc(x.path.split('/').pop())).join('，')}</span>` : '');
+    if (document.activeElement !== $('wz13-speed')) $('wz13-speed').value = s.speed;
+    $('wz13-start').disabled = s.running && s.workerAlive; $('wz13-pause').disabled = !s.running;
+    $('wz13-jobs').innerHTML = s.jobs.length ? '扫描/入库任务：' + s.jobs.map((j) => `${igEsc(j.path.replace(/^\/share\//, ''))} <b>[${j.status === 'scanning' ? '扫描中' : '排队'}]</b> 已发现 ${j.found}，新入库/排队 ${j.added}`).join(' ｜ ') : '';
+    const nowT = s.serverNow || Math.floor(Date.now() / 1000);
+    $('wz13-now').innerHTML = s.current.length
+      ? '<div style="font-weight:700;margin-bottom:4px">▶ 正在处理（' + s.current.length + ' 张）</div>' + s.current.map((x) => {
+          const parts = x.path.split('/'), nm = parts.pop(), dir = parts.slice(2).join('/');
+          return '<div style="padding:3px 0;border-top:1px dashed var(--border);word-break:break-all"><b>' + igEsc(nm) + '</b>' + (x.size ? ' <span class="hint">' + (x.size >= 1048576 ? (x.size / 1048576).toFixed(1) + ' MB' : Math.round(x.size / 1024) + ' KB') + '</span>' : '') + ' <span style="color:var(--warn)">已处理 ' + Math.max(0, nowT - x.started_at) + ' 秒</span><div class="hint">' + igEsc(dir) + '</div></div>';
+        }).join('')
+      : '<span class="hint">' + (!s.workerAlive ? '工人离线，几秒后自动恢复' : (!s.running ? '⏸ 已暂停，当前没有正在处理的图片' : (s.jobs.length ? '正在扫描入库，扫描完会开始处理图片…' : (left ? '正在取下一批…' : '队列已空，没有正在处理的图片')))) + '</span>';
+    $('wz13-filters').innerHTML = '<span class="hint">显示：</span>' + [['running', '▶ 处理中', c.running], ['queued', '⏳ 排队', c.queued], ['error', '❌ 失败', c.error], ['done', '✅ 完成', c.done], ['skipped', '⏭ 跳过', c.skipped]].map(([k, n, v]) => `<button class="btn sm${igShow[k] ? ' primary' : ''}" title="点击切换显示/隐藏" onclick="igToggle('${k}')">${igShow[k] ? '👁' : '🚫'} ${n} ${v}</button>`).join(' ')
+      + ' <button class="btn sm" onclick="igShowAll()">全部显示</button>'
+      + ` <input id="wz13-q" placeholder="按路径搜索" value="${igEsc(igQ)}" style="width:180px" onkeydown="if(event.key==='Enter'){igQ=this.value.trim();igPageNo=1;ppLoad();}">`;
+    $('wz13-tbl').innerHTML = '<tr style="text-align:left;color:var(--text2)"><th style="padding:4px 6px">时间</th><th>状态</th><th>文件</th><th>耗时</th><th>备注 / 错误</th></tr>'
+      + (it.items.length ? it.items.map((x) => {
+        const nm = x.path.split('/').pop(), dir = x.path.split('/').slice(2, -1).join('/');
+        return `<tr style="border-top:1px solid var(--border)"><td style="padding:4px 6px;white-space:nowrap">${igTime(x.finished_at || x.started_at || x.created_at)}</td><td style="white-space:nowrap">${IG_ST[x.status] || x.status}</td><td style="word-break:break-all"><div>${igEsc(nm)}</div><div class="hint">${igEsc(dir)}</div></td><td style="white-space:nowrap">${x.ms != null ? (x.ms / 1000).toFixed(1) + 's' : ''}</td><td style="color:${x.error ? 'var(--err)' : 'var(--text2)'};word-break:break-all">${igEsc(x.error || x.note || '')}</td></tr>`;
+      }).join('') : '<tr><td colspan="5" class="hint" style="padding:14px">还没有记录。在目录树右键"处理"、或上面输入目录加入队列。</td></tr>');
+    $('wz13-pg').textContent = `第 ${igPageNo} / ${Math.max(1, Math.ceil(it.total / IG_LIMIT))} 页（共 ${it.total} 条）`;
+  }
+  // ── ⑭ 待入库目录 ──
+  let dcPageNo = 1, dcTotal = 0, dcQ = '', dcSel = new Set(), dcItems = [];
+  const DC_LIMIT = 50;
+  const dcEsc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  window.dcScan = async function () {
+    const r = await post('/api/ingest/discover', {}); if (r.error) return alert(r.error);
+    dcSel.clear(); dcPageNo = 1; dcLoad();
+  };
+  window.dcStop = async function () { await post('/api/ingest/discover/stop', {}); dcLoad(); };
+  window.dcGo = function (d) { const pages = Math.max(1, Math.ceil(dcTotal / DC_LIMIT)); dcPageNo = Math.min(pages, Math.max(1, dcPageNo + d)); dcLoad(); };
+  window.dcTog = function (i) { const d = dcItems[i].dir; dcSel.has(d) ? dcSel.delete(d) : dcSel.add(d); dcLoad(); };
+  window.dcSelPage = function () { dcItems.forEach((x) => dcSel.add(x.dir)); dcLoad(); };
+  window.dcSelNone = function () { dcSel.clear(); dcLoad(); };
+  async function dcAdd(paths) {
+    const r = await post('/api/ingest/add', { paths, recursive: false }); if (r.error) return alert(r.error);
+    alert('已把 ' + r.added + ' 个目录加入处理队列' + (r.duplicated ? '（' + r.duplicated + ' 个本来就在队列里）' : '') + '，进度看上面的 ⑬。入库后可再点"扫描待入库"刷新这个列表。');
+    dcSel.clear(); dcLoad(); ppLoad();
+  }
+  window.dcAddOne = function (i) { dcAdd([dcItems[i].dir]); };
+  window.dcAddSel = function () { if (dcSel.size) dcAdd([...dcSel]); };
+  window.dcAddAll = async function () {
+    const st = await gj('/api/ingest/discover/status');
+    if (!confirm('把全部 ' + st.dirs + ' 个待入库目录（共约 ' + st.pending + ' 张图片）加入处理队列？')) return;
+    const all = []; let page = 1;
+    for (;;) { const it = await gj('/api/ingest/discover/items?page=' + page + '&limit=200&q=' + encodeURIComponent(dcQ)); it.items.forEach((x) => all.push(x.dir)); if (all.length >= it.total || !it.items.length) break; page++; }
+    dcAdd(all);
+  };
+  async function dcLoad() {
+    let s, it; try { s = await gj('/api/ingest/discover/status'); it = await gj('/api/ingest/discover/items?page=' + dcPageNo + '&limit=' + DC_LIMIT + '&q=' + encodeURIComponent(dcQ)); } catch (e) { return; }
+    dcTotal = it.total; dcItems = it.items;
+    const when = s.finished ? new Date(s.finished * 1000).toLocaleString() : '';
+    $('wz14-stat').innerHTML = s.running
+      ? `<b style="color:var(--warn)">扫描中…</b> 已读 <b>${s.scanned}</b> 个目录，发现 <b>${s.images}</b> 张图片`
+      : (s.finished ? `上次扫描 ${when}：读了 <b>${s.scanned}</b> 个目录、磁盘上共 <b>${s.images}</b> 张图片 → <b style="color:${s.pending ? 'var(--warn)' : 'var(--ok)'}">${s.dirs}</b> 个目录有待入库的图片，共约 <b>${s.pending}</b> 张` + (s.error ? ` <span style="color:var(--err)">（出错：${dcEsc(s.error)}）</span>` : '') : '还没有扫描结果。点"扫描待入库"开始。');
+    $('wz14-scan').disabled = s.running; $('wz14-stop').style.display = s.running ? '' : 'none';
+    $('wz14-addsel').disabled = !dcSel.size; $('wz14-addsel').textContent = dcSel.size ? '入库所选（' + dcSel.size + '）' : '入库所选';
+    $('wz14-addall').disabled = !s.dirs || s.running;
+    $('wz14-tbl').innerHTML = '<tr style="text-align:left;color:var(--text2)"><th style="padding:4px 6px"></th><th>目录</th><th>磁盘图片</th><th>库里已有</th><th>待入库</th><th></th></tr>'
+      + (it.items.length ? it.items.map((x, i) => `<tr style="border-top:1px solid var(--border)"><td style="padding:4px 6px"><input type="checkbox" ${dcSel.has(x.dir) ? 'checked' : ''} onchange="dcTog(${i})"></td><td style="word-break:break-all">${dcEsc(x.dir.replace(/^\/share\//, ''))}</td><td>${x.disk}</td><td>${x.indb}</td><td style="color:var(--warn);font-weight:700">${x.pending}</td><td><button class="btn sm" onclick="dcAddOne(${i})">入库</button></td></tr>`).join('')
+        : `<tr><td colspan="6" class="hint" style="padding:14px">${s.finished && !s.running ? '🎉 没有待入库的目录（磁盘上的图片库里都有了）' : '暂无数据'}</td></tr>`);
+    $('wz14-pg').textContent = `第 ${dcPageNo} / ${Math.max(1, Math.ceil(it.total / DC_LIMIT))} 页（共 ${it.total} 个目录）`;
+  }
+  // ── ⑫ 清理视频文件名 ──
+  const renType = () => (document.querySelector('input[name=wz12-type]:checked') || {}).value || 'video';
+  window.wzRenType = function () { $('wz12-plan').textContent = '还没有预演。'; $('wz12-samples').innerHTML = ''; $('wz12-dl').style.display = 'none'; $('wz12-dl').href = '/api/video-rename/plan.tsv?type=' + renType(); renLoad(); };
+  window.wzRenPreview = async function () {
+    $('wz12-plan').textContent = '正在扫描并生成预演…（照片较多，可能要几十秒）';
+    const r = await post('/api/video-rename/preview', { type: renType(), excludeBak: $('wz12-nobak').checked });
+    if (r.error) { $('wz12-plan').textContent = ''; return alert(r.error); }
+    $('wz12-plan').innerHTML = `扫描${r.type === 'photo' ? '照片' : '视频'} <b>${r.scanned}</b> 个 · 需要改名 <b style="color:var(--warn)">${r.willChange}</b> 个（其中 BAK <b>${r.inBak}</b> 个）· 撞名自动加序号 <b>${r.collisions}</b> 个`;
+    $('wz12-samples').innerHTML = (r.samples || []).map((s) => `<div>${esc12(s.old)} <span style="color:var(--ok)">→</span> ${esc12(s.neu)}</div>`).join('');
+    $('wz12-dl').style.display = r.willChange ? '' : 'none';
+    $('wz12-try').disabled = $('wz12-all').disabled = !r.willChange;
+  };
+  const esc12 = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  window.wzRenStart = async function (limit) {
+    const msg = limit ? `先改 ${limit} 个试试？（会真的改磁盘上的文件名，有日志可回滚）` : `改完预演里剩下的所有${renType() === 'photo' ? '照片' : '视频'}？`+'（会真的改磁盘上的文件名，包括 BAK；有日志可整批回滚）';
+    if (!confirm(msg)) return;
+    const r = await post('/api/video-rename/start', { limit, type: renType() });
+    if (r.error) return alert(r.error);
+    renLoad();
+    ppLoad();
+  };
+  window.wzRenStop = async function () { await post('/api/video-rename/stop', {}); renLoad(); };
+  window.wzRenRollback = async function (file) {
+    if (!confirm(`把日志 ${file} 里的改名全部改回去？`)) return;
+    const r = await post('/api/video-rename/rollback', { file });
+    if (r.error) return alert(r.error);
+    alert(`已恢复 ${r.restored} 个，跳过 ${r.skipped} 个，失败 ${r.failed} 个`); renLoad();
+  };
+  async function renLoad() {
+    let d; try { d = await gj('/api/video-rename/status?type=' + renType()); } catch (e) { return; }
+    const t = d.task;
+    const running = !!(t && t.state === 'running');
+    $('wz12-stop').style.display = running ? '' : 'none';
+    $('wz12-prev').disabled = running;
+    if (t) {
+      bar('wz12-bar', t.done + t.skipped + t.failed, t.total);
+      const stateTxt = { running: '执行中…', done: '已完成', stopped: '已停止' }[t.state] || t.state;
+      $('wz12-run').innerHTML = `${stateTxt}：已改 <b style="color:var(--ok)">${t.done}</b> / ${t.total} · 跳过 <b>${t.skipped}</b>${Object.keys(t.skipReasons || {}).length ? '（' + Object.entries(t.skipReasons).map(([k, v]) => k + ' ' + v).join('，') + '）' : ''} · 失败 <b style="color:${t.failed ? 'var(--err)' : 'inherit'}">${t.failed}</b> · 顺带改了转码副本 ${t.copies} 个`
+        + (t.errors && t.errors.length ? `<br><span class="hint" style="color:var(--err)">${esc12(t.errors[0].path)}：${esc12(t.errors[0].error)}</span>` : '');
+    }
+    if (!running) { $('wz12-try').disabled = $('wz12-all').disabled = !(d.planReady && d.planRemaining > 0); if (d.planReady && !running && $('wz12-plan').textContent.indexOf('还没有预演') === 0) $('wz12-plan').innerHTML = `预演还在（剩余 <b>${d.planRemaining}</b> 个待改）`; }
+    else $('wz12-try').disabled = $('wz12-all').disabled = true;
+    $('wz12-logs').innerHTML = (d.logs || []).length ? '改名日志（可回滚）：' + d.logs.map((l) => `${l.file}（${l.lines} 条）<button class="btn sm" onclick="wzRenRollback('${l.file}')">回滚</button>`).join(' · ') : '';
+  }
+  window.wzTcRecheck = async function () {
+    const r = await post('/api/video-playcheck/recheck-converted', {});
+    if (r.error) return alert(r.error);
+    alert(r.reset ? `已把转好的 ${r.reset} 个重新检查（进度看上面第⑩步）` : '还没有转好的可以重新检查');
+    watch('play', pcFetch, renderPlay);
+  };
+  window.wzStopPlay = () => post('/api/video-playcheck/stop');
+  window.wzPlayList = async function (cls) {
+    const d = await gj('/api/video-playcheck/list?class=' + cls + '&limit=500');
+    const rows = (d.items || []).map((x) => `<tr><td>${String(x.path).replace(/^\/share\//, '')}</td><td>${x.reason || ''}</td></tr>`).join('');
+    $('wz10-list').innerHTML = `<div class="result-scroll"><table class="result-table"><tr><th>视频</th><th>原因</th></tr>${rows || '<tr><td colspan=2>没有</td></tr>'}</table></div><div class="hint">最多显示前 500 条</div>`;
+  };
+
+  window.wzStart = async function (kind) {
+    if (kind === 'play' || kind === 'playall') {
+      if (kind === 'playall' && !confirm('把所有视频的检查结果清掉重新检查？')) return;
+      const r = await post('/api/video-playcheck/start', { scope: kind === 'playall' ? 'all' : 'unchecked', deep: $('wz10-deep').checked });
+      if (r.error) return alert(r.error);
+      return watch('play', pcFetch, renderPlay);
+    }
+    if (kind === 'key') {
+      if (!confirm('统一视频 key 前请确认：电脑上的抽帧程序已经 Ctrl+C 停掉。会先自动备份数据库，再逐个视频读头/中/尾各1MB算指纹（几万个视频要 十几到几十分钟）。继续？')) return;
+      const r = await post('/api/video-wizard/key-migrate/start');
+      if (r.error) return alert(r.error);
+      return watch('key', keyFetch, renderKey);
+    }
+    if (kind === 'replace') {
+      if (!confirm('用转码副本顶替原文件，并永久删除原来的视频（BAK 下的不动）。每个先核对时长，对不上自动跳过。继续？')) return;
+      const r = await post('/api/conv-replace/start');
+      if (r.error) return alert(r.error);
+      return watch('replace', replaceFetch, renderReplace);
+    }
+    if (kind === 'zm') {
+      if (!confirm('开始无损修复？原文件会先挪进各目录的回收目录，暂时不会删。')) return;
+      const r = await post('/api/zhuanma/fix/start');
+      if (r.error) return alert(r.error);
+      watch('zm', zmFetch, renderZm);
+    } else if (kind === 'clear') {
+      if (!confirm('验证新文件能正常读取后，永久删除回收目录里的旧文件（不能恢复）。继续？')) return;
+      await Promise.all([post('/api/zhuanma/verify-and-clear').catch(() => {}), post('/api/video-migrate/verify-and-clear').catch(() => {})]);
+      watchClear();
+    } else if (kind === 'apply') {
+      const list = await gj('/api/video-migrate/results?status=ok&limit=20000');
+      const paths = (list.items || []).map((x) => x.orig_path);
+      if (!paths.length) return alert('没有体检通过、待替换的视频（先在下面"换壳去重体检"卡片里体检）');
+      if (!confirm(`用换壳副本替换 ${paths.length} 个视频的原文件？原文件先挪进回收目录，之后点③才真正删除。`)) return;
+      const r = await post('/api/video-migrate/apply-batch', { origPaths: paths });
+      if (r.error) return alert(r.error);
+      watch('apply', applyFetch, renderApply);
+    }
+  };
+
+  // ── ⑤ 缩略图 ──
+  async function agent() {
+    let a; try { a = await gj('/api/video/agent-status'); } catch (e) { return; }
+    if (a.online) {
+      $('wz5-agent').innerHTML = '电脑抽帧程序：<b style="color:var(--ok)">✅ 在线</b>';
+      $('wz5-cmd').innerHTML = '';
+    } else {
+      $('wz5-agent').innerHTML = '电脑抽帧程序：<b style="color:var(--warn)">⚠ 没在运行</b>——在你电脑上打开 PowerShell，粘贴下面这行执行（窗口别关）：';
+      if (!$('wz5-cmd').firstChild) {
+        $('wz5-cmd').innerHTML = '<div class="wz-cmd"><input readonly id="wz5-cmdin" onclick="this.select()"><button class="btn sm" onclick="wzCopy()">复制</button></div>';
+        $('wz5-cmdin').value = a.startCmd || '';
+      }
+    }
+  }
+  window.wzCopy = function () {
+    const i = $('wz5-cmdin'); i.select();
+    (navigator.clipboard ? navigator.clipboard.writeText(i.value) : Promise.reject()).catch(() => document.execCommand('copy'));
+  };
+  window.wzThumbCheck = async function (force) {
+    const d = await gj('/api/video-wizard/thumb-check' + (force ? '?force=1' : ''));
+    if (d.status === 'computing' || d.status === 'none') {
+      $('wz5-stats').textContent = '统计中…（几秒）';
+      return setTimeout(() => wzThumbCheck(false), 2000);
+    }
+    if (d.status === 'ready') {
+      $('wz5-stats').innerHTML = `已标记截图的视频 <b>${d.total}</b> 个 · 其中图片文件缺失 <b style="color:${d.missing ? 'var(--err)' : 'var(--ok)'}">${d.missing}</b> 个`;
+      $('wz5-btn').disabled = !d.missing;
+    }
+  };
+  window.wzThumbReset = async function () {
+    if (!confirm('把缺图的视频重置成"待截图"，电脑上的抽帧程序会陆续补上（不会动视频文件本身）。继续？')) return;
+    const r = await post('/api/video-wizard/thumb-reset');
+    if (r.error) return alert(r.error);
+    $('wz5-btn').disabled = true;
+    thumbProgress(); clearInterval(timers.thumb); timers.thumb = setInterval(thumbProgress, 4000);
+  };
+  async function thumbProgress() {
+    let d; try { d = await gj('/api/video/progress'); } catch (e) { return; }
+    bar('wz5-bar', d.done, d.total);
+    let eta = '';
+    try {
+      const r = await gj('/api/video-wizard/thumb-rate');
+      if (r.perMin == null) eta = ' · 速度：样本不够，等几分钟';
+      else if (!r.etaMinutes) eta = ' · 速度：<b style="color:var(--warn)">最近没有在推进</b>（检查电脑程序是否在跑）';
+      else eta = ` · 速度约 <b>${r.perMin.toFixed(1)}</b> 个/分钟，预计还要 <b>${r.etaMinutes >= 120 ? (r.etaMinutes / 60).toFixed(1) + ' 小时' : Math.round(r.etaMinutes) + ' 分钟'}</b>`;
+    } catch (e) {}
+    $('wz5-run').innerHTML = `已有截图 <b style="color:var(--ok)">${d.done}</b>/${d.total} · 待截图 <b>${d.pending}</b> · 失败 <b>${d.failed}</b>（失败的不会自动重试）` + eta;
+  }
+
+  // ── 全部数字刷新 ──
+  async function loadAll() {
+    try {
+      const s = await gj('/api/zhuanma/scan');
+      $('wz1-stats').innerHTML = `已能在线播放 <b style="color:var(--ok)">${s.alreadyOk}</b> 个 · 能无损修好（→②）<b>${s.losslessFixable}</b> 个 · 只能有损转码（→⑨）<b>${s.needsLossyTranscode}</b> 个`;
+      if (!timers.zm) $('wz2-btn').disabled = !s.losslessFixable;
+    } catch (e) {}
+    try {
+      const t = await gj('/api/video-wizard/trash-preview');
+      if (t.status === 'ready') {
+        const tot = t.zhuanma.bytes + t.migrate.bytes;
+        $('wz3-stats').innerHTML = `回收目录里还躺着：无损修复留下 <b>${t.zhuanma.count}</b> 个（${fmt(t.zhuanma.bytes)}）+ 换壳替换留下 <b>${t.migrate.count}</b> 个（${fmt(t.migrate.bytes)}）→ 点下面按钮预计释放 <b style="color:var(--ok)">${fmt(tot)}</b>`;
+        if (!timers.clear) $('wz3-btn').disabled = !(t.zhuanma.count + t.migrate.count);
+      } else { $('wz3-stats').textContent = '统计回收目录中…（几秒）'; setTimeout(loadAll, 2500); }
+    } catch (e) {}
+    try {
+      const m = await gj('/api/video-wizard/migrate-pending');
+      const sm = await gj('/api/video-migrate/results?limit=1');
+      const c = (st) => ((sm.summary || []).find((x) => x.status === st) || { c: 0 }).c;
+      $('wz4-stats').innerHTML = `体检通过待替换 <b>${m.count}</b> 个（替换并释放后约省 <b style="color:var(--ok)">${fmt(m.bytes)}</b>）· 体检没通过 <b>${c('mismatch')}</b> 个（换壳后内容对不上，不能替换）· 已替换 <b>${c('applied')}</b> 个` + (m.stale ? ` · <span style="color:var(--warn)">${m.stale} 个"体检通过"已过期（换壳副本已不在，替换不了，无需处理）</span>` : '');
+      if (!timers.apply) $('wz4-btn').disabled = !m.count;
+    } catch (e) {}
+    try {
+      const p = await gj('/api/conv-replace/preview');
+      $('wz6-stats').innerHTML = `可顶替（非BAK、已有转码副本）<b>${p.count}</b> 个 → 预计释放 <b style="color:var(--ok)">${fmt(p.bytes)}</b> · BAK 下保留原文件不动 <b>${p.bakKept}</b> 个（${fmt(p.bakBytes)}）`;
+      if (!timers.replace) $('wz6-btn').disabled = !p.count;
+    } catch (e) {}
+    try { renderKey(await keyFetch()); } catch (e) {}
+    try { renderPlay(await pcFetch()); } catch (e) {}
+    renLoad();
+    tcLoad();
+    agent(); wzThumbCheck(false); thumbProgress(); wzOrphanCheck(false);
+  }
+  window.wzLoadAll = loadAll;
+
+  // 页面刷新后, 后台还在跑的任务接着显示进度
+  (async function resume() {
+    try { const d = await zmFetch(); if (d.status === 'running') watch('zm', zmFetch, renderZm); else renderZm(d); } catch (e) {}
+    try { const d = await applyFetch(); if (d.status === 'running') watch('apply', applyFetch, renderApply); else renderApply(d); } catch (e) {}
+    try { const d = await replaceFetch(); if (d.status === 'running') watch('replace', replaceFetch, renderReplace); else renderReplace(d); } catch (e) {}
+    try { const d = await keyFetch(); if (d.status === 'running') watch('key', keyFetch, renderKey); else renderKey(d); } catch (e) {}
+    try { const d = await pcFetch(); if (d.status === 'running') watch('play', pcFetch, renderPlay); else renderPlay(d); } catch (e) {}
+    try {
+      clr.zm = await gj('/api/zhuanma/verify-and-clear/current'); clr.vm = await gj('/api/video-migrate/verify-and-clear/current');
+      if ([clr.zm, clr.vm].some((p) => p && p.status === 'running')) watchClear(); else renderClear();
+    } catch (e) {}
+  })();
+  loadAll();
+  setInterval(agent, 10000);
+  setInterval(tcLoad, 6000);
+  setInterval(renLoad, 3000);
+  setInterval(ppLoad, 4000);
+  setInterval(() => { if ($('wz14-stop') && $('wz14-stop').style.display !== 'none') dcLoad(); }, 3000);
+})();
+</script>
+<script src="/common/file-browser.js"></script>
+</body>
+</html>

@@ -18,8 +18,27 @@ var VPlayer = (function () {
     return m ? m[1].toLowerCase() : '';
   }
 
+  // 2026-09-30: 静态判断(编码/扩展名/web_ready)只能"猜"浏览器能不能播, 猜错的时候(比如VP9的
+  // 4K竖屏视频, 编码在白名单里但这台电脑/浏览器实际解不了)卡片上还会一直显示"在线"。
+  // 现在浏览器真的报了解码/不支持错误, 就把这个视频记在本浏览器的localStorage里(能力因浏览器而异,
+  // 所以记本地不记服务器), canPlay对它直接返回'no', 卡片上的"在线"标签随之消失, 只剩Pot。
+  var BAD_KEY = 'vplBadMd5v2';   // v2: 丢掉之前因转换副本404被误记的结果
+  function badMap() { try { return JSON.parse(localStorage.getItem(BAD_KEY)) || {}; } catch (e) { return {}; } }
+  function isBad(md5) { return !!(md5 && badMap()[md5]); }
+  function markBad(md5) {
+    if (!md5) return;
+    try { var m = badMap(); m[md5] = Date.now(); localStorage.setItem(BAD_KEY, JSON.stringify(m)); } catch (e) {}
+  }
+  function clearBad(md5) {
+    try { var m = badMap(); delete m[md5]; localStorage.setItem(BAD_KEY, JSON.stringify(m)); } catch (e) {}
+  }
+
   function canPlay(v) {
     if (!v || !v.path) return 'no';
+    if (v.md5 && isBad(v.md5)) return 'no';
+    // nasmgr向导第⑩步(服务端ffprobe检查)的结果: -1 不能播 -> 不显示在线; 2 可能有问题 -> 半亮
+    if (v.play_check === -1) return 'no';
+    if (v.play_check === 2) return 'maybe';
     if (v.web_ready > 0) return 'yes';
     var e = extOf(v.path);
     if (OK_EXT.indexOf(e) < 0) return 'no';
@@ -37,18 +56,26 @@ var VPlayer = (function () {
     return '/convfiles' + convPath.replace(/^\/share/, '');
   }
 
+  // 路径里的 # ? % 等字符要按段编码, 否则浏览器把它们当成URL的一部分
+  function encPath(p) { return String(p || '').split('/').map(encodeURIComponent).join('/'); }
+  function origUrl(v) { return '/original' + encPath(v ? v.path : ''); }
+
   function srcOf(v) {
     if (v && v.web_ready > 0) {
       var u = convUrl(v);
-      if (u) return u;
+      if (u) return encPath(u);
     }
-    return '/original' + (v ? v.path : '');
+    return origUrl(v);
   }
 
   // ── 内部状态 ────────────────────────────────────────
   var el = null, video = null;
   var cur = null, list = [], idx = -1;
-  var hideTimer = null, seeking = false;
+  var triedOriginal = false;   // 转换副本请求失败后, 是否已经退回原文件重试过一次
+  var hideTimer = null, seeking = false, _lastSeekTs = 0;
+  var SEEK_THROTTLE_MS = 90;   // 2026-09-20: 拖进度条时不要每次touchmove/mousemove都真的seek——
+  // 大部分视频还没转码(关键帧间隔长), 一秒钟几十次seek会排队堆积、卡顿跟不上手指。
+  // 节流到最多约11次/秒真正seek, 中间用onBarHover的缩略图+时间文字做视觉反馈(不碰currentTime, 很便宜)。
   var abA = null, abB = null;
   var NEUTRAL = { bright: 100, contrast: 100, saturate: 100, hue: 0, sepia: 0, blur: 0, vignette: 0 };
   var filters = { bright: 100, contrast: 100, saturate: 100, hue: 0, sepia: 0, blur: 0, vignette: 0,
@@ -211,31 +238,50 @@ var VPlayer = (function () {
     video.addEventListener('waiting', function () { $('vpl-spin').classList.add('on'); });
     video.addEventListener('playing', function () { $('vpl-spin').classList.remove('on'); });
     video.addEventListener('canplay', function () { $('vpl-spin').classList.remove('on'); });
-    video.addEventListener('ended', function () { if (cfg('autoNext') !== false && idx >= 0 && idx < list.length - 1) jump(1); });
+    video.addEventListener('ended', function () { if (cfg('autoNext') !== false && idx >= 0) jump(1); });
     video.addEventListener('error', onError);
     video.addEventListener('loadedmetadata', onMeta);
 
     var bar = $('vpl-bar');
+    var _lastBarPt = null;
+    // 拖动过程中一直调onBarHover刷新缩略图+时间文字做视觉反馈(不碰currentTime, 很便宜),
+    // 真正的seekAt节流到SEEK_THROTTLE_MS一次; 松手时finalizeSeek()补一次精确的最终位置,
+    // 不会因为节流跳过了最后一次移动而停在不精确的地方。
+    function throttledSeekAt(pt) {
+      _lastBarPt = pt;
+      onBarHover(pt);
+      var now = Date.now();
+      if (now - _lastSeekTs < SEEK_THROTTLE_MS) return;
+      _lastSeekTs = now;
+      seekAt(pt);
+    }
+    function finalizeSeek() {
+      if (_lastBarPt) { seekAt(_lastBarPt); _lastBarPt = null; }
+    }
+
     bar.addEventListener('mousemove', onBarHover);
     bar.addEventListener('mouseleave', function () { $('vpl-preview').classList.remove('on'); });
-    bar.addEventListener('mousedown', function (e) { seeking = true; seekAt(e); });
-    document.addEventListener('mousemove', function (e) { if (seeking) seekAt(e); });
-    document.addEventListener('mouseup', function () { seeking = false; });
+    bar.addEventListener('mousedown', function (e) { seeking = true; _lastSeekTs = Date.now(); seekAt(e); });
+    document.addEventListener('mousemove', function (e) { if (seeking) throttledSeekAt(e); });
+    document.addEventListener('mouseup', function () { if (seeking) finalizeSeek(); seeking = false; });
 
     // 2026-08-13: 进度条触摸拖拽(手机上原来只能点, 不能拖着走)
     bar.addEventListener('touchstart', function (e) {
       seeking = true;
+      _lastSeekTs = Date.now();
       seekAt(e.touches[0]);
       e.stopPropagation();   // 别让画面区域那套滑动/长按手势也跟着触发
       e.preventDefault();
     }, { passive: false });
     bar.addEventListener('touchmove', function (e) {
-      if (seeking) seekAt(e.touches[0]);
+      if (seeking) throttledSeekAt(e.touches[0]);
       e.stopPropagation();
       e.preventDefault();
     }, { passive: false });
     bar.addEventListener('touchend', function (e) {
+      if (seeking) finalizeSeek();
       seeking = false;
+      $('vpl-preview').classList.remove('on');
       e.stopPropagation();
     });
 
@@ -299,17 +345,19 @@ var VPlayer = (function () {
       applyFx();
     });
     document.addEventListener('mouseup', function () { panDragging = false; });
-    // ── 手机触摸手势(2026-08-13加): 双击左右快进快退 / 横向滑动seek / 长按2倍速 ──
+    // ── 手机触摸手势(2026-08-13加, 2026-09-20加上下滑切换): 横向滑动seek / 长按2倍速 /
+    //    竖直滑动切上一个下一个(仿抖音: 上滑=下一个, 下滑=上一个) ──
     var TOUCH_SEEK_LEVELS = [3, 6, 12, 24, 48, 60, 90, 120];   // 2026-08-13: 改成按滑动距离分档, 不再按屏幕宽度比例
     var TOUCH_SEEK_LEVEL_PX = 40;   // 每滑多少像素跳到下一档
     var TOUCH_DRAG_PX = 10;        // 超过这个像素才算"在滑动", 否则算点击
+    var TOUCH_VSWIPE_COMMIT_PX = 70;   // 竖直滑动超过这个距离才真的切换, 否则松手不动作
     var TOUCH_LONG_PRESS_MS = 500;
     var TOUCH_DOUBLE_TAP_MS = 300;
     var TOUCH_DOUBLE_TAP_DIST = 60;
 
     var ts = {
       startX: 0, startY: 0, startVideoTime: 0,
-      isDragging: false, isLongPress: false,
+      isDragging: false, isVSwipe: false, isLongPress: false,
       longPressTimer: null, origRate: 1,
       lastTapTime: 0, lastTapX: 0
     };
@@ -344,7 +392,7 @@ var VPlayer = (function () {
       var t = e.touches[0];
       ts.startX = t.clientX; ts.startY = t.clientY;
       ts.startVideoTime = video.currentTime;
-      ts.isDragging = false; ts.isLongPress = false;
+      ts.isDragging = false; ts.isVSwipe = false; ts.isLongPress = false;
 
       clearTimeout(ts.longPressTimer);
       ts.longPressTimer = setTimeout(function () {
@@ -379,8 +427,16 @@ var VPlayer = (function () {
       var dx = t.clientX - ts.startX;
       var dy = t.clientY - ts.startY;
 
-      if (!ts.isDragging && Math.abs(dx) > TOUCH_DRAG_PX && Math.abs(dx) > Math.abs(dy)) {
+      if (!ts.isDragging && !ts.isVSwipe && Math.abs(dx) > TOUCH_DRAG_PX && Math.abs(dx) > Math.abs(dy)) {
         ts.isDragging = true;
+        clearTimeout(ts.longPressTimer);
+        if (ts.isLongPress) {
+          video.playbackRate = ts.origRate;
+          ts.isLongPress = false;
+        }
+      }
+      if (!ts.isDragging && !ts.isVSwipe && Math.abs(dy) > TOUCH_DRAG_PX && Math.abs(dy) > Math.abs(dx)) {
+        ts.isVSwipe = true;
         clearTimeout(ts.longPressTimer);
         if (ts.isLongPress) {
           video.playbackRate = ts.origRate;
@@ -392,6 +448,10 @@ var VPlayer = (function () {
         e.preventDefault();   // 阻止页面跟着滑动
         var target = touchSeekTarget(dx);
         flash(fmt(target) + (dx >= 0 ? ' ▶ +' : ' ◀ ') + fmt(Math.abs(target - ts.startVideoTime)));
+      } else if (ts.isVSwipe) {
+        e.preventDefault();   // 阻止竖滑带动页面滚动/下拉刷新
+        var ready = Math.abs(dy) > TOUCH_VSWIPE_COMMIT_PX;
+        flash((dy < 0 ? '↑ 下一个' : '↓ 上一个') + (ready ? ' (松开切换)' : ''));
       }
     }, { passive: false });
 
@@ -419,6 +479,14 @@ var VPlayer = (function () {
         ts.isDragging = false;
         return;
       }
+
+      if (ts.isVSwipe) {
+        var t2 = e.changedTouches[0];
+        var dy = t2.clientY - ts.startY;
+        ts.isVSwipe = false;
+        if (Math.abs(dy) > TOUCH_VSWIPE_COMMIT_PX) { if (dy < 0) jump(1); else jump(-1); }
+        return;
+      }
       // 2026-08-13: 去掉双击快进快退(全屏时体验不好, 改用进度条真实拖拽+滑动分档两种方式替代)
     }, { passive: false });
 
@@ -427,6 +495,7 @@ var VPlayer = (function () {
       if (ts.isLongPress) { video.playbackRate = ts.origRate; ts.isLongPress = false; }
       ts.isPinching = false;
       ts.isDragging = false;
+      ts.isVSwipe = false;
     });
   }
 
@@ -461,6 +530,7 @@ var VPlayer = (function () {
     } catch (e) {}
     syncVol();
 
+    triedOriginal = false;
     video.src = srcOf(v);
     video.load();
     $('vpl-spin').classList.add('on');
@@ -506,11 +576,32 @@ var VPlayer = (function () {
   }
 
   function onError() {
+    // 2026-09-30查到的真正根因: web_ready>0 的视频播放器一律先请求"转换/"目录里的换壳/转码副本,
+    // 可无损修复、换壳替换、转码顶替这些流程做完后, 副本已经被顶替进原位或清掉了(库里约2.2万个视频
+    // 的副本已经不在), /convfiles 返回404, 浏览器把404报成"格式不支持"——跟编码根本无关。
+    // 所以: 第一次失败如果用的是副本地址, 先退回原文件再试一次, 原文件也失败才算真的播不了。
+    if (cur && !triedOriginal && video.currentSrc && video.currentSrc.indexOf('/convfiles/') >= 0) {
+      triedOriginal = true;
+      video.src = origUrl(cur);
+      video.load();
+      $('vpl-spin').classList.add('on');
+      video.play().catch(function () {});
+      return;
+    }
     $('vpl-spin').classList.remove('on');
+    // 只有"解码失败(3)/格式不支持(4)"才算这个浏览器播不了; 网络抖动(2)/被中断(1)不记
+    var code = video && video.error ? video.error.code : 0;
+    if (cur && (code === 3 || code === 4)) {
+      markBad(cur.md5);
+      // 列表里这张卡片的"在线"标签立刻去掉(app.js的refreshCard按canPlay重画)
+      try { if (typeof window.refreshCard === 'function' && idx >= 0) window.refreshCard(idx); } catch (e) {}
+    }
     $('vpl-center').innerHTML =
       '<div class="vpl-err">浏览器无法播放此格式<br>' +
-      '<small>' + esc(cur.vcodec || '未知编码') + ' · ' + esc(extOf(cur.path)) + '</small><br>' +
-      '<button onclick="VPlayer.toPot()">用 PotPlayer 打开</button></div>';
+      '<small>' + esc(cur.vcodec || '未知编码') + ' · ' + esc(extOf(cur.path)) +
+      (cur.width && cur.height ? ' · ' + cur.width + '×' + cur.height : '') + '</small><br>' +
+      '<button onclick="VPlayer.toPot()">用 PotPlayer 打开</button> ' +
+      '<button onclick="VPlayer.close()">关闭</button></div>';
   }
 
   function close() {
@@ -537,9 +628,9 @@ var VPlayer = (function () {
   function jump(d) {
     savePos();
     var n = idx + d;
-    if (n < 0 || n >= list.length) { flash(d > 0 ? '已是最后一个' : '已是第一个'); return; }
-    while (n >= 0 && n < list.length && canPlay(list[n]) === 'no') n += d;
-    if (n < 0 || n >= list.length) { flash('没有更多可在线播放的'); return; }
+    if (n < 0 || n >= list.length) { if (d > 0 && window.vNextDir) { window.vNextDir(); return; } flash(d > 0 ? '已是最后一个' : '已是第一个'); return; }
+    while (n >= 0 && n < list.length && (canPlay(list[n]) === 'no' || list[n]._deleted)) n += d;   // 2026-10-01: 也跳过已放进回收站的
+    if (n < 0 || n >= list.length) { if (d > 0 && window.vNextDir) { window.vNextDir(); return; } flash('没有更多可在线播放的'); return; }
     open(list[n], list, n);
   }
 
@@ -1046,6 +1137,7 @@ var VPlayer = (function () {
     open: open,
     close: close,
     canPlay: canPlay,
+    clearBad: clearBad,
     getCur: getCur,
     setSpeed: setSpeed,
     setFx: setFx,

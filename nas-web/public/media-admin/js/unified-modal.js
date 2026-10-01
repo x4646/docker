@@ -9,7 +9,9 @@ window.UnifiedModal = {
     el = document.createElement("div");
     el.id = "unified-modal";
     el.style.cssText = "display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.6);align-items:center;justify-content:center;padding:16px";
-    el.innerHTML = "<div id=\"unified-modal-box\" style=\"min-width:300px;max-width:480px;max-height:85vh;overflow-y:auto;\">" +
+    // 2026-09-20: 原来min-width:300px, 加上外层16px padding, 在320px宽的小屏手机上会溢出——
+    // 改用width:min(480px,92vw), 桌面不变, 窄屏自动收到视口的92%
+    el.innerHTML = "<div id=\"unified-modal-box\" style=\"width:min(480px,92vw);box-sizing:border-box;max-height:85vh;overflow-y:auto;\">" +
       "<div id=\"unified-modal-head\" style=\"display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid #2a3d55;\">" +
       "<span id=\"unified-modal-title\" style=\"font-weight:700;color:#40d0ff;font-size:.95rem;\"></span>" +
       "<span id=\"unified-modal-close\" style=\"cursor:pointer;color:#507090;font-size:1.1rem;line-height:1\">&#10005;</span>" +
@@ -44,7 +46,9 @@ window.UnifiedProgress = {
     el = document.createElement("div");
     el.id = "unified-progress-modal";
     el.style.cssText = "display:none;position:fixed;inset:0;z-index:9998;background:rgba(0,0,0,.55);align-items:center;justify-content:center;padding:16px";
-    el.innerHTML = "<div style=\"width:380px;padding:18px;border-radius:10px;background:#141d29;border:1px solid #2a3d55;box-shadow:0 14px 44px rgba(0,0,0,.6);\">" +
+    // 2026-09-20: 原来固定380px, 手机上(比如375px宽的屏幕再减去外层16px padding)会溢出——
+    // 改用width:min(380px,92vw)
+    el.innerHTML = "<div style=\"width:min(380px,92vw);box-sizing:border-box;padding:18px;border-radius:10px;background:#141d29;border:1px solid #2a3d55;box-shadow:0 14px 44px rgba(0,0,0,.6);\">" +
       "<div id=\"up-title\" style=\"font-weight:700;color:#40d0ff;margin-bottom:12px;\"></div>" +
       "<div id=\"up-status\" style=\"color:#c8dff5;font-size:.82rem;margin-bottom:10px;\">请求中…</div>" +
       "<div style=\"height:8px;background:#1e2838;border-radius:4px;overflow:hidden;margin-bottom:8px;\">" +

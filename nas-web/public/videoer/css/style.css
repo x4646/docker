@@ -9,6 +9,7 @@ body{
   margin:0; background:var(--bg); color:var(--text);
   font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif;
   -webkit-tap-highlight-color:transparent;
+  overflow-x:hidden;
 }
 button,input{font-family:inherit}
 
@@ -163,20 +164,18 @@ button,input{font-family:inherit}
   max-height:calc(100vh - 104px); overflow-y:auto;
   border-right:1px solid var(--border); padding:8px 0;
   position:sticky; top:104px;
-  min-width:160px; max-width:480px;
+  min-width:160px; max-width:800px;   /* 2026-10-01: 最大宽度 480 → 800 */
 }
 .dirs.show{display:block}
 /* ── 目录树拖拽调宽(2026-08-13加, 照搬照片页sidebar-resizer那套) ──
    拖拽条是.dirs的兄弟节点(不是子节点!), 因为目录树组件渲染时会把
    #dirs的innerHTML整个覆盖掉, 放里面会被清空; left位置靠JS动态跟随.dirs宽度 */
 .dirs-resizer{
-  position:fixed;   /* 2026-08-13: 改成fixed, 配合JS在scroll时持续同步位置, 因为.dirs是sticky定位,
-                        跟absolute相对静态祖先定位对不上, 滚动起来两者会错开(实测验证过) */
-  width:5px; cursor:col-resize;
-  background:transparent; transition:background .15s;
-  z-index:20;
+  position:fixed;   /* 2026-08-13: 改成fixed, 配合JS在scroll时持续同步位置(.dirs是sticky定位) */
+  width:14px; margin-left:-7px; cursor:col-resize; background:transparent; z-index:20;   /* 2026-10-01: 命中区域加宽到 14px, 视觉是中间一条线 */
 }
-.dirs-resizer:hover, .dirs-resizer.active{ background:#40d0ff; }
+.dirs-resizer::before{ content:''; position:absolute; left:50%; top:0; bottom:0; width:2px; margin-left:-1px; border-radius:3px; background:transparent; transition:width .12s, margin-left .12s, background .12s; }
+.dirs-resizer:hover::before, .dirs-resizer.active::before{ width:6px; margin-left:-3px; background:rgba(64,208,255,.85); }
 .dir{
   display:flex; align-items:center; gap:2px;
   padding:5px 10px 5px 8px; font-size:.74rem; color:var(--text2);
@@ -368,6 +367,15 @@ text-align:center; padding:3px 0;
 }
 
 @media(max-width:700px){
+  /* .hd原来是不换行的一整行, 挤了7-8个按钮+搜索框, body又没设overflow-x:hidden,
+     窄屏下整页都能被拖出横向滚动条——这里让顶栏允许换行, 不做"更多菜单", 保持每个
+     功能都还能点到 */
+  .hd{ flex-wrap:wrap; height:auto; min-height:52px; padding:8px 14px; row-gap:6px; }
+  #build-ver{ display:none; }   /* 纯调试用的构建号, 手机上没必要占地方 */
+  /* .filters的sticky top:52px是按桌面端顶栏固定52px算的, 顶栏换行变高之后这个值就不对了。
+     与其猜一个可能跟着顶栏内容变化而漂移的精确像素值, 不如手机上直接不sticky——
+     screen空间本来就紧张, 筛选栏跟着页面滚走也不影响使用。 */
+  .filters{ position:static; }
   .hd-search{width:110px}
   .hd-title{display:none}
   .hd-stats{display:none}
@@ -456,3 +464,92 @@ text-align:center; padding:3px 0;
 .cat-adult.on{border-color:#ffb3d9; box-shadow:0 0 6px rgba(255,95,168,.6)}
 .cat-family{background:#f5f7fa}
 .cat-family.on{border-color:#8aa8c8; box-shadow:0 0 6px rgba(255,255,255,.5)}
+
+/* 2026-10-01 筛选悬浮图标 + 悬浮面板(与图片库一致). 桌面端"更多筛选"面板固定在屏幕上方、盖在内容最上层, 不挤占内容也不随页面滚走; 手机仍用原来的弹窗 */
+#fp-fab {
+  position: fixed; right: 14px; top: 45%; z-index: 150;
+  width: 46px; height: 46px; border-radius: 50%;
+  background: #161d28; border: 2px solid #2a3d55; color: #f0f6ff; font-size: 1.25rem; line-height: 1;
+  cursor: pointer; box-shadow: 0 4px 16px rgba(0,0,0,.55); display: flex; align-items: center; justify-content: center;
+  transition: transform .15s, border-color .15s, background .15s;
+}
+#fp-fab:hover { transform: scale(1.1); border-color: var(--accent); }
+#fp-fab.on { border-color: var(--accent); background: #12303d; }
+#fp-fab.has { border-color: var(--accent); }
+#fp-fab-count {
+  display: none; position: absolute; top: -6px; right: -6px; min-width: 20px; height: 20px; padding: 0 5px; box-sizing: border-box;
+  align-items: center; justify-content: center; border-radius: 10px; background: #ff5567; color: #fff; font-size: .7rem; font-weight: 700;
+}
+@media (min-width: 701px) {
+  .more-filters.show {
+    position: fixed; top: 64px; right: 72px; z-index: 160;
+    width: min(860px, calc(100vw - 100px)); max-height: calc(100vh - 84px) !important; overflow-y: auto;
+    border: 1px solid #2a3d55 !important; border-radius: 12px; box-shadow: 0 12px 44px rgba(0,0,0,.7); background: #121a26; box-sizing: border-box;
+  }
+  #mf-height-resizer { display: none !important; }
+}
+#mf-head { display: flex; align-items: center; gap: 6px; user-select: none; margin: -2px 0 2px; }
+#mf-head b { font-size: .84rem; color: #f0f6ff; }
+#mf-head button { padding: 2px 9px; font-size: .72rem; border-radius: 6px; border: 1px solid #2a3d55; background: transparent; color: #8aa8c8; cursor: pointer; }
+#mf-head button:hover { border-color: var(--accent); color: var(--accent); }
+
+/* ══ 2026-10-01 与图片库一致: 排布(等高行/瀑布/网格) + 列数 + 批量选择 + 底部工具栏 ══ */
+#grid[data-layout="justified"] { display:flex; flex-wrap:wrap; gap:8px; column-width:auto; column-count:auto; }
+#grid[data-layout="justified"] .card { flex:none; min-width:0; margin-bottom:0; width:calc(var(--r,1.78) * var(--row-h,180px)); }
+#grid[data-layout="justified"] .card-thumb { aspect-ratio:var(--r,1.78) !important; }
+#grid[data-layout="masonry"] { display:block; column-count:var(--col-count,4); column-width:auto; column-gap:10px; }
+#grid[data-layout="grid"] { display:grid; grid-template-columns:repeat(var(--col-count,4),1fr); gap:10px; align-items:start; column-width:auto; }
+#grid[data-layout="grid"] .card { margin-bottom:0; }
+#grid[data-cols="7"] .card-dir, #grid[data-cols="8"] .card-dir, #grid[data-cols="9"] .card-dir, #grid[data-cols="10"] .card-dir,
+#grid[data-cols="7"] .card-bar, #grid[data-cols="8"] .card-bar, #grid[data-cols="9"] .card-bar, #grid[data-cols="10"] .card-bar { display:none; }
+#grid[data-cols="7"] .card-name, #grid[data-cols="8"] .card-name, #grid[data-cols="9"] .card-name, #grid[data-cols="10"] .card-name { font-size:.6rem; }
+.sel-check { display:none; position:absolute; top:8px; left:8px; z-index:6; width:20px; height:20px; accent-color:var(--accent); }
+#grid.select-mode .sel-check { display:block; }
+#grid.select-mode .card.selected { outline:3px solid var(--accent); outline-offset:-3px; }
+.floating-toolbar {
+  position:fixed; left:50%; bottom:16px; transform:translateX(-50%); z-index:140; display:flex; align-items:center; gap:14px;
+  background:#182535; border:1px solid #2a3d55; border-radius:10px; padding:8px 16px; box-shadow:0 8px 30px rgba(0,0,0,.5);
+  transition:transform .2s ease, opacity .2s ease; font-size:.78rem; color:var(--text2);
+}
+.floating-toolbar.hide { transform:translateX(-50%) translateY(120%); opacity:0; pointer-events:none; }
+.floating-toolbar b { color:var(--text); }
+.col-count-ctrl { display:flex; align-items:center; gap:6px; font-size:.78rem; color:var(--text2); }
+.col-count-ctrl button { width:24px; height:24px; border-radius:5px; border:1px solid #2a3d55; background:transparent; color:var(--text); cursor:pointer; }
+.col-count-ctrl button:hover:not(:disabled) { border-color:var(--accent); color:var(--accent); }
+.col-count-ctrl button:disabled { opacity:.35; cursor:not-allowed; }
+.col-count-ctrl .val { min-width:14px; text-align:center; color:var(--text); font-weight:700; }
+.fbtn { padding:3px 12px; font-size:.78rem; border-radius:6px; border:1px solid #2a3d55; background:transparent; color:#c8dff5; cursor:pointer; text-decoration:none; }
+.fbtn:hover { border-color:var(--accent); color:var(--accent); } .fbtn.active { border-color:var(--accent); color:var(--accent); }
+.batch-bar {
+  position:fixed; left:50%; bottom:16px; transform:translateX(-50%) translateY(120%); z-index:141; display:flex; align-items:center; gap:12px;
+  background:#182535; border:1px solid #2a3d55; border-radius:10px; padding:10px 18px; box-shadow:0 8px 30px rgba(0,0,0,.5);
+  transition:transform .2s ease; font-size:.82rem; color:var(--text2);
+}
+.batch-bar.show { transform:translateX(-50%) translateY(0); }
+.batch-bar b { color:var(--text); }
+@media(max-width:700px) {
+  .floating-toolbar { left:12px; right:12px; bottom:12px; transform:none; width:auto; flex-wrap:wrap; justify-content:center; }
+  .floating-toolbar.hide { transform:translateY(120%); }
+  .batch-bar { left:12px; right:12px; bottom:12px; transform:translateY(120%); width:auto; flex-wrap:wrap; justify-content:center; }
+  .batch-bar.show { transform:translateY(0); }
+}
+body { padding-bottom: 70px; }   /* 给底部悬浮工具栏留位置, 免得盖住最后一排 */
+
+/* 2026-10-01 列数 11~20: 卡片很小, 只留缩略图(隐藏文件名/目录/评分条和角标), 间距更小 */
+#grid[data-cols="11"] .card-name, #grid[data-cols="12"] .card-name, #grid[data-cols="13"] .card-name, #grid[data-cols="14"] .card-name, #grid[data-cols="15"] .card-name, #grid[data-cols="16"] .card-name, #grid[data-cols="17"] .card-name, #grid[data-cols="18"] .card-name, #grid[data-cols="19"] .card-name, #grid[data-cols="20"] .card-name, #grid[data-cols="11"] .card-dir, #grid[data-cols="12"] .card-dir, #grid[data-cols="13"] .card-dir, #grid[data-cols="14"] .card-dir, #grid[data-cols="15"] .card-dir, #grid[data-cols="16"] .card-dir, #grid[data-cols="17"] .card-dir, #grid[data-cols="18"] .card-dir, #grid[data-cols="19"] .card-dir, #grid[data-cols="20"] .card-dir, #grid[data-cols="11"] .card-bar, #grid[data-cols="12"] .card-bar, #grid[data-cols="13"] .card-bar, #grid[data-cols="14"] .card-bar, #grid[data-cols="15"] .card-bar, #grid[data-cols="16"] .card-bar, #grid[data-cols="17"] .card-bar, #grid[data-cols="18"] .card-bar, #grid[data-cols="19"] .card-bar, #grid[data-cols="20"] .card-bar, #grid[data-cols="11"] .card-ext, #grid[data-cols="12"] .card-ext, #grid[data-cols="13"] .card-ext, #grid[data-cols="14"] .card-ext, #grid[data-cols="15"] .card-ext, #grid[data-cols="16"] .card-ext, #grid[data-cols="17"] .card-ext, #grid[data-cols="18"] .card-ext, #grid[data-cols="19"] .card-ext, #grid[data-cols="20"] .card-ext, #grid[data-cols="11"] .card-size, #grid[data-cols="12"] .card-size, #grid[data-cols="13"] .card-size, #grid[data-cols="14"] .card-size, #grid[data-cols="15"] .card-size, #grid[data-cols="16"] .card-size, #grid[data-cols="17"] .card-size, #grid[data-cols="18"] .card-size, #grid[data-cols="19"] .card-size, #grid[data-cols="20"] .card-size, #grid[data-cols="11"] .card-dur, #grid[data-cols="12"] .card-dur, #grid[data-cols="13"] .card-dur, #grid[data-cols="14"] .card-dur, #grid[data-cols="15"] .card-dur, #grid[data-cols="16"] .card-dur, #grid[data-cols="17"] .card-dur, #grid[data-cols="18"] .card-dur, #grid[data-cols="19"] .card-dur, #grid[data-cols="20"] .card-dur, #grid[data-cols="11"] .card-btns, #grid[data-cols="12"] .card-btns, #grid[data-cols="13"] .card-btns, #grid[data-cols="14"] .card-btns, #grid[data-cols="15"] .card-btns, #grid[data-cols="16"] .card-btns, #grid[data-cols="17"] .card-btns, #grid[data-cols="18"] .card-btns, #grid[data-cols="19"] .card-btns, #grid[data-cols="20"] .card-btns { display: none !important; }
+#grid[data-layout="justified"][data-cols="11"], #grid[data-layout="justified"][data-cols="12"], #grid[data-layout="justified"][data-cols="13"], #grid[data-layout="justified"][data-cols="14"], #grid[data-layout="justified"][data-cols="15"], #grid[data-layout="justified"][data-cols="16"], #grid[data-layout="justified"][data-cols="17"], #grid[data-layout="justified"][data-cols="18"], #grid[data-layout="justified"][data-cols="19"], #grid[data-layout="justified"][data-cols="20"] { gap: 3px; }
+.col-count-ctrl input[type=range] { margin-left: 4px; }
+
+/* 2026-10-01 目录栏滚动条与图片页一致: 3px 细条、透明轨道、滑块深蓝灰、鼠标放上去变蓝 */
+.dirs { scrollbar-width: thin; scrollbar-color: #2a3d55 transparent; }
+.dirs::-webkit-scrollbar { width: 3px; }
+.dirs::-webkit-scrollbar-track { background: transparent; }
+.dirs::-webkit-scrollbar-thumb { background: #2a3d55; border-radius: 3px; }
+.dirs::-webkit-scrollbar-thumb:hover { background: #40d0ff; }
+
+/* 2026-10-01 列数很多、卡片很小时, "在线"/"Pot" 播放按钮也要保留(之前 11~20 列被我整个藏掉了), 按列数缩小:
+   11~14 列: 两个按钮横排、字更小; 15~20 列: 竖着叠, 更小。始终显示在缩略图右上角。 */
+#grid[data-cols="11"] .card-btns, #grid[data-cols="12"] .card-btns, #grid[data-cols="13"] .card-btns, #grid[data-cols="14"] .card-btns { display:flex !important; top:3px; right:3px; gap:2px; }
+#grid[data-cols="11"] .cb, #grid[data-cols="12"] .cb, #grid[data-cols="13"] .cb, #grid[data-cols="14"] .cb { padding:1px 4px; font-size:.5rem; letter-spacing:0; }
+#grid[data-cols="15"] .card-btns, #grid[data-cols="16"] .card-btns, #grid[data-cols="17"] .card-btns, #grid[data-cols="18"] .card-btns, #grid[data-cols="19"] .card-btns, #grid[data-cols="20"] .card-btns { display:flex !important; flex-direction:column; top:2px; right:2px; gap:2px; }
+#grid[data-cols="15"] .cb, #grid[data-cols="16"] .cb, #grid[data-cols="17"] .cb, #grid[data-cols="18"] .cb, #grid[data-cols="19"] .cb, #grid[data-cols="20"] .cb { padding:1px 3px; font-size:.44rem; letter-spacing:0; border-radius:2px; }

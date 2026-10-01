@@ -161,15 +161,15 @@
     <div style="margin-bottom:10px">
       <input id="song-search" placeholder="🔍 搜索歌名(搜索全部音乐)" style="width:100%;background:#182535;border:1px solid #263548;border-radius:6px;color:#f0f6ff;padding:8px 12px;font-size:.85rem" oninput="filterPickerSongs()">
     </div>
-    <div style="display:flex;gap:12px;height:400px">
-      <div style="width:260px;display:flex;flex-direction:column;border:1px solid #263548;border-radius:8px;overflow:hidden">
+    <div class="song-picker-body" style="display:flex;gap:12px">
+      <div class="song-picker-tree-col" style="display:flex;flex-direction:column;border:1px solid #263548;border-radius:8px;overflow:hidden">
         <div style="padding:8px 12px;font-size:.74rem;color:#507090;border-bottom:1px solid #263548">音乐目录</div>
         <div id="song-picker-tree" style="flex:1;overflow:auto;padding:6px"></div>
         <label style="padding:8px 12px;font-size:.74rem;color:#8fa8c4;border-top:1px solid #263548;cursor:pointer">
           <input type="checkbox" id="song-picker-recursive" onchange="loadPickerSongs()" style="margin-right:6px">含子目录
         </label>
       </div>
-      <div style="flex:1;display:flex;flex-direction:column;border:1px solid #263548;border-radius:8px;overflow:hidden">
+      <div class="song-picker-list-col" style="flex:1;display:flex;flex-direction:column;border:1px solid #263548;border-radius:8px;overflow:hidden">
         <div style="padding:8px 12px;font-size:.74rem;color:#507090;border-bottom:1px solid #263548;display:flex;justify-content:space-between">
           <span id="song-picker-dir">/share/Media/音乐</span>
           <span><a onclick="pickerSelectAll(true)" style="color:#40d0ff;cursor:pointer">全选</a> · <a onclick="pickerSelectAll(false)" style="color:#40d0ff;cursor:pointer">清空</a></span>

@@ -1,0 +1,10 @@
+node_modules
+dist
+tmp
+vthumbs
+data
+*.bak*
+*.bak
+dedup_merge_log_*.txt
+dedup_report_*.txt
+.git

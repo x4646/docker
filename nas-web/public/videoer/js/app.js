@@ -16,9 +16,36 @@ var SHARE_MAP = [
   ['/share/Container', 'X:']
 ];
 
-// 成人/家庭分类偏好: 存 localStorage, 刷新页面记住选择
+// 2026-09-20加: 默认家庭内容, 切到"成人"/"全部"要输密码, 密码对了只在当前浏览器
+// 会话(sessionStorage, 关标签页/浏览器就失效)内记住, 不写进localStorage长期免密。
+var NONFAMILY_PASSWORD = '1';
+function isNonFamilyUnlocked() {
+  try { return sessionStorage.getItem('vNonFamilyUnlocked') === '1'; } catch (e) { return false; }
+}
+function unlockNonFamily() {
+  try { sessionStorage.setItem('vNonFamilyUnlocked', '1'); } catch (e) {}
+}
+
+// 2026-09-24加: 默认浏览用的文件夹随机种子, 存sessionStorage——同一次浏览器会话内
+// 保持不变(翻页顺序稳定, 不重不漏), 关掉标签页/浏览器再打开才会换一批顺序。
+// 跟viewer(照片)是同一套机制, key不同避免两个页面互相干扰。
+function _getVideoDirSeed() {
+  try {
+    var s = sessionStorage.getItem('videoer_dir_seed');
+    if (!s) { s = String(1 + Math.floor(Math.random() * 999999937)); sessionStorage.setItem('videoer_dir_seed', s); }
+    return s;
+  } catch (e) { return '1'; }
+}
+
+// 成人/家庭分类偏好: 存 localStorage, 刷新页面记住选择。
+// 本次会话没解锁过的话, 哪怕localStorage里存的是旧的"成人"/"全部"偏好也不直接采用,
+// 一律先按家庭处理, 避免这个功能上线前就选过"全部"的人绕过密码。
 function loadCategoryPref() {
-  try { return localStorage.getItem('vCategory') || 'both'; } catch (e) { return 'both'; }
+  try {
+    var v = localStorage.getItem('vCategory') || 'family';
+    if (v !== 'family' && !isNonFamilyUnlocked()) return 'family';
+    return v;
+  } catch (e) { return 'family'; }
 }
 function saveCategoryPref(v) {
   try { localStorage.setItem('vCategory', v); } catch (e) {}
@@ -105,6 +132,133 @@ function toast(msg) {
   el.classList.add('show');
   clearTimeout(_toastTimer);
   _toastTimer = setTimeout(function () { el.classList.remove('show'); }, 2000);
+}
+
+// 2026-09-27补: 目录树右键菜单"加入抽帧队列"点了没反应——这个函数之前只在菜单里
+// 被调用, 从没被定义过(浏览器控制台里其实一直报ReferenceError, 只是没人点开看过)。
+// 对应后端 POST /api/video/queue-dir {path, includeDone}, 把这个目录下所有视频的
+// shots重置成0, 排到PC端video_thumbs.ps1下次巡检的待处理队列里。includeDone=true:
+// 哪怕这个目录下的视频之前已经抽过帧, 也强制重新排队(用户主动点这个菜单项,
+// 就是想手动补救/重新生成, 不应该被"已经做过"挡住)。
+//
+// 抽帧本身是PC端agent在后台跑的持续过程, 不是"点一下立刻做完"的一次性任务,
+// 光弹个toast看不出进度——点了之后打开一个轮询/api/video/progress的小面板,
+// 跟"扫描视频入库"共用同一个面板(扫描完如果有新视频, 紧接着也要抽帧, 直接续上看进度)。
+function dtwVideoShots(path) {
+  fetch('/api/video/queue-dir', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ path: path, includeDone: true })
+  }).then(function (r) { return r.json(); }).then(function (j) {
+    if (j && j.ok) {
+      toast('已加入抽帧队列: ' + j.queued + '/' + j.total + ' 个视频');
+      openVideoProgress(path, '🎞 抽帧进度: ' + path);
+    } else {
+      toast('加入抽帧队列失败: ' + ((j && j.error) || '未知错误'));
+    }
+  }).catch(function (e) { toast('加入抽帧队列失败: ' + e.message); });
+}
+
+// 同一个右键菜单里的"扫描视频入库", 也是从来没定义过的死代码。对应后端
+// POST /api/video/scan-dir {path}——递归扫这个目录下的视频文件, 新文件插入photos表
+// (media_type='video', shots=0默认值, 会被/api/video/pending自动捡起来抽帧, 不用
+// 手动再点一次"加入抽帧队列")。扫完如果有新增视频, 直接接上抽帧进度面板——新入库的
+// 视频本来就是shots=0, 天然在等着被抽帧, 不用用户再多点一次菜单。
+function dtwVideoScan(path) {
+  toast('扫描中...');
+  fetch('/api/video/scan-dir', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ path: path })
+  }).then(function (r) { return r.json(); }).then(function (j) {
+    if (j && j.ok) {
+      toast('扫描完成: 共' + j.scanned + '个, 新增' + j.added + '个' + (j.note ? '(' + j.note + ')' : ''));
+      if (j.added > 0) openVideoProgress(path, '🎞 抽帧进度: ' + path);
+    } else {
+      toast('扫描失败: ' + ((j && j.error) || '未知错误'));
+    }
+  }).catch(function (e) { toast('扫描失败: ' + e.message); });
+}
+
+// ── 抽帧进度面板(轮询 GET /api/video/progress?dir=xxx) ──────────────
+// 跟common/progress-modal.js不是一回事: 那个是给"有明确taskId、跑完就结束"的
+// 一次性任务用的; 抽帧是PC端agent持续在后台巡检的常驻队列, 没有taskId、也没有
+// "done"这个终态(关掉面板不代表停止处理, 面板只是个可以随时打开看一眼的窗口)。
+var _vpmTimer = null;
+function _vpmEnsureDom() {
+  var modal = document.getElementById('video-progress-modal');
+  if (modal) return modal;
+  modal = document.createElement('div');
+  modal.id = 'video-progress-modal';
+  modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.75);z-index:99999;display:flex;align-items:center;justify-content:center';
+  modal.innerHTML =
+    '<div style="background:#161d28;border:1px solid #2a3d55;border-radius:14px;padding:20px;width:min(480px,92vw);box-sizing:border-box">'
+    + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">'
+    + '<span id="vpm-title" style="font-size:.92rem;font-weight:700;color:#f0f6ff;word-break:break-all"></span>'
+    + '</div>'
+    + '<div id="vpm-agent" style="display:none;font-size:.78rem;color:#ffcf40;background:#2a2410;border:1px solid #5a4a10;border-radius:8px;padding:10px;margin-bottom:12px"></div>'
+    + '<div id="vpm-body" style="font-size:.82rem;color:#c8dff5">加载中...</div>'
+    + '<button id="vpm-close" style="width:100%;padding:10px;border-radius:7px;background:#40d0ff;color:#000;border:none;cursor:pointer;font-weight:700;margin-top:14px">关闭（后台继续处理）</button>'
+    + '</div>';
+  document.body.appendChild(modal);
+  document.getElementById('vpm-close').onclick = closeVideoProgress;
+  return modal;
+}
+function _vpmCopyCmd(btn) {
+  var input = btn.parentElement.querySelector('.vpm-cmd');
+  if (!input) return;
+  input.select();
+  navigator.clipboard && navigator.clipboard.writeText(input.value).then(function () {
+    toast('已复制命令');
+  }).catch(function () { toast('复制失败, 请手动选中复制'); });
+}
+function openVideoProgress(path, title) {
+  var modal = _vpmEnsureDom();
+  document.getElementById('vpm-title').textContent = title || '🎞 抽帧进度';
+  modal.style.display = 'flex';
+  clearInterval(_vpmTimer);
+  var tick = function () {
+    // 2026-09-27加: PC端video_thumbs.ps1没启动的话, 缩略图队列会一直堆着不动, 用户
+    // 光看进度条不知道该干嘛——查一下agent最近有没有来领过任务, 没有就把启动命令
+    // 直接摆在面板里, 复制粘贴到PowerShell就行, 不用来回问怎么启动。
+    fetch('/api/video/agent-status').then(function (r) { return r.json(); }).then(function (a) {
+      var agentEl = document.getElementById('vpm-agent');
+      if (!agentEl) return;
+      if (a && a.online) {
+        agentEl.style.display = 'none';
+      } else {
+        agentEl.style.display = 'block';
+        agentEl.innerHTML =
+          '⚠ 没检测到PC端抽帧程序在跑, 队列会一直堆着——在PC上打开PowerShell执行:<br>'
+          + '<input class="vpm-cmd" readonly value="' + (a && a.startCmd ? a.startCmd.replace(/"/g, '&quot;') : '') + '" '
+          + 'style="width:100%;margin:6px 0;padding:6px;background:#0d1420;color:#3ddc84;border:1px solid #3a4d65;border-radius:5px;font-family:monospace;font-size:.74rem;box-sizing:border-box" '
+          + 'onclick="this.select()">'
+          + '<button onclick="_vpmCopyCmd(this)" style="padding:5px 10px;border-radius:5px;background:#40d0ff;color:#000;border:none;cursor:pointer;font-size:.74rem">复制命令</button>';
+      }
+    }).catch(function () {});
+
+    fetch('/api/video/progress?dir=' + encodeURIComponent(path)).then(function (r) { return r.json(); }).then(function (d) {
+      var body = document.getElementById('vpm-body');
+      if (!body) return;
+      var total = d.total || 0, done = d.done || 0, pending = d.pending || 0, failed = d.failed || 0;
+      var pct = total ? Math.round(done / total * 100) : 0;
+      body.innerHTML =
+        '<div style="height:6px;background:#1e2838;border-radius:99px;overflow:hidden;margin-bottom:8px">'
+        + '<div style="height:100%;width:' + pct + '%;background:#40d0ff;border-radius:99px;transition:width .4s"></div></div>'
+        + '<div>已完成 <b style="color:#3ddc84">' + done + '</b> / ' + total
+        + ' · 待处理 <b style="color:#ffcf40">' + pending + '</b>'
+        + (failed ? ' · 失败 <b style="color:#ff5567">' + failed + '</b>' : '')
+        + '</div>'
+        + (pending === 0 && total > 0 ? '<div style="color:#3ddc84;margin-top:6px">✅ 全部处理完毕</div>' : '<div style="color:#507090;margin-top:6px">PC端agent处理中, 每3秒自动刷新...</div>');
+    }).catch(function () {});
+  };
+  tick();
+  _vpmTimer = setInterval(tick, 3000);
+}
+function closeVideoProgress() {
+  clearInterval(_vpmTimer);
+  var modal = document.getElementById('video-progress-modal');
+  if (modal) modal.style.display = 'none';
 }
 
 // ══ 播放 ══════════════════════════════════════════════
@@ -249,6 +403,16 @@ function buildUrl() {
     u += '&tags=' + f.tags.map(encodeURIComponent).join(',') + '&mode=' + f.tagMode + '&manualOnly=1';
   }
   if (state.shuffleSeed) u += '&seed=' + state.shuffleSeed;
+  // 2026-09-24加: 跟viewer(照片)统一逻辑——默认浏览(没有任何筛选条件、也没手动点过
+  // "随机播放")时, 改成"文件夹随机排序, 文件夹内部顺序不变", 不然默认按时间倒序,
+  // 每次打开总是最新那一批视频排最前面。手动shuffleSeed(用户主动点随机播放)优先级更高,
+  // 那种情况下不叠加dirSeed。
+  var _noFilter = !f.q && !f.dirPath && !f.favorite && !f.ratings.length && !f.fileName &&
+    !f.folderName && !f.sizeMin && !f.sizeMax && !f.durMin && !f.durMax && !f.dateMin &&
+    !f.dateMax && !f.watchedOnly && !(f.sortFields && f.sortFields.length) &&
+    !(f.resBucket && RES_BUCKET_MAP[f.resBucket]) && !f.tags.length;
+  if (_noFilter && !state.shuffleSeed) u += '&dirSeed=' + _getVideoDirSeed();
+  if (f.dirPath && !state.shuffleSeed && !(f.sortFields && f.sortFields.length)) u += '&sortFields=name:asc';   // 选了目录默认按文件名顺序
   if (state.category && state.category !== 'both') u += '&category=' + state.category;
   return u;
 }
@@ -258,9 +422,17 @@ function buildUrl() {
 // 2026-08-16改: 三态单选按钮(成人/家庭/全部), 点哪个就切到哪个, 互斥, 不再是两个独立
 // 开关拼state的老逻辑(那种设计下"两个都关掉"这种状态不清晰, 得靠兜底逻辑硬掰回both)
 function toggleCategory(which) {
+  // 2026-09-20加: 切到"成人"/"全部"要输密码, 家庭一直免密(默认档位, 不应该被拦)
+  if (which !== 'family' && !isNonFamilyUnlocked()) {
+    var pwd = prompt('切换到"' + (which === 'adult' ? '成人' : '全部') + '"需要输入密码:');
+    if (pwd === null) return;   // 用户点了取消, 什么都不做
+    if (pwd !== NONFAMILY_PASSWORD) { toast('密码错误'); return; }
+    unlockNonFamily();
+  }
   state.category = which;   // 'adult' | 'family' | 'both', 直接赋值, 不用再摸两个开关的当前状态推算
   saveCategoryPref(state.category);
   renderCategoryBtns();
+  _dirStat = {}; _dirLvlInflight = {}; if (_dirRaw && _dirRaw.length) { var _b = document.getElementById('dirs'); if (_b) _b.innerHTML = ''; initTree(); }   // 目录树按当前分类重建(分类下为空的目录不显示)
   loadVideos(true);
 }
 
@@ -409,12 +581,14 @@ function renderGrid(reset) {
   if (reset) grid.innerHTML = '';
   grid.classList.toggle('list-mode', state.viewMode === 'list');   // 2026-08-13: 视图切换(缩略图/列表)
 
-  var start = reset ? 0 : grid.children.length;
+  var start = reset ? 0 : (state._renderedCount || 0);   // 2026-10-01: 原来用 grid.children.length, 删除过卡片后追加会错位/重复
   var html = '';
   var renderFn = (state.viewMode === 'list') ? listRowHtml : cardHtml;
   for (var i = start; i < state.videos.length; i++) {
+    if (state.videos[i]._deleted) continue;      // 已放进回收站的不再显示(下标保持不变)
     html += renderFn(state.videos[i], i);
   }
+  state._renderedCount = state.videos.length;
   grid.insertAdjacentHTML('beforeend', html);
   var _newImgs = grid.querySelectorAll('img[data-src]');
   for (var j = 0; j < _newImgs.length; j++) _thumbObserver.observe(_newImgs[j]);
@@ -798,71 +972,29 @@ var _dirMap  = {};       // path -> {kids:[], own, total}
 var _roots   = [];       // 实际存在的根目录, 如 /share/Person /share/Media
 var _tree    = null;
 
-async function loadDirs() {
-  // 缓存优先: 目录几乎不变, 先出缓存秒开面板, 后台再去服务器校验修正(服务器自己也缓存过)
-  var cacheKey = window.LocalCache ? LocalCache.key('videoer', 'nas', 'dirs', '') : null;
-  var cached = null;
-  if (cacheKey) { try { cached = await LocalCache.get(cacheKey); } catch (e) {} }
-  if (cached && Array.isArray(cached)) {
-    _dirRaw = cached;
-    buildDirMap(_dirRaw);
-    initTree();
-  }
-  try {
-    var fresh = await fetch('/api/photo-tags/dirs?mediaType=video&depth=6').then(function (r) { return r.json(); });
-    if (!Array.isArray(fresh)) fresh = [];
-    if (cacheKey) LocalCache.set(cacheKey, fresh);
-    if (!cached || !(window.LocalCache && LocalCache.equal(cached, fresh))) {
-      _dirRaw = fresh;
-      buildDirMap(_dirRaw);
-      initTree();
-    }
-  } catch (e) {
-    if (!cached) { _dirRaw = []; buildDirMap(_dirRaw); initTree(); }
-  }
+// 2026-10-01: 目录树统一成"按数据库逐层取"(与 viewer 同一个接口 /api/dir-tree?media=video): 展开一层请求一层, 只显示库里有视频的目录。
+// 原来是一次取整棵树(/api/photo-tags/dirs, 最多6层, 更深的会被并进上一层)再在浏览器里拼, 现在没有层数限制, 数字由服务器算好随目录一起返回。
+var _dirStat = {};       // path -> {total, own}  (来自 /api/dir-tree 返回的 count/own)
+async function fetchDirLevel(p) {
+  var url = '/api/dir-tree?source=nas&media=video' + (state.category && state.category !== 'both' ? '&category=' + state.category : '') + (p ? '&path=' + encodeURIComponent(p) : '');
+  var r = await fetch(url).then(function (x) { return x.json(); });
+  if (!Array.isArray(r)) return [];
+  r.forEach(function (k) { _dirStat[k.path] = { total: k.count || 0, own: k.own || 0 }; });
+  return r;
 }
-
-// 把全路径列表拆成 path -> 子目录 的映射, 供控件按需取子节点
-function buildDirMap(list) {
-  _dirMap = {};
-  _roots  = [];
-  var ensure = function (p) {
-    if (!_dirMap[p]) _dirMap[p] = { kids: {}, own: 0, total: 0 };
-    return _dirMap[p];
-  };
-
-  list.forEach(function (d) {
-    var full = String(d.dir || '').replace(/\\/g, '/');
-    var segs = full.split('/').filter(Boolean);
-    if (!segs.length) return;
-
-    // 根 = /share/Xxx (前两段); 不是 /share 开头的就取第一段
-    var rootDepth = (segs[0] === 'share' && segs.length > 1) ? 2 : 1;
-    var root = '/' + segs.slice(0, rootDepth).join('/');
-    if (_roots.indexOf(root) < 0) _roots.push(root);
-    ensure(root);
-
-    var cur = root;
-    for (var i = rootDepth; i < segs.length; i++) {
-      var parent = cur;
-      cur = cur + '/' + segs[i];
-      ensure(cur);
-      _dirMap[parent].kids[segs[i]] = cur;
-    }
-    _dirMap[cur].own += (d.count || 0);
-  });
-
-  // 自底向上汇总
-  var sum = function (p) {
-    var n = _dirMap[p];
-    if (!n) return 0;
-    var t = n.own;
-    Object.keys(n.kids).forEach(function (k) { t += sum(n.kids[k]); });
-    n.total = t;
-    return t;
-  };
-  _roots.sort();
-  _roots.forEach(sum);
+var _dirLvlInflight = {};
+var _origFetchDirLevel = fetchDirLevel;
+fetchDirLevel = function (p) {
+  var k = p || '';
+  if (_dirLvlInflight[k]) return _dirLvlInflight[k];
+  var pr = _origFetchDirLevel(p);
+  _dirLvlInflight[k] = pr;
+  setTimeout(function () { delete _dirLvlInflight[k]; }, 3000);
+  return pr;
+};
+async function loadDirs() {
+  _dirRaw = [1];       // 仅作"已加载"标记(toggleDirs 用)
+  initTree();
 }
 
 function initTree() {
@@ -874,34 +1006,26 @@ function initTree() {
     return;
   }
 
-  var kidsOf = function (p) {
-    var n = _dirMap[p];
-    if (!n) return [];
-    return Object.keys(n.kids).sort().map(function (k) {
-      return { name: k, path: n.kids[k] };
-    });
-  };
-
   _tree = new DirTreeWidget({
     container:  box,
-    instanceId: 'video',
+    instanceId: 'video_' + (state.category || 'both'),
     source:     'nas',
     icons:      { root: '🎬', child: '📁' },
     showRefresh: false,
-    rootsFn: function () {
-      // 有多个根(Person / Media / BAK ...)时并列显示
-      if (_roots.length > 1) {
-        return _roots.map(function (r) {
-          return { name: r.replace(/^\/share\//, '') || r, path: r };
-        });
-      }
-      // 只有一个根时直接展开它的第一级, 少点一次
-      return _roots.length ? kidsOf(_roots[0]) : [];
+    rootsFn: async function () {
+      // 有多个根(Person / Media / BAK ...)时并列显示; 只有一个根时直接展开它的第一级, 少点一次
+      var roots = await fetchDirLevel('');
+      if (roots.length > 1) return roots;
+      return roots.length ? await fetchDirLevel(roots[0].path) : [];
     },
-    childrenFn: function (p) { return kidsOf(p); },
-    statFn: function (p) {
-      var n = _dirMap[p];
-      return { total: n ? n.total : 0, own: n ? n.own : 0 };
+    childrenFn: function (p) { return fetchDirLevel(p); },
+    statFn: async function (p) {
+      // 2026-10-01: 目录列表可能先用浏览器缓存渲染出来, 这时本地表里还没有这个目录的视频数, 不能直接当 0(会显示成"空")——先向服务器取它所在的那一层
+      if (!_dirStat[p]) { try { await fetchDirLevel(p.slice(0, p.lastIndexOf('/'))); } catch (e) {} }
+      var st = _dirStat[p] || { total: 0, own: 0 };
+      // 视频页的规则: 没有视频的目录不显示(缓存里的旧目录、后来视频被删/移走的目录都会在这里被隐藏)
+      if (!st.total) setTimeout(function () { var ns = document.querySelectorAll('#dirs .dtw-node'); for (var i = 0; i < ns.length; i++) if (ns[i].dataset.path === p) { ns[i].style.display = 'none'; break; } }, 0);
+      return st;
     },
     renderStat: function (st) {
       if (!st || !st.total) return '<span style="color:#507090">空</span>';
@@ -931,6 +1055,7 @@ function toggleDirs() {
   if (btn) btn.classList.toggle('on', state.dirsOpen);
   if (mask) mask.classList.toggle('show', state.dirsOpen);
   if (state.dirsOpen && !_dirRaw.length) loadDirs();
+  try { localStorage.setItem('videoerDirsOpen', state.dirsOpen ? '1' : '0'); } catch (e) {}
   // 2026-08-13: 目录树刚显示出来时宽度才是真实值, 之前算的拖拽条位置(面板还隐藏, 宽度是0)是错的,
   // 这里显示切换后重新算一次; 用setTimeout等一帧, 确保display:none->block的样式已经生效
   if (typeof syncDirsResizerPos === 'function') setTimeout(syncDirsResizerPos, 0);
@@ -1442,6 +1567,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
   loadStats();
   loadDirs();
+  // 2026-10-01: 电脑(宽屏)上打开时目录树默认直接展开, 不用再点按钮; 手机/窄屏仍然收起。
+  // 你手动收起过(记在 localStorage)就尊重你的选择, 下次不再自动展开。
+  try {
+    if (window.innerWidth > 900 && localStorage.getItem('videoerDirsOpen') !== '0' && !state.dirsOpen) toggleDirs();
+  } catch (e) {}
   renderCategoryBtns();
   state.shuffleSeed = Math.floor(Math.random() * 2147483647) || 1;   // 每次打开页面自动换一批顺序
   loadVideos(true);
@@ -1470,8 +1600,11 @@ function openVideoMenu(idx, e) {
     { icon: "❤️", text: v.favorite ? "取消收藏" : "收藏", action: function() { toggleFav(idx); } },
     { icon: "🩺",  text: "检测能否播放", action: function() { requestDtsCheck(idx); } },
     { icon: "🔄",  text: "转换成可播放格式", action: function() { requestConvert(idx); } },
+    { icon: "⚙️",  text: "转码（电脑GPU，生成转码副本）", action: function() { requestTranscode(idx); } },
     { sep: true },
     { icon: "📋",  text: "复制路径", action: function() { copyPath(idx); } },
+    { sep: true },
+    { icon: "🗑",  text: "放入回收站", action: function() { softDeleteVideo(idx); } },
   ];
 
   // 复用图片页的右键菜单组件
@@ -1480,6 +1613,23 @@ function openVideoMenu(idx, e) {
   } else {
     showSimpleMenu(e.clientX, e.clientY, items);
   }
+}
+
+// 2026-09-30: 逻辑删除。只给这条记录打 pending_delete=1 的标记(沿用 /api/photos/soft-delete),
+// 不动任何文件——视频立刻从视频库列表里消失, 去 /videoer/trash.html 回收站里恢复、导出物理删除清单。
+async function softDeleteVideo(idx) {
+  var v = state.videos[idx];
+  if (!v || !v.id) { toast('该视频没有 id, 删不了'); return; }
+  try {
+    var r = await fetch('/api/photos/soft-delete', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ids: [v.id] })
+    }).then(function (x) { return x.json(); });
+    if (!r || !r.ok) { toast('逻辑删除失败: ' + ((r && r.error) || '未知错误')); return; }
+    var el = document.getElementById('c' + idx);
+    if (el) el.remove();
+    v._deleted = true;   // 数组下标保持不变(别的卡片的下标还指着它), 只是不再显示
+    toast('已放入回收站（右上角"🗑 回收站"可恢复）');
+  } catch (e) { toast('逻辑删除失败: ' + e.message); }
 }
 
 // 简易右键菜单（如果 ctxMenu 未加载）
@@ -1557,6 +1707,24 @@ async function requestConvert(idx) {
   } catch (e) {
     toast('请求失败: ' + e.message);
   }
+}
+
+// 2026-09-30: 右键"转码": 强制走转码(不按格式自动判断)。超过6GB默认不转, 确认后才 force。
+async function requestTranscode(idx) {
+  var v = state.videos[idx];
+  if (!v || !v.md5) { toast('该视频无 md5，没法转码'); return; }
+  var force = false;
+  if (v.size > 6e9) {
+    if (!confirm('这个视频超过 6GB，按规则默认不转码。仍要转码吗？')) return;
+    force = true;
+  }
+  try {
+    var r = await fetch('/api/vconv/priority', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ md5: v.md5, transcode: true, force: force }) });
+    var data = await r.json();
+    if (!r.ok) { toast(data.error || '加入队列失败'); return; }
+    if (data.alreadyQueued) { toast('已经在转码队列里了，去"转换队列"页面看进度'); return; }
+    toast('已加入转码队列（需要电脑上的 VconvAgent 在跑），去"转换队列"页面看进度');
+  } catch (e) { toast('请求失败: ' + e.message); }
 }
 
 // ── 视频标签弹窗 ──────────────────────────────────────
@@ -1896,6 +2064,7 @@ function onSortDragEnd() {
 
     resizer.addEventListener('mouseenter', function () { resizer.classList.add('active'); });
     resizer.addEventListener('mouseleave', function () { if (!dragging) resizer.classList.remove('active'); });
+    resizer.addEventListener('dblclick', function () { dirs.style.width = '230px'; try { localStorage.setItem('videoer-dirs-width', 230); } catch (e) {} syncResizerPos(); });   // 双击恢复默认宽度
 
     var dragging = false, startX = 0, startW = 0;
     resizer.addEventListener('mousedown', function (e) {
@@ -1907,7 +2076,8 @@ function onSortDragEnd() {
       resizer.classList.add('active');
 
       function onMove(e) {
-        var newW = Math.max(160, Math.min(480, startW + e.clientX - startX));
+        var maxW = Math.max(300, Math.min(800, Math.floor(window.innerWidth * 0.7)));   // 最宽 800px(原来 480), 不超过窗口的 70%
+        var newW = Math.max(160, Math.min(maxW, startW + e.clientX - startX));
         dirs.style.width = newW + 'px';
         syncResizerPos();
       }
@@ -2098,3 +2268,272 @@ function resetDateSlider() {
   });
 })();
 
+
+// ══ 2026-10-01 筛选悬浮图标 + 悬浮面板(桌面端): 面板标题栏可拖动(位置记住)、✕ 或 Esc 关闭; 图标角标显示生效的筛选条数 ══
+(function () {
+  var isDesktop = function () { return window.innerWidth > 700; };
+  var panelEl = function () { return document.getElementById('more-filters'); };
+  function loadPos() { try { return JSON.parse(localStorage.getItem('videoerMfPos') || 'null'); } catch (e) { return null; } }
+  function applyPos() {
+    var el = panelEl(); if (!el) return;
+    var p = isDesktop() ? loadPos() : null;
+    if (p) { el.style.left = Math.max(0, Math.min(p.x, window.innerWidth - 120)) + 'px'; el.style.top = Math.max(0, Math.min(p.y, window.innerHeight - 60)) + 'px'; el.style.right = 'auto'; }
+    else { el.style.left = ''; el.style.top = ''; el.style.right = ''; }
+  }
+  // 面板内容每次重绘都会整体替换, 所以在重绘后补上标题栏
+  var _origRMF = renderMoreFilters;
+  renderMoreFilters = function () {
+    _origRMF.apply(this, arguments);
+    var el = panelEl(); if (!el || !isDesktop()) return;
+    el.insertAdjacentHTML('afterbegin', '<div id="mf-head" title="按住这一栏可以拖动面板"><b>🔎 更多筛选</b><span style="flex:1"></span><button onclick="mfResetPos()" title="把面板放回默认位置">复位</button><button onclick="toggleMoreFilters()" title="关闭（Esc）">✕</button></div>');
+    applyPos();
+  };
+  window.mfResetPos = function () { try { localStorage.removeItem('videoerMfPos'); } catch (e) {} applyPos(); };
+  // 图标角标
+  function fabUpdate() {
+    var f = state.filter, n = 0;
+    [f.favorite, f.watchedOnly, f.ratings && f.ratings.length, f.dirPath, f.q, f.fileName, f.folderName, f.sizeMin || f.sizeMax, f.durMin || f.durMax, f.dateMin || f.dateMax, f.resBucket, f.tags && f.tags.length].forEach(function (x) { if (x) n++; });
+    var c = document.getElementById('fp-fab-count'), b = document.getElementById('fp-fab');
+    if (c) { c.textContent = n ? String(n) : ''; c.style.display = n ? 'flex' : 'none'; }
+    if (b) { b.classList.toggle('has', n > 0); b.classList.toggle('on', !!moreFiltersOpen); }
+  }
+  var _origRF = renderFilters;
+  renderFilters = function () { _origRF.apply(this, arguments); fabUpdate(); };
+  document.addEventListener('DOMContentLoaded', fabUpdate);
+  // 拖动
+  var drag = null;
+  document.addEventListener('mousedown', function (e) {
+    var hd = e.target.closest && e.target.closest('#mf-head'); var el = panelEl();
+    if (!hd || !el || !isDesktop() || e.target.closest('button')) return;
+    var r = el.getBoundingClientRect(); drag = { dx: e.clientX - r.left, dy: e.clientY - r.top }; e.preventDefault();
+  });
+  document.addEventListener('mousemove', function (e) {
+    if (!drag) return; var el = panelEl(); if (!el) return;
+    var x = Math.max(0, Math.min(e.clientX - drag.dx, window.innerWidth - 120)), y = Math.max(0, Math.min(e.clientY - drag.dy, window.innerHeight - 60));
+    el.style.left = x + 'px'; el.style.top = y + 'px'; el.style.right = 'auto'; drag.pos = { x: x, y: y };
+  });
+  document.addEventListener('mouseup', function () { if (drag && drag.pos) { try { localStorage.setItem('videoerMfPos', JSON.stringify(drag.pos)); } catch (e) {} } drag = null; });
+  // Esc 关闭(输入框里按 Esc 不关; 播放器打开时 Esc 归播放器)
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== 'Escape' || !moreFiltersOpen || !isDesktop()) return;
+    var t = e.target; if (t && /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName || '')) return;
+    if (document.querySelector('.player-overlay.show, #player.show, .vpl-overlay.show')) return;
+    toggleMoreFilters();
+  });
+  window.addEventListener('resize', applyPos);
+})();
+
+
+// ══════════════════════════════════════════════════════════════════════
+// 2026-10-01 与图片库(viewer)保持一致: 排布(等高行/瀑布/网格) + 列数 1~10 + 批量选择放入回收站 + 播放器里 Del 删除 / Ctrl+Z 撤销
+// ══════════════════════════════════════════════════════════════════════
+var VCOL_MIN = 1, VCOL_MAX = 20, VCOL_DEFAULT = IS_MOBILE ? 2 : 4;
+function _vRatio(v) { var w = parseInt(v.width, 10), h = parseInt(v.height, 10); return (w > 0 && h > 0) ? Math.max(0.35, Math.min(3, w / h)) : 1.78; }
+function _vCols() { try { var n = parseInt(localStorage.getItem('videoerColCount') || '', 10); return (n >= VCOL_MIN && n <= VCOL_MAX) ? n : VCOL_DEFAULT; } catch (e) { return VCOL_DEFAULT; } }
+function _vLayout() { try { var m = localStorage.getItem('videoerLayout'); return ['justified', 'masonry', 'grid'].indexOf(m) >= 0 ? m : 'justified'; } catch (e) { return 'justified'; } }
+function setLayout(m) { try { localStorage.setItem('videoerLayout', m); } catch (e) {} _vApplyLayout(true); }
+function adjustColCount(d) { var n = Math.max(VCOL_MIN, Math.min(VCOL_MAX, _vCols() + d)); try { localStorage.setItem('videoerColCount', String(n)); } catch (e) {} _vApplyLayout(true); }
+
+// 等高行算法(与图片库同一套): 从头往后一张张放进当前行, 行高降到目标以下时比较"带上这张/不带这张"哪个更接近目标行高, 在那里换行;
+// 每张卡片宽度 = 宽高比 × 该行行高, 行宽刚好铺满 → 一行内缩略图高度完全相同(卡片下面的文件名/目录/评分条高度固定, 所以整张卡片也对齐); 最后一行不拉伸。
+var _vSig = '';
+function _vJustify(grid, force) {
+  var items = [].slice.call(grid.children).filter(function (el) { return el.classList && el.classList.contains('card'); });
+  var W = grid.clientWidth, target = parseFloat(getComputedStyle(grid).getPropertyValue('--row-h')) || 180, gap = 8;
+  var sig = W + '|' + items.length + '|' + Math.round(target);
+  if (!force && sig === _vSig) return;
+  _vSig = sig;
+  if (!W) return;
+  var row = [], sum = 0;
+  function flush(last) {
+    if (!row.length) return;
+    var hh = (W - gap * (row.length - 1)) / sum;
+    if (last) hh = Math.min(hh, target * 1.3);
+    row.forEach(function (it) { it.el.style.flex = 'none'; it.el.style.width = Math.floor(it.r * hh) + 'px'; });
+    row = []; sum = 0;
+  }
+  for (var k = 0; k < items.length; k++) {
+    var el = items[k], r = parseFloat(el.style.getPropertyValue('--r')) || 1.78;
+    row.push({ el: el, r: r }); sum += r;
+    var h2 = (W - gap * (row.length - 1)) / sum;
+    if (h2 < target) {
+      if (row.length > 1) {
+        var hWithout = (W - gap * (row.length - 2)) / (sum - r);
+        if (Math.abs(hWithout - target) < Math.abs(h2 - target)) {
+          var last = row.pop(); sum -= last.r; flush(false); row = [last]; sum = last.r;
+          if ((W - gap * (row.length - 1)) / sum >= target) continue;
+        }
+      }
+      flush(false);
+    }
+  }
+  flush(true);
+}
+function _vClearJustify(grid) { [].slice.call(grid.children).forEach(function (el) { if (el.style) { el.style.width = ''; el.style.flex = ''; } }); _vSig = ''; }
+function _vApplyLayout(force) {
+  var grid = document.getElementById('grid'); if (!grid) return;
+  var list = state.viewMode === 'list';
+  var mode = list ? 'list' : _vLayout();
+  var n = _vCols();
+  if (grid.dataset.layout !== mode) { grid.dataset.layout = mode; if (mode !== 'justified') _vClearJustify(grid); force = true; }
+  grid.style.setProperty('--col-count', n); grid.dataset.cols = String(n);
+  var w = grid.clientWidth || 1000;
+  var rs = state.videos.slice(-200).map(_vRatio);
+  var avg = rs.length ? rs.reduce(function (a, b) { return a + b; }, 0) / rs.length : 1.78;
+  grid.style.setProperty('--row-h', Math.round(Math.max(28, (w / n) / Math.max(0.6, Math.min(1.8, avg)))) + 'px');
+  if (mode === 'justified') _vJustify(grid, force);
+  var v = document.getElementById('col-count-val'); if (v) v.textContent = n;
+  var sl = document.getElementById('col-count-slider'); if (sl) sl.value = n;
+  var mi = document.getElementById('col-count-minus'), pl = document.getElementById('col-count-plus');
+  if (mi) mi.disabled = n <= VCOL_MIN; if (pl) pl.disabled = n >= VCOL_MAX;
+  var sel = document.getElementById('layout-mode'); if (sel) { sel.value = _vLayout(); sel.disabled = list; }
+  var ft = document.getElementById('float-total'); if (ft) ft.textContent = state.total || 0;
+}
+// 重新渲染后重排; 窗口/目录树宽度变化时重排
+var _vOrigRG = renderGrid;
+renderGrid = function () { _vOrigRG.apply(this, arguments); setTimeout(function () { _vApplyLayout(true); }, 0); };
+var _vOrigCH = cardHtml;
+cardHtml = function (v, i) {   // 每张卡片带宽高比变量 + 选择框
+  var h = _vOrigCH(v, i), tag = 'onmouseenter="removeVideoMenu()">', k = h.indexOf(tag);
+  if (k < 0) return h;
+  return h.slice(0, k) + 'onmouseenter="removeVideoMenu()" style="--r:' + _vRatio(v) + '">' +
+    '<input type="checkbox" class="sel-check" onclick="event.stopPropagation();vToggleSel(' + i + ')">' + h.slice(k + tag.length);
+};
+document.addEventListener('DOMContentLoaded', function () {
+  _vApplyLayout(true);
+  var g = document.getElementById('grid');
+  if (g && window.ResizeObserver) new ResizeObserver(function () { _vApplyLayout(false); }).observe(g);
+});
+
+// ── 批量选择 → 放入回收站 ──
+state.selectMode = false; var _vSel = {};
+function vToggleSel(i) {
+  var v = state.videos[i]; if (!v || v._deleted) return;
+  if (_vSel[i]) delete _vSel[i]; else _vSel[i] = 1;
+  var el = document.getElementById('c' + i);
+  if (el) { el.classList.toggle('selected', !!_vSel[i]); var cb = el.querySelector('.sel-check'); if (cb) cb.checked = !!_vSel[i]; }
+  _vUpdBatch();
+}
+function _vUpdBatch() {
+  var n = Object.keys(_vSel).length;
+  var c = document.getElementById('batch-count'); if (c) c.textContent = n;
+  var bb = document.getElementById('batch-bar'), ft = document.getElementById('floating-toolbar');
+  if (bb) bb.classList.toggle('show', state.selectMode);
+  if (ft) ft.classList.toggle('hide', state.selectMode);
+  var bs = document.getElementById('btn-select-mode'); if (bs) bs.classList.toggle('active', state.selectMode);
+}
+function toggleSelectMode() { if (state.selectMode) exitSelectMode(); else { state.selectMode = true; var g = document.getElementById('grid'); if (g) g.classList.add('select-mode'); _vUpdBatch(); } }
+function exitSelectMode() {
+  state.selectMode = false; _vSel = {};
+  var g = document.getElementById('grid'); if (g) { g.classList.remove('select-mode'); [].slice.call(g.querySelectorAll('.card.selected')).forEach(function (e) { e.classList.remove('selected'); var cb = e.querySelector('.sel-check'); if (cb) cb.checked = false; }); }
+  _vUpdBatch();
+}
+function vSelectAllVisible() { state.videos.forEach(function (v, i) { if (!v._deleted && document.getElementById('c' + i)) { if (!_vSel[i]) vToggleSel(i); } }); }
+async function vBatchDelete() {
+  var idxs = Object.keys(_vSel).map(Number); if (!idxs.length) { toast('还没选择任何视频'); return; }
+  var ids = idxs.map(function (i) { return state.videos[i] && state.videos[i].id; }).filter(Boolean);
+  try {
+    var r = await fetch('/api/photos/soft-delete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ids: ids }) }).then(function (x) { return x.json(); });
+    if (!r || !r.ok) { toast('操作失败: ' + ((r && r.error) || '未知错误')); return; }
+    idxs.forEach(function (i) { var el = document.getElementById('c' + i); if (el) el.remove(); if (state.videos[i]) state.videos[i]._deleted = true; });
+    state.total = Math.max(0, (state.total || 0) - ids.length);
+    exitSelectMode(); renderStats(); _vApplyLayout(true);
+    toast('已放入回收站 ' + ids.length + ' 个');
+  } catch (e) { toast('操作失败: ' + e.message); }
+}
+// 选择模式下: 点卡片(播放/Pot/在线)改成"选中/取消选中", 不播放
+['playVideo', 'playOnline', 'playPot', 'thumbTap'].forEach(function (nm) {
+  var o = window[nm]; if (typeof o !== 'function') return;
+  window[nm] = function (i) { if (state.selectMode) { vToggleSel(i); return; } return o.apply(this, arguments); };
+});
+// 单个放入回收站(右键)也同步总数/排布
+var _vOrigSD = softDeleteVideo;
+softDeleteVideo = async function (idx) { await _vOrigSD.apply(this, arguments); state.total = Math.max(0, (state.total || 0) - (state.videos[idx] && state.videos[idx]._deleted ? 1 : 0)); renderStats(); _vApplyLayout(true); };
+
+// ── 播放器(相当于图片库的"大图")里: 按 Del(按下再抬起) 放入回收站并播放下一个; 刚删的立刻按 Ctrl+Z 恢复, 一旦切换就不能再恢复 ──
+var _vDelArmed = false, _vBusy = false, _vLastDel = null;
+function _vPlayerOpen() { var e = document.getElementById('vpl'); return !!(e && e.classList.contains('show')); }
+function _vTyping(e) { var t = e.target; return !!(t && (/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName || '') || t.isContentEditable)); }
+document.addEventListener('keydown', function (e) {
+  if (!_vPlayerOpen() || _vTyping(e)) return;
+  if (e.key === 'Delete') { e.preventDefault(); _vDelArmed = true; }
+  else if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && String(e.key).toLowerCase() === 'z') { e.preventDefault(); vUndoDelete(); }
+});
+document.addEventListener('keyup', function (e) { if (e.key === 'Delete' && _vDelArmed) { _vDelArmed = false; if (_vPlayerOpen()) vDeleteCurrent(); } });
+async function vDeleteCurrent() {
+  if (_vBusy) return;
+  var cur = VPlayer.getCur(); if (!cur || !cur.id) return;
+  var idx = state.videos.indexOf(cur); if (idx < 0) return;
+  _vBusy = true;
+  try {
+    var r = await fetch('/api/photos/soft-delete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ids: [cur.id] }) }).then(function (x) { return x.json(); });
+    if (!r || !r.ok) throw new Error((r && r.error) || '失败');
+    cur._deleted = true; var el = document.getElementById('c' + idx); if (el) el.remove();
+    state.total = Math.max(0, (state.total || 0) - 1); renderStats(); _vApplyLayout(true);
+    var n = -1, k;
+    for (k = idx + 1; k < state.videos.length; k++) if (!state.videos[k]._deleted && VPlayer.canPlay(state.videos[k]) !== 'no') { n = k; break; }
+    if (n < 0) for (k = idx - 1; k >= 0; k--) if (!state.videos[k]._deleted && VPlayer.canPlay(state.videos[k]) !== 'no') { n = k; break; }
+    if (n >= 0) { _vLastDel = { v: cur, idx: idx, shownMd5: state.videos[n].md5 }; VPlayer.open(state.videos[n], state.videos, n); }
+    else { _vLastDel = null; VPlayer.close(); }
+    toast('已放入回收站（Ctrl+Z 撤销）');
+  } catch (e) { toast('操作失败: ' + e.message); }
+  finally { _vBusy = false; }
+}
+async function vUndoDelete() {
+  var d = _vLastDel; if (!d || _vBusy) return;
+  var cur = VPlayer.getCur();
+  if (!cur || cur.md5 !== d.shownMd5) { _vLastDel = null; return; }    // 已经切到别的视频了 → 不再恢复
+  _vLastDel = null; _vBusy = true;
+  try {
+    var r = await fetch('/api/photos/restore', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ids: [d.v.id] }) }).then(function (x) { return x.json(); });
+    if (!r || !r.ok) throw new Error((r && r.error) || '失败');
+    d.v._deleted = false; state.total = (state.total || 0) + 1;
+    renderGrid(true); renderStats();
+    VPlayer.open(d.v, state.videos, d.idx);
+    toast('已恢复');
+  } catch (e) { _vLastDel = d; toast('恢复失败: ' + e.message); }
+  finally { _vBusy = false; }
+}
+
+// 列数滑块: 拖动直接设置
+function setColCount(v) { var n = Math.max(VCOL_MIN, Math.min(VCOL_MAX, parseInt(v, 10) || VCOL_DEFAULT)); try { localStorage.setItem('videoerColCount', String(n)); } catch (e) {} _vApplyLayout(true); }
+
+// ── 播放到头: 自动接着播"离当前目录最近的下一个有视频的目录"(2026-10-01) ──
+var _vEdgeBusy = false;
+function _vFirstPlayable() {
+  for (var i = 0; i < state.videos.length; i++) {
+    var v = state.videos[i];
+    if (!v._deleted && VPlayer.canPlay(v) !== 'no') return i;
+  }
+  return -1;
+}
+window.vNextDir = async function () {
+  if (_vEdgeBusy || typeof VPlayer === 'undefined') return;
+  _vEdgeBusy = true;
+  try {
+    // 先把当前列表剩余的分页加载完(别在还有没加载的视频时就跳目录)
+    if (state.hasMore) {
+      var cur0 = state.videos.length;
+      await loadVideos(false);
+      var j = cur0;
+      while (j < state.videos.length && (state.videos[j]._deleted || VPlayer.canPlay(state.videos[j]) === 'no')) j++;
+      if (j < state.videos.length) { VPlayer.open(state.videos[j], state.videos, j); return; }
+      if (state.hasMore) return;
+    }
+    var c = VPlayer.getCur && VPlayer.getCur();
+    var scope = state.filter.dirPath || (c && c.path ? String(c.path).replace(/\/[^\/]+$/, '') : '');
+    for (var i = 0; i < 15 && scope; i++) {
+      var u = '/api/photo-tags/dir-neighbor?media=video&dir=next&path=' + encodeURIComponent(scope) +
+              (state.category && state.category !== 'both' ? '&category=' + state.category : '');
+      var r = await fetch(u).then(function (x) { return x.json(); });
+      if (!r.dir) { toast('已经是最后一个目录了'); return; }
+      state.filter.dirPath = r.dir;
+      renderFilters();
+      await loadVideos(true);
+      var k = _vFirstPlayable();
+      if (k >= 0) { toast('下一个目录: ' + r.dir.split('/').slice(-2).join('/')); VPlayer.open(state.videos[k], state.videos, k); return; }
+      scope = r.dir;
+    }
+  } catch (e) { console.error('下一个目录失败', e); }
+  finally { _vEdgeBusy = false; }
+};

@@ -26,6 +26,7 @@
   </span>
   <button class="hd-btn" onclick="VCfg.open()" title="设置">&#9881;</button>
   <a class="hd-btn" href="/videoer/convert.html" title="查看转换队列">🎬 转换队列</a>
+  <a class="hd-btn" href="/viewer/trash.html?type=video" title="回收站（图片和视频统一）">🗑 回收站</a>
   <a class="hd-btn" href="/viewer/">照片</a>
   <span id="build-ver" style="font-size:.62rem;color:var(--text3);margin-left:6px;opacity:.6" title="每次部署补丁后这里的编号会变, 用来确认页面真的拿到了最新代码">build-20260813-05</span>
 </header>
@@ -38,6 +39,8 @@
 <div class="more-filters" id="more-filters"></div>
 </div>
 <div class="mf-height-resizer" id="mf-height-resizer"></div>
+<!-- 筛选悬浮图标: 固定在屏幕右侧, 随时点开/关"更多筛选"悬浮面板; 角标=当前生效的筛选条件数 -->
+<button id="fp-fab" onclick="toggleMoreFilters()" title="筛选（点一下打开/关闭筛选面板）">🔎<span id="fp-fab-count"></span></button>
 
 <div class="body">
   <div class="dirs-mask" id="dirs-mask" onclick="toggleDirs()"></div>
@@ -48,6 +51,30 @@
   </main>
 </div>
 
+<!-- 底部悬浮工具栏(与图片库一致): 总数 / 列数 1~10 / 排布 / 选择 / 回收站 -->
+<div class="floating-toolbar" id="floating-toolbar">
+  <span>共 <b id="float-total">0</b> 个</span>
+  <div class="col-count-ctrl">
+    <span>列数</span>
+    <button id="col-count-minus" onclick="adjustColCount(-1)">−</button>
+    <span class="val" id="col-count-val">4</span>
+    <button id="col-count-plus" onclick="adjustColCount(1)">+</button>
+    <input type="range" id="col-count-slider" min="1" max="20" step="1" value="3" oninput="setColCount(this.value)" title="拖动快速调整列数(1~20)" style="width:90px;accent-color:#40d0ff;vertical-align:middle">
+  </div>
+  <select id="layout-mode" onchange="setLayout(this.value)" title="排布方式" style="background:#182535;border:1px solid #2a3d55;border-radius:5px;color:#f0f6ff;padding:3px 6px;font-size:.78rem">
+    <option value="justified">等高行</option>
+    <option value="masonry">瀑布(参差)</option>
+    <option value="grid">网格</option>
+  </select>
+  <button class="fbtn" id="btn-select-mode" onclick="toggleSelectMode()">☑ 选择</button>
+  <a class="fbtn" href="/viewer/trash.html?type=video">🗑 回收站</a>
+</div>
+<div class="batch-bar" id="batch-bar">
+  <span>已选 <b id="batch-count">0</b> 项</span>
+  <button class="fbtn" onclick="vSelectAllVisible()">全选本屏</button>
+  <button class="fbtn" onclick="exitSelectMode()">取消</button>
+  <button class="fbtn" onclick="vBatchDelete()" style="border-color:#ff5567;color:#ff5567">🗑 放入回收站</button>
+</div>
 <div class="toast" id="toast"></div>
 
 <!-- 手机端内嵌播放 -->

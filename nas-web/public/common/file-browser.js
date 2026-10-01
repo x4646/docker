@@ -67,11 +67,21 @@ class FileBrowser {
 
   // ── 加载根目录 ────────────────────────────────────────
   async _loadRoots() {
-    const r    = await fetch(`/api/browser/roots?source=${this.source}`);
+    // PC浏览(source==='pc')走的是不同的一套接口(/api/pc-browse/...), 实际是转发到
+    // PC agent自己的HTTP服务, 跟NAS本地浏览(/api/browser/...)是完全独立的两条路径,
+    // 不能直接复用同名接口(那套是NAS这边核心代码注册的, 没法为PC走的路径分支)。
+    const base = this.source === 'pc' ? '/api/pc-browse' : '/api/browser';
+    const r = await fetch(`${base}/roots?source=${this.source}`);
     this.roots = await r.json();
+    if (r.ok === false || this.roots.error) {
+      const sidebar = this.el.querySelector('#fb-sidebar');
+      sidebar.innerHTML = `<div style="padding:10px;font-size:.78rem;color:#e66">${(this.roots && this.roots.error) || '加载失败'}</div>`;
+      this.roots = [];
+      return;
+    }
     const sidebar = this.el.querySelector('#fb-sidebar');
     sidebar.innerHTML = this.roots.map(root => `
-      <div class="fb-root-item" onclick="this.closest('.fb-overlay')._fb._navigate('${root.path}')">
+      <div class="fb-root-item" onclick="this.closest('.fb-overlay')._fb._navigateAndSelectRoot('${root.path.replace(/\\/g,'\\\\')}')">
         📁 ${root.name}
       </div>`).join('');
     if (this.roots.length) await this._navigate(this.roots[0].path);
@@ -81,14 +91,23 @@ class FileBrowser {
   async _navigate(path) {
     this.currentPath = path;
     const filterStr  = this.filter ? this.filter.join(',') : '';
-    const url        = `/api/browser/list?path=${encodeURIComponent(path)}&source=${this.source}${filterStr ? '&filter='+filterStr : ''}`;
+    const base = this.source === 'pc' ? '/api/pc-browse' : '/api/browser';
+    const url  = `${base}/list?path=${encodeURIComponent(path)}&source=${this.source}${filterStr ? '&filter='+filterStr : ''}`;
 
     const r    = await fetch(url);
     const data = await r.json();
+    if (data.error) { this.el.querySelector('#fb-list').innerHTML = `<div class="fb-empty">${data.error}</div>`; return; }
 
     this._renderBreadcrumb(path, data.roots);
     this._renderList(data.items);
 
+  }
+
+  // 点侧边栏的根目录: 导航进去的同时, 把这个根目录本身选中(dir模式下)——
+  // 不然只能选根目录"里面"的子文件夹, 没法把整个根目录/分享本身当成目标路径选中。
+  async _navigateAndSelectRoot(path) {
+    await this._navigate(path);
+    if (this.mode === 'dir') this._setSelected(path);
   }
 
   // ── 渲染面包屑 ────────────────────────────────────────

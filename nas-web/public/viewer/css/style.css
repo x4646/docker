@@ -8,7 +8,7 @@
   --accent:  #40d0ff;
   --overlay: rgba(0,0,0,0.85);
 }
-body { background:var(--bg); color:var(--text); font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei','Noto Sans SC',sans-serif; min-height:100vh; overflow-x:hidden; }
+body { background:var(--bg); color:var(--text); font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei','Noto Sans SC',sans-serif; min-height:100vh; overflow-x:hidden; touch-action:pan-y; }
 
 /* ── 顶部导航 ─────────────────────────────────────── */
 .navbar {
@@ -36,14 +36,21 @@ body { background:var(--bg); color:var(--text); font-family:-apple-system,BlinkM
   transition:all .15s;
 }
 .nav-btn:hover,.nav-btn.active { border-color:var(--accent); color:var(--accent); }
+#sidebar-hamburger { display:none; }
 
 /* ── 侧边栏 ───────────────────────────────────────── */
+/* 说明: 原来这里有3处重复的.sidebar规则块(桌面端按层叠顺序最终生效的是position:sticky),
+   合并成一处, 显式保留sticky——改成fixed会导致跟.page-wrapper的flex布局对不上。 */
 .sidebar {
-  position: fixed; left:0; top:56px; bottom:0;
-  width: 260px; background:var(--surface);
+  position: sticky; left:0; top:56px;
+  width: 260px; min-width:120px; max-width:800px;   /* 2026-10-01: 最大宽度 400 → 800(原来样式把拖拽卡在 400) */
+  height: calc(100vh - 56px);
+  flex-shrink: 0;
+  background:var(--surface);
   border-right:1px solid var(--border);
-  overflow-y: auto; padding:12px 0;
+  overflow-y: auto; overflow-x: hidden; padding:12px 0;
   z-index:90;
+  transition: transform .25s ease;
 }
 .sidebar-section { padding:8px 16px 4px; font-size:.68rem; color:var(--text2); text-transform:uppercase; letter-spacing:1px; }
 .sidebar-item {
@@ -63,21 +70,80 @@ body { background:var(--bg); color:var(--text); font-family:-apple-system,BlinkM
 .tag-chip:hover,.tag-chip.active { border-color:var(--accent); color:var(--accent); }
 
 /* ── 主内容区 ─────────────────────────────────────── */
-.main { padding-top:56px; min-height:100vh; flex:1; overflow:hidden; }
 .content { padding:16px; }
 
-/* ── 瀑布流网格 ───────────────────────────────────── */
+/* ── 网格(水平三列, 按行从左到右排序) ─────────────────
+   之前用CSS columns做瀑布流, 图片是按列从上到下排的(先填满第1列再填第2列),
+   浏览顺序是"竖着"的。改成grid之后每一行从左到右排3张, 顺序变成"横着"读,
+   行高按该行最高的那张图自适应(不强制裁剪图片比例)。 */
 .photo-grid {
-  columns: 5;
-  column-gap: 8px;
+  display: grid;
+  grid-template-columns: repeat(var(--col-count, 3), 1fr);
+  gap: 8px;
 }
-@media(max-width:1400px) { .photo-grid { columns:4; } }
-@media(max-width:1100px) { .photo-grid { columns:3; } }
-@media(max-width:800px)  { .photo-grid { columns:2; } }
+
+/* 2026-10-01 列数 1~10: 列数多时卡片很小, 收起卡片里的标签/目录/日期文字, 间距收紧; 1~2 列时图片较大, 保持原样 */
+.photo-grid[data-cols="7"], .photo-grid[data-cols="8"], .photo-grid[data-cols="9"], .photo-grid[data-cols="10"] { gap: 4px; }
+.photo-grid[data-cols="7"] .photo-tags, .photo-grid[data-cols="8"] .photo-tags, .photo-grid[data-cols="9"] .photo-tags, .photo-grid[data-cols="10"] .photo-tags,
+.photo-grid[data-cols="7"] .photo-dir,  .photo-grid[data-cols="8"] .photo-dir,  .photo-grid[data-cols="9"] .photo-dir,  .photo-grid[data-cols="10"] .photo-dir { display: none; }
+.photo-grid[data-cols="7"] .photo-info, .photo-grid[data-cols="8"] .photo-info, .photo-grid[data-cols="9"] .photo-info, .photo-grid[data-cols="10"] .photo-info { font-size: .58rem; }
+.photo-grid[data-cols="7"] .fav-btn, .photo-grid[data-cols="8"] .fav-btn, .photo-grid[data-cols="9"] .fav-btn, .photo-grid[data-cols="10"] .fav-btn { transform: scale(.75); transform-origin: top right; }
+
+/* 列数调节控件 */
+.col-count-ctrl { display:flex; align-items:center; gap:6px; font-size:.78rem; color:var(--text2); }
+.col-count-ctrl button {
+  width:22px; height:22px; border-radius:4px; border:1px solid var(--border);
+  background:transparent; color:var(--text2); cursor:pointer; font-size:.9rem; line-height:1;
+  display:flex; align-items:center; justify-content:center;
+}
+.col-count-ctrl button:hover:not(:disabled) { border-color:var(--accent); color:var(--accent); }
+.col-count-ctrl button:disabled { opacity:.35; cursor:not-allowed; }
+.col-count-ctrl .val { min-width:14px; text-align:center; color:var(--text); font-weight:700; }
+
+/* 批量选择: 每张图左上角一个checkbox, 只在"选择模式"下显示(.select-mode) */
+.photo-item .sel-check {
+  display:none; position:absolute; top:8px; left:8px; z-index:6;
+  width:22px; height:22px; cursor:pointer; accent-color:var(--accent);
+}
+.photo-grid.select-mode .photo-item .sel-check { display:block; }
+.photo-grid.select-mode .photo-item.selected { outline:3px solid var(--accent); outline-offset:-3px; }
+.photo-grid.select-mode .photo-item.selected::after {
+  content:''; position:absolute; inset:0; background:rgba(64,208,255,.18); pointer-events:none; z-index:5;
+}
+
+/* 底部常驻悬浮工具条: sticky在这套页面结构里不生效(见.main的overflow说明), 改用
+   position:fixed钉在屏幕底部——fixed是相对视口定位的, 不看父容器滚不滚动, 稳定可靠。
+   平时显示(列数/选择模式/待删复核), 进入选择模式后隐藏, 换成下面的批量操作条。 */
+.floating-toolbar {
+  position:fixed; left:50%; bottom:16px; transform:translateX(-50%);
+  z-index:400; display:flex; align-items:center; gap:14px;
+  background:#182535; border:1px solid #2a3d55; border-radius:10px;
+  padding:8px 16px; box-shadow:0 8px 30px rgba(0,0,0,.5);
+  transition:transform .2s ease, opacity .2s ease; font-size:.78rem; color:var(--text2);
+}
+.floating-toolbar.hide { transform:translateX(-50%) translateY(120%); opacity:0; pointer-events:none; }
+.floating-toolbar b { color:var(--text); }
+@media(max-width:700px) {
+  .floating-toolbar { left:12px; right:12px; bottom:12px; transform:none; width:auto; flex-wrap:wrap; justify-content:center; }
+  .floating-toolbar.hide { transform:translateY(120%); }
+}
+
+/* 底部批量操作条: 选择模式下从屏幕底部浮出, 跟floating-toolbar共用同一个位置(互斥显示) */
+.batch-bar {
+  position:fixed; left:50%; bottom:16px; transform:translateX(-50%) translateY(120%);
+  z-index:400; display:flex; align-items:center; gap:12px;
+  background:#182535; border:1px solid #2a3d55; border-radius:10px;
+  padding:10px 18px; box-shadow:0 8px 30px rgba(0,0,0,.5);
+  transition:transform .2s ease; font-size:.82rem; color:var(--text2);
+}
+.batch-bar.show { transform:translateX(-50%) translateY(0); }
+.batch-bar b { color:var(--text); }
+@media(max-width:700px) {
+  .batch-bar { left:12px; right:12px; bottom:12px; transform:translateY(120%); width:auto; flex-wrap:wrap; justify-content:center; }
+  .batch-bar.show { transform:translateY(0); }
+}
 
 .photo-item {
-  break-inside: avoid;
-  margin-bottom: 8px;
   position: relative;
   cursor: pointer;
   border-radius: 6px;
@@ -146,8 +212,19 @@ body { background:var(--bg); color:var(--text); font-family:-apple-system,BlinkM
 }
 .photo-item:hover .fav-btn { opacity:1; }
 .fav-btn.active { opacity:1; color:#ff4d6d; }
+/* 触屏没有:hover, 点一下就直接进大图了, 悬停态等于永远看不到——手机/触屏下常驻显示 */
+@media (max-width:768px), (hover:none) {
+  .photo-overlay { opacity:1; }
+  .fav-btn { opacity:1; }
+}
 
-/* ── 状态栏 ───────────────────────────────────────── */
+/* ── 页面内顶部功能区整体钉住: 标签筛选栏+状态栏(列数/选择模式/待删复核)打包成
+   一个sticky容器, 一起钉在顶部导航栏(56px高)下面, 瀑布流滚动时两块都不会被滚走。
+   之前只把状态栏单独sticky, 上面的标签栏还是会跑, 现在两块一起移动更自然。 */
+.page-toolbar-sticky {
+  position:sticky; top:56px; z-index:90;
+  background:var(--surface);
+}
 .stats-bar {
   display:flex; gap:16px; padding:12px 16px;
   background:var(--surface); border-bottom:1px solid var(--border);
@@ -181,6 +258,8 @@ body { background:var(--bg); color:var(--text); font-family:-apple-system,BlinkM
 }
 .viewer-title { font-size:.85rem; color:var(--text2); }
 .viewer-actions { display:flex; gap:8px; }
+.viewer-header-actions { display:flex; align-items:center; gap:8px; }
+.viewer-slideshow-opts { display:flex; align-items:center; gap:6px; }
 .viewer-btn {
   width:36px; height:36px; border-radius:6px;
   background:transparent; border:1px solid var(--border);
@@ -189,6 +268,18 @@ body { background:var(--bg); color:var(--text); font-family:-apple-system,BlinkM
   transition:all .15s;
 }
 .viewer-btn:hover { border-color:var(--accent); color:var(--accent); }
+
+/* 全屏功能: 支持元素级Fullscreen API的浏览器(Android/桌面)走fullscreenchange监听整个隐藏
+   header/footer; iOS Safari不支持这个API(即使webkit前缀也没有), 只能退化成"手动隐藏
+   header/footer腾出空间"这条路——但那样一来退出按钮也被藏起来就再也点不到了, 所以这个
+   降级模式下单独把全屏按钮本身摘出来, 用绝对定位浮在右上角, 图片下面也能点到它退出。 */
+.viewer-overlay.manual-fs .viewer-header > *:not(#btn-fullscreen) { display:none; }
+.viewer-overlay.manual-fs .viewer-header {
+  height:auto; background:transparent; backdrop-filter:none;
+  position:absolute; top:0; right:0; left:auto; z-index:20; padding:10px;
+}
+.viewer-overlay.manual-fs #btn-fullscreen { background:rgba(0,0,0,.5); border-color:rgba(255,255,255,.3); }
+.viewer-overlay.manual-fs .viewer-footer { display:none; }
 
 .viewer-body {
   flex:1; position:relative; overflow:hidden;
@@ -200,6 +291,8 @@ body { background:var(--bg); color:var(--text); font-family:-apple-system,BlinkM
   position:absolute; inset:0;
   display:flex; align-items:center; justify-content:center;
   cursor:grab;
+  /* 这个区域所有手势(缩放/平移/滑动切换)都是JS自己处理的, 没有任何原生触屏行为需要保留 */
+  touch-action:none;
 }
 .viewer-img-wrap.dragging { cursor:grabbing; }
 .viewer-img {
@@ -289,6 +382,10 @@ body { background:var(--bg); color:var(--text); font-family:-apple-system,BlinkM
   background:transparent; border:1px solid var(--border);
   color:var(--text2); font-size:.72rem; cursor:pointer;
 }
+/* 主页面底部音乐栏(#main-music-bar): display/position等JS会操作的属性留在内联style里,
+   纯布局属性挪到这里, 这样手机端断点才能覆盖得了 */
+.main-music-bar { height:52px; align-items:center; gap:12px; padding:0 16px; }
+.main-music-progress-row { max-width:200px; }
 .music-list-btn:hover { border-color:var(--accent); color:var(--accent); }
 
 /* ── 幻灯片模式 ───────────────────────────────────── */
@@ -306,7 +403,7 @@ body { background:var(--bg); color:var(--text); font-family:-apple-system,BlinkM
 /* ── 播放列表面板 ─────────────────────────────────── */
 .playlist-panel {
   position:fixed; right:0; top:56px; bottom:0;
-  width:320px; background:var(--surface);
+  width:min(320px, 100vw); background:var(--surface);
   border-left:1px solid var(--border);
   z-index:200; transform:translateX(100%);
   transition:transform .3s;
@@ -368,13 +465,6 @@ body { background:var(--bg); color:var(--text); font-family:-apple-system,BlinkM
 .dir-stat-loading { color: #507090; }
 
 /* ── 侧边栏可调宽度 ───────────────────────────────── */
-.sidebar {
-  position: relative;
-  min-width: 120px;
-  max-width: 400px;
-  resize: horizontal;
-  overflow: auto;
-}
 .sidebar-resizer {
   position: absolute; right: 0; top: 0; bottom: 0;
   width: 4px; cursor: col-resize;
@@ -382,6 +472,15 @@ body { background:var(--bg); color:var(--text); font-family:-apple-system,BlinkM
   transition: background .15s;
 }
 .sidebar-resizer:hover { background: #40d0ff; }
+
+/* 手机抽屉式侧边栏的遮罩层: 平时不存在, 只有手机断点下JS会切换.show */
+#sidebar-backdrop {
+  display: none;
+  position: fixed; top: 56px; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,.5);
+  z-index: 240;
+}
+#sidebar-backdrop.show { display: block; }
 
 
 /* ── 页面布局 ─────────────────────────────────────── */
@@ -391,20 +490,16 @@ body { background:var(--bg); color:var(--text); font-family:-apple-system,BlinkM
   margin-top: 56px;
   min-height: calc(100vh - 56px);
 }
-.sidebar {
-  width: 260px;
-  flex-shrink: 0;
-  position: sticky;
-  top: 56px;
-  height: calc(100vh - 56px);
-  overflow-y: auto;
-  background: var(--surface);
-  border-right: 1px solid var(--border);
-}
 .main {
   flex: 1;
   min-width: 0;
   padding-top: 0;
+  /* 原来是overflow:hidden——这会让.main自己变成一个"滚动容器"(哪怕它自己从来不会真的
+     滚动, 真正滚动的是整个页面), 里面的position:sticky子元素就只能相对.main这个从不滚动
+     的容器计算位置, 结果等于永远不生效、直接跟着页面滚走。改成只在横向裁剪(原来大概是防止
+     内部超宽内容顶出页面), 纵向留visible, sticky才能正确相对页面滚动生效。 */
+  overflow-x: hidden;
+  overflow-y: visible;
 }
 
 /* 细滚动条 */
@@ -428,12 +523,6 @@ body { background:var(--bg); color:var(--text); font-family:-apple-system,BlinkM
 .btn-sm.danger:hover { border-color:#ff5567; color:#ff5567; }
 .btn-sm.success { border-color:#3ddc84; color:#3ddc84; }
 
-/* 目录树操作按钮 */
-.btn-sm { padding:5px 12px; border-radius:5px; border:1px solid #2a3d55; background:#1e2838; color:#c8dff5; font-size:.75rem; cursor:pointer; transition:all .15s; }
-.btn-sm:hover { border-color:#40d0ff; color:#40d0ff; }
-.btn-sm.danger:hover { border-color:#ff5567; color:#ff5567; }
-.btn-sm.success { border-color:#3ddc84; color:#3ddc84; }
-
 /* 大图左上角关闭叉号: 仅手机/窄屏显示 */
 #viewer-close-mobile {
   display: none;
@@ -444,8 +533,63 @@ body { background:var(--bg); color:var(--text); font-family:-apple-system,BlinkM
   align-items: center; justify-content: center;
   cursor: pointer; -webkit-tap-highlight-color: transparent;
 }
+/* 关闭叉号按"是不是触屏设备"显示, 而不是按屏幕宽度——手机横过来时宽度经常超过768px,
+   原来只按max-width判断会导致横屏时叉号突然消失, 找不到地方关闭大图。触屏设备(pointer:coarse)
+   不管横竖屏都算, 保持一致; 鼠标操作的窄浏览器窗口(比如调试时缩小窗口)继续按宽度兜底显示。 */
+@media (pointer: coarse) {
+  #viewer-close-mobile { display: flex; }
+}
 @media (max-width: 768px) {
   #viewer-close-mobile { display: flex; }
+
+  /* 侧边栏改成全屏覆盖的抽屉: 默认收起(translateX(-100%)), JS切换.drawer-open展开 */
+  .sidebar {
+    position: fixed;
+    top: 56px; left: 0; bottom: 0;
+    width: min(82vw, 300px);
+    max-width: none;
+    height: auto;
+    resize: none;
+    transform: translateX(-100%);
+    z-index: 250;
+    box-shadow: 4px 0 24px rgba(0,0,0,.5);
+  }
+  .sidebar.drawer-open { transform: translateX(0); }
+  /* 手机上抽屉是全覆盖的, "拖边缘调宽"和桌面折叠箭头都没意义了, 直接隐藏 */
+  #sidebar-resizer, #sidebar-toggle { display: none; }
+
+  #sidebar-hamburger { display: flex; width: 36px; height: 36px; padding: 0; font-size: 1.2rem; }
+
+  /* 相册网格窄屏下会溢出的地方, 主体容器/播放列表面板 */
+  .page-wrapper { margin-top: 104px; min-height: calc(100vh - 104px); }
+  /* 手机上导航栏换行变高了(104px), 整个顶部功能区sticky的钉住位置要跟着往下挪, 不然会被导航栏盖住 */
+  .page-toolbar-sticky { top: 104px; }
+  .stats-bar { flex-wrap: wrap; }
+
+  /* 导航栏/灯箱头部/音乐栏原来都是不换行的一整行挤了6-8个控件, 手机上允许换行,
+     而不是新做一个"更多"菜单——换行后所有功能都还能点到, 改动也更小。 */
+  .navbar { flex-wrap: wrap; height: auto; min-height: 56px; row-gap: 6px; padding: 8px 12px; }
+  .nav-search { flex: 1 1 120px; min-width: 100px; }
+  /* AI标签可信度滑块是桌面端次要调节项, 换行的话单它就要占大半行, 手机上先隐藏
+     (标签本身可以从下面的"🏷标签"面板里点选, 不影响核心浏览体验) */
+  .nav-threshold-group { display: none; }
+  .nav-actions { flex-wrap: wrap; row-gap: 6px; margin-left: 0; width: 100%; justify-content: flex-end; }
+
+  .viewer-header { flex-wrap: wrap; height: auto; min-height: 52px; padding: 8px 12px; row-gap: 6px; }
+  .viewer-title { flex: 1 1 100%; font-size: .75rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .viewer-header-actions { width: 100%; flex-wrap: wrap; justify-content: flex-end; row-gap: 6px; }
+  /* 幻灯片间隔/转场这些次要控件平时收起, 点"▶幻灯片"激活后再露出来(复用现成的.active类) */
+  .viewer-slideshow-opts { display: none; width: 100%; justify-content: center; flex-wrap: wrap; }
+  .slideshow-btn.active ~ .viewer-slideshow-opts { display: flex; }
+
+  .main-music-bar { flex-wrap: wrap; height: auto; min-height: 52px; padding: 8px 12px; row-gap: 6px; }
+  .main-music-name-row { flex: 1 1 100%; order: -1; }
+  .main-music-progress-row { flex: 1 1 100%; max-width: none; order: 2; }
+  .music-bar { flex-wrap: wrap; height: auto; min-height: 52px; padding: 8px 12px; row-gap: 6px; }
+  .music-info { flex: 1 1 100%; order: -1; }
+  .music-progress { flex: 1 1 100%; max-width: none; order: 2; }
+  /* 音量条: 手机有硬件音量键, 这个次要滑块先隐藏, 省出的空间给核心播放控制 */
+  .music-vol { display: none; }
 }
 
 /* 大图: 禁原生拖拽和选中, 消除拖动卡顿 */
@@ -502,3 +646,71 @@ body { background:var(--bg); color:var(--text); font-family:-apple-system,BlinkM
   0%   { clip-path: polygon(0 0,100% 0,100% 12.5%,0 12.5%, 0 12.5%,100% 12.5%,100% 25%,0 25%, 0 25%,100% 25%,100% 37.5%,0 37.5%, 0 37.5%,100% 37.5%,100% 50%,0 50%, 0 50%,100% 50%,100% 62.5%,0 62.5%, 0 62.5%,100% 62.5%,100% 75%,0 75%, 0 75%,100% 75%,100% 87.5%,0 87.5%, 0 87.5%,100% 87.5%,100% 100%,0 100%); }
   100% { clip-path: polygon(0 0,100% 0,100% 0,0 0, 0 12.5%,100% 12.5%,100% 12.5%,0 12.5%, 0 25%,100% 25%,100% 25%,0 25%, 0 37.5%,100% 37.5%,100% 37.5%,0 37.5%, 0 50%,100% 50%,100% 50%,0 50%, 0 62.5%,100% 62.5%,100% 62.5%,0 62.5%, 0 75%,100% 75%,100% 75%,0 75%, 0 87.5%,100% 87.5%,100% 87.5%,0 87.5%); }
 }
+
+/* 2026-10-01 筛选面板停靠: 左侧(吸附在侧边栏旁边的一列, 随页面滚动一直可见) / 顶部不吸顶(跟着页面滚走时加点边距) */
+#adv-dock-left { flex: 0 0 340px; width: 340px; position: sticky; top: 56px; align-self: flex-start; max-height: calc(100vh - 56px); overflow-y: auto; padding: 8px; background: #0d141e; border-right: 1px solid #1e2838; z-index: 60; box-sizing: border-box; }
+#adv-dock-left #adv-panel { margin-top: 0 !important; }
+#adv-dock-left #adv-box { max-width: none !important; }
+#adv-panel[data-pin="0"][data-dock="top"] { margin: 8px 16px !important; }
+@media (max-width: 899px) { #adv-dock-left { display: none !important; } }
+
+/* 2026-10-01 筛选悬浮图标: 固定在屏幕右侧中间, 永远可见(滚动不走); 有生效的筛选条件时变亮并显示数量角标; 大图(灯箱)打开时被盖住 */
+#fp-fab {
+  position: fixed; right: 14px; top: 45%; z-index: 150;
+  width: 46px; height: 46px; border-radius: 50%;
+  background: #161d28; border: 2px solid #2a3d55; color: #f0f6ff; font-size: 1.25rem; line-height: 1;
+  cursor: pointer; box-shadow: 0 4px 16px rgba(0,0,0,.55); display: flex; align-items: center; justify-content: center;
+  transition: transform .15s, border-color .15s, background .15s;
+}
+#fp-fab:hover { transform: scale(1.1); border-color: var(--accent); }
+#fp-fab.on { border-color: var(--accent); background: #12303d; }
+#fp-fab.has { border-color: var(--accent); }
+#fp-fab-count {
+  display: none; position: absolute; top: -6px; right: -6px; min-width: 20px; height: 20px; padding: 0 5px; box-sizing: border-box;
+  align-items: center; justify-content: center; border-radius: 10px; background: #ff5567; color: #fff; font-size: .7rem; font-weight: 700;
+}
+
+/* 2026-10-01 排布模式. 等高行: 每张卡片的宽度由脚本按"宽高比 × 行高"算好(见 _justify), 一行里高度完全相同; 脚本没跑之前用 --row-h 估一个宽度 */
+.photo-grid[data-layout="justified"] { display: flex; flex-wrap: wrap; gap: 6px; }
+.photo-grid[data-layout="justified"] .photo-item { flex: none; min-width: 0; width: calc(var(--r, 1.33) * var(--row-h, 180px)); }
+.photo-grid[data-layout="justified"] .photo-item img { aspect-ratio: var(--r, 1.33) !important; object-fit: cover; height: auto; }
+/* 瀑布(参差): 按列从上到下排, 不对齐, 没有空隙 */
+.photo-grid[data-layout="masonry"] { display: block; column-count: var(--col-count, 3); column-gap: 8px; }
+.photo-grid[data-layout="masonry"] .photo-item { display: block; break-inside: avoid; margin-bottom: 8px; }
+
+/* 2026-10-01 筛选面板悬浮模式(默认): 固定在屏幕上方、盖在内容最上层(但在大图/弹窗之下), 不挤占内容, 也不随页面滚走; 标题栏可拖动 */
+#adv-panel[data-dock="float"] {
+  position: fixed; top: 64px; right: 72px; z-index: 160; margin: 0 !important;
+  width: min(780px, calc(100vw - 100px)); max-height: calc(100vh - 84px); overflow-y: auto;
+  border-radius: 12px; box-shadow: 0 12px 44px rgba(0,0,0,.7); box-sizing: border-box;
+}
+#adv-panel[data-dock="float"] #adv-box { max-width: none !important; background: #121a26 !important; border: 1px solid #2a3d55 !important; }
+@media (max-width: 899px) { #adv-panel[data-dock="float"] { right: 8px; left: 8px !important; width: auto; top: 112px; } }
+
+/* 2026-10-01 列数 11~20: 卡片很小, 只留图片(隐藏日期/标签/目录/收藏), 圆角和间距更小 */
+.photo-grid[data-cols="11"] .photo-overlay, .photo-grid[data-cols="12"] .photo-overlay, .photo-grid[data-cols="13"] .photo-overlay, .photo-grid[data-cols="14"] .photo-overlay, .photo-grid[data-cols="15"] .photo-overlay, .photo-grid[data-cols="16"] .photo-overlay, .photo-grid[data-cols="17"] .photo-overlay, .photo-grid[data-cols="18"] .photo-overlay, .photo-grid[data-cols="19"] .photo-overlay, .photo-grid[data-cols="20"] .photo-overlay { display: none !important; }
+.photo-grid[data-cols="11"] .fav-btn, .photo-grid[data-cols="12"] .fav-btn, .photo-grid[data-cols="13"] .fav-btn, .photo-grid[data-cols="14"] .fav-btn, .photo-grid[data-cols="15"] .fav-btn, .photo-grid[data-cols="16"] .fav-btn, .photo-grid[data-cols="17"] .fav-btn, .photo-grid[data-cols="18"] .fav-btn, .photo-grid[data-cols="19"] .fav-btn, .photo-grid[data-cols="20"] .fav-btn { display: none !important; }
+.photo-grid[data-cols="11"], .photo-grid[data-cols="12"], .photo-grid[data-cols="13"], .photo-grid[data-cols="14"], .photo-grid[data-cols="15"], .photo-grid[data-cols="16"], .photo-grid[data-cols="17"], .photo-grid[data-cols="18"], .photo-grid[data-cols="19"], .photo-grid[data-cols="20"] { gap: 2px; }
+.photo-grid[data-cols="11"] .photo-item, .photo-grid[data-cols="12"] .photo-item, .photo-grid[data-cols="13"] .photo-item, .photo-grid[data-cols="14"] .photo-item, .photo-grid[data-cols="15"] .photo-item, .photo-grid[data-cols="16"] .photo-item, .photo-grid[data-cols="17"] .photo-item, .photo-grid[data-cols="18"] .photo-item, .photo-grid[data-cols="19"] .photo-item, .photo-grid[data-cols="20"] .photo-item { border-radius: 2px; }
+.col-count-ctrl input[type=range] { margin-left: 4px; }
+
+/* ══ 2026-10-01 目录栏拖拽条 + 折叠按钮重做 ══
+   拖拽条: 命中区域 14px 宽(好抓), 平时是一条细线, 鼠标放上去/拖动时变粗成 6px 的高亮条; 折叠按钮: 竖直居中、更大、半透明, 放上去高亮 */
+#sidebar-resizer { position:fixed; left:260px; top:56px; bottom:0; width:14px; margin-left:-7px; cursor:col-resize; z-index:200; background:transparent; }
+#sidebar-resizer::before { content:''; position:absolute; left:50%; top:0; bottom:0; width:2px; margin-left:-1px; border-radius:3px; background:transparent; transition:width .12s, margin-left .12s, background .12s; }
+#sidebar-resizer:hover::before, #sidebar-resizer.dragging::before { width:6px; margin-left:-3px; background:rgba(64,208,255,.85); }
+#sidebar-toggle {
+  position:fixed; left:260px; top:50%; transform:translateY(-50%); z-index:202; width:18px; height:64px; padding:0;
+  display:flex; align-items:center; justify-content:center; background:#1e2838; border:1px solid #2a3d55; border-left:none; border-radius:0 10px 10px 0;
+  color:#8fa8c4; font-size:.8rem; cursor:pointer; opacity:.6; transition:opacity .15s, background .15s, color .15s;
+}
+#sidebar-toggle:hover { opacity:1; background:#24425a; color:#40d0ff; }
+
+@media (max-width:768px) { #sidebar-resizer, #sidebar-toggle { display:none !important; } }   /* 手机用抽屉, 不需要拖拽条/折叠按钮 */
+
+/* 2026-10-01 "目录"按钮(与视频页一致): 目录栏显示时高亮; 手机上用左上角的 ☰ 抽屉, 不显示这个 */
+@media (max-width: 768px) { #btn-dirs { display: none; } }
+
+/* 大图顶部进度条: 已看 / 总数 */
+#viewer-progress { position:absolute; top:0; left:0; right:0; height:4px; z-index:5; background:rgba(255,255,255,.12); pointer-events:none; }
+#viewer-progress-bar { display:block; height:100%; width:0; background:linear-gradient(90deg,#40d0ff,#7a8cff); transition:width .25s; }

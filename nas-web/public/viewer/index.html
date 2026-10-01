@@ -11,11 +11,13 @@
 
 <!-- 顶部导航 -->
 <nav class="navbar">
+  <button class="nav-btn" id="sidebar-hamburger" onclick="toggleSidebar()" aria-label="菜单">☰</button>
   <div class="nav-logo">🖼 Photo</div>
   <input class="nav-search" placeholder="搜索图片、标签、描述..." oninput="onSearch(this.value)">
   <div id="active-tags" style="display:flex;gap:6px;flex-wrap:wrap"></div>
   <div class="nav-actions">
-    <div style="display:flex;align-items:center;gap:6px;margin-right:8px">
+    <button class="nav-btn" id="btn-dirs" onclick="toggleSidebar()" title="显示/隐藏目录（快捷键 [ ）">目录</button>
+    <div class="nav-threshold-group" style="display:flex;align-items:center;gap:6px;margin-right:8px">
       <span style="font-size:.72rem;color:#507090">AI标签可信度≥</span>
       <input type="range" min="0" max="1" step="0.05" value="0" style="width:90px;accent-color:#40d0ff" oninput="setTagThreshold(this.value)" id="tag-threshold-slider">
       <span id="tag-threshold-val" style="font-size:.72rem;color:#40d0ff;min-width:32px">0%</span>
@@ -27,29 +29,51 @@
 </nav>
 
 <!-- 主体：侧边栏 + 内容 -->
-<div style="display:flex;margin-top:56px;min-height:calc(100vh - 56px)">
+<div class="page-wrapper">
 
   <!-- 侧边栏 -->
   <div class="sidebar" id="sidebar">
   </div>
+  <div id="sidebar-backdrop" onclick="toggleSidebar()"></div>
 
-  <div id="sidebar-resizer" style="position:fixed;left:260px;top:56px;bottom:0;width:6px;cursor:col-resize;z-index:200;background:transparent"></div>
+  <div id="sidebar-resizer" title="拖动调整目录宽度（双击恢复默认）"></div>
+  <!-- 筛选悬浮图标: 固定在屏幕右侧, 滚动/折叠/停靠都不影响, 随时点开关筛选面板; 角标=当前生效的筛选条件数 -->
+  <button id="fp-fab" onclick="toggleAdvPanel()" title="筛选（点一下打开/关闭筛选面板）">🔎<span id="fp-fab-count"></span></button>
+  <!-- 筛选面板的左侧停靠位(在侧边栏和主内容之间, 需要时才显示) -->
+  <div id="adv-dock-left" style="display:none"></div>
   <!-- 主内容 -->
-  <div style="flex:1;min-width:0;overflow:hidden">
-    <div style="padding:6px 16px;border-bottom:1px solid #1e2838">
-      <button id="ai-bar-toggle" class="nav-btn" onclick="toggleAiBar()" style="padding:3px 12px;font-size:.8rem">🏷 标签</button>
-      <div id="ai-tag-panel" style="display:none;margin-top:8px">
-        <div style="display:flex;align-items:center;gap:14px;margin-bottom:8px;flex-wrap:wrap">
-          <label style="font-size:.78rem;color:#8fa8c4;cursor:pointer"><input type="radio" name="ai-mode" id="ai-mode-or" checked onchange="setAiMode('or')"> 并集(任一)</label>
-          <label style="font-size:.78rem;color:#8fa8c4;cursor:pointer"><input type="radio" name="ai-mode" id="ai-mode-and" onchange="setAiMode('and')"> 交集(全部)</label>
-          <label style="font-size:.78rem;color:#8fa8c4;cursor:pointer"><input type="radio" name="ai-mode" id="ai-mode-single" onchange="setAiMode('single')"> 单选</label>
-          <button class="nav-btn" onclick="clearAiFilter()" style="padding:2px 10px;font-size:.72rem">清除</button>
+  <div class="main">
+    <div class="page-toolbar-sticky">
+      <div style="padding:6px 16px;border-bottom:1px solid #1e2838">
+        <button id="ai-bar-toggle" class="nav-btn" onclick="toggleAiBar()" style="padding:3px 12px;font-size:.8rem">🏷 标签</button>
+        <button id="btn-filter" class="nav-btn" onclick="toggleAdvPanel()" style="padding:3px 12px;font-size:.8rem">🔎 筛选<span id="filter-count"></span></button>
+        <span style="margin-left:14px;font-size:.78rem;color:#8fa8c4">排序：</span>
+        <select id="sort-mode" class="nav-btn" onchange="setSortMode(this.value)" title="浏览顺序" style="padding:3px 8px;font-size:.8rem">
+          <option value="folder">文件夹乱序</option>
+          <option value="random">全部乱序</option>
+          <option value="name">文件名顺序</option>
+          <option value="desc">时间倒序（新→旧）</option>
+          <option value="asc">时间正序（旧→新）</option>
+          <option value="res_desc">分辨率（高→低）</option>
+          <option value="res_asc">分辨率（低→高）</option>
+          <option value="ratio">宽高比（竖→横，相近的排一起）</option>
+        </select>
+        <button id="btn-reshuffle" class="nav-btn" onclick="reshuffle()" title="换一批顺序（只对两种乱序有效）" style="padding:3px 12px;font-size:.8rem">🎲 换一波</button>
+        <div id="filter-chips" style="display:none;margin-top:6px"></div>
+        <div id="adv-panel" style="display:none;margin-top:8px"></div>
+        <div id="ai-tag-panel" style="display:none;margin-top:8px">
+          <div style="display:flex;align-items:center;gap:14px;margin-bottom:8px;flex-wrap:wrap">
+            <label style="font-size:.78rem;color:#8fa8c4;cursor:pointer"><input type="radio" name="ai-mode" id="ai-mode-or" checked onchange="setAiMode('or')"> 并集(任一)</label>
+            <label style="font-size:.78rem;color:#8fa8c4;cursor:pointer"><input type="radio" name="ai-mode" id="ai-mode-and" onchange="setAiMode('and')"> 交集(全部)</label>
+            <label style="font-size:.78rem;color:#8fa8c4;cursor:pointer"><input type="radio" name="ai-mode" id="ai-mode-single" onchange="setAiMode('single')"> 单选</label>
+            <button class="nav-btn" onclick="clearAiFilter()" style="padding:2px 10px;font-size:.72rem">清除</button>
+          </div>
+          <div id="ai-tag-bar" style="display:flex;gap:6px;flex-wrap:wrap"></div>
         </div>
-        <div id="ai-tag-bar" style="display:flex;gap:6px;flex-wrap:wrap"></div>
       </div>
-    </div>
-    <div class="stats-bar">
-      共 <span id="stats-total">0</span> 张照片
+      <div class="stats-bar">
+        共 <span id="stats-total">0</span> 张照片
+      </div>
     </div>
     <div class="content">
       <div class="photo-grid" id="photo-grid"></div>
@@ -57,6 +81,32 @@
         <div class="load-spinner" id="spinner" style="display:none"></div>
       </div>
       <div id="sentinel" style="height:1px"></div>
+      <!-- sticky在这个页面结构里不生效(.main的overflow会让sticky基准算错), 改成
+           position:fixed钉在屏幕底部, 不受父容器滚动裁剪影响, 稳定悬浮不会被滚走。
+           平时显示这条(列数/选择模式/待删复核), 进入选择模式后换成下面的batch-bar。 -->
+      <div class="floating-toolbar" id="floating-toolbar">
+        <span>共 <b id="float-stats-total">0</b> 张</span>
+        <div class="col-count-ctrl">
+          <span>列数</span>
+          <button id="col-count-minus" onclick="adjustColCount(-1)">−</button>
+          <span class="val" id="col-count-val">3</span>
+          <button id="col-count-plus" onclick="adjustColCount(1)">+</button>
+    <input type="range" id="col-count-slider" min="1" max="20" step="1" value="3" oninput="setColCount(this.value)" title="拖动快速调整列数(1~20)" style="width:90px;accent-color:#40d0ff;vertical-align:middle">
+        </div>
+        <select id="layout-mode" onchange="setLayout(this.value)" title="图片排布方式" style="background:#182535;border:1px solid #2a3d55;border-radius:5px;color:#f0f6ff;padding:3px 6px;font-size:.78rem">
+          <option value="justified">等高行</option>
+          <option value="masonry">瀑布(参差)</option>
+          <option value="grid">网格</option>
+        </select>
+        <button class="nav-btn" id="btn-select-mode" onclick="toggleSelectMode()" style="padding:3px 12px;font-size:.78rem">☑ 选择</button>
+        <a class="nav-btn" href="trash.html" style="padding:3px 12px;font-size:.78rem;text-decoration:none">🗑 回收站</a>
+      </div>
+      <div class="batch-bar" id="batch-bar">
+        <span>已选 <b id="batch-count">0</b> 项</span>
+        <button class="nav-btn" onclick="selectAllVisible()" style="padding:3px 12px;font-size:.78rem">全选本屏</button>
+        <button class="nav-btn" onclick="exitSelectMode()" style="padding:3px 12px;font-size:.78rem">取消</button>
+        <button class="nav-btn" onclick="batchSoftDelete()" style="padding:3px 12px;font-size:.78rem;border-color:#ff5567;color:#ff5567">🗑 删除选中</button>
+      </div>
     </div>
   </div>
 
@@ -64,22 +114,26 @@
 
 <!-- 预览层 -->
 <div class="viewer-overlay" id="viewer">
+  <div id="viewer-progress" title="播放进度"><i id="viewer-progress-bar"></i></div>
   <div class="viewer-header">
     <div class="viewer-title" id="viewer-filename"></div>
-    <div style="display:flex;align-items:center;gap:8px">
+    <div class="viewer-header-actions" style="display:flex;align-items:center;gap:8px">
       <button class="viewer-btn" onclick="toggleFilterPanel()" title="滤镜">🎨</button>
       <span id="viewer-counter" style="font-size:.78rem;color:#909090"></span>
       <button class="viewer-btn slideshow-btn" id="btn-slideshow" onclick="toggleSlideshow()">▶ 幻灯片</button>
-      <div style="display:flex;align-items:center;gap:6px">
+      <div class="viewer-slideshow-opts">
         <span style="font-size:.72rem;color:#507090">间隔</span>
-        <input type="range" id="slideshow-interval" min="1" max="30" value="4" style="width:80px;accent-color:#40d0ff" oninput="updateSlideshowInterval(this.value)">
-        <span id="slideshow-interval-val" style="font-size:.72rem;color:#40d0ff;min-width:28px">4秒</span>
+        <input type="range" id="slideshow-interval" min="0" max="100" value="49" style="width:90px;accent-color:#40d0ff" oninput="updateSlideshowInterval(this.value)">
+        <span id="slideshow-interval-val" onclick="editSlideshowInterval()" style="font-size:.72rem;color:#40d0ff;min-width:28px;cursor:pointer;text-decoration:underline dotted" title="点击手动输入精确秒数(0.3~60)">4秒</span>
         <span style="font-size:.72rem;color:#507090;margin-left:6px">转场</span>
         <select id="trans-mode-sel" onchange="setTransMode(this.value)" style="background:#182535;border:1px solid #2a3d55;border-radius:4px;color:#f0f6ff;font-size:.7rem;padding:2px 4px"><option value="none">无</option><option value="random">🎲随机</option><option value="dissolve" selected>交叉溶解</option><option value="mosaic">马赛克</option><option value="tv">📺电视机</option><option value="wipe">擦除</option><option value="circle">圆形</option><option value="blinds">百叶窗</option><option value="fade">淡入淡出</option><option value="slide">左右滑动</option><option value="slideup">向上滑动</option><option value="slidedown">向下滑动</option><option value="zoom">放大</option><option value="zoomout">缩小</option><option value="rotate">旋转</option><option value="flip">翻页Y</option><option value="flipx">翻页X</option><option value="blur">模糊</option><option value="swing">摇摆</option><option value="kenburns">Ken Burns</option></select>
         <input type="checkbox" id="slideshow-fullscreen" style="accent-color:#40d0ff" checked title="全屏">
         <span style="font-size:.72rem;color:#507090">全屏</span>
       </div>
       <button class="viewer-btn" onclick="resetViewerTransform()">⊡</button>
+      <button class="viewer-btn" onclick="rotateViewer()" title="旋转(仅本次浏览, 不修改原图)">🔄</button>
+      <button class="viewer-btn" id="btn-fullscreen" onclick="toggleFullscreen()" title="全屏">⛶</button>
+      <button class="viewer-btn" onclick="downloadCurrentPhoto()" title="下载原图">⬇️</button>
       <button class="viewer-btn" onclick="toggleFavCurrent()">🤍</button>
       <button class="viewer-btn" onclick="closeViewer()">✕</button>
     </div>
@@ -116,7 +170,7 @@
         <button class="music-btn" onclick="nextSong()">⏭</button>
         <button class="music-btn" onclick="toggleMode()" id="btn-mode">🔀</button>
       </div>
-      <div class="music-progress" onclick="seekMusic(event)" onmousedown="startSeekDrag(event)" style="position:relative;height:14px;display:flex;align-items:center">
+      <div class="music-progress" onclick="seekMusic(event)" onmousedown="startSeekDrag(event)" ontouchstart="startSeekDrag(event)" style="position:relative;height:14px;display:flex;align-items:center">
         <div style="position:absolute;left:0;right:0;height:3px;background:#2a3d55;border-radius:3px"></div>
         <div class="music-progress-fill" id="music-progress-fill" style="position:absolute;left:0;height:3px;background:#40d0ff;border-radius:3px;width:0%;pointer-events:none"></div>
         <div id="music-progress-knob" style="position:absolute;left:0%;width:11px;height:11px;background:#40d0ff;border-radius:50%;transform:translateX(-50%);pointer-events:none;box-shadow:0 0 4px rgba(0,0,0,.5)"></div>
@@ -143,8 +197,8 @@
 </div>
 
 <!-- 主页面音乐栏 -->
-<div id="main-music-bar" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:50;background:rgba(10,10,10,.95);border-top:1px solid #2a3d55;height:52px;align-items:center;gap:12px;padding:0 16px;">
-  <div style="flex:1;min-width:0">
+<div id="main-music-bar" class="main-music-bar" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:50;background:rgba(10,10,10,.95);border-top:1px solid #2a3d55;">
+  <div class="main-music-name-row" style="flex:1;min-width:0">
     <div id="main-music-name" style="font-size:.8rem;color:#f0f0f0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">未选择音乐</div>
   </div>
   <div style="display:flex;align-items:center;gap:8px">
@@ -152,7 +206,7 @@
     <button id="main-btn-play" onclick="togglePlay()" style="width:36px;height:36px;background:#40d0ff;color:#000;border-radius:50%;border:none;cursor:pointer;font-size:1rem">▶</button>
     <button class="music-btn" onclick="nextSong()">⏭</button>
   </div>
-  <div onclick="seekMusic(event)" onmousedown="startSeekDrag(event)" style="flex:1;max-width:200px;position:relative;height:14px;display:flex;align-items:center;cursor:pointer">
+  <div class="main-music-progress-row" onclick="seekMusic(event)" onmousedown="startSeekDrag(event)" ontouchstart="startSeekDrag(event)" style="flex:1;position:relative;height:14px;display:flex;align-items:center;cursor:pointer">
     <div style="position:absolute;left:0;right:0;height:3px;background:#2a3d55;border-radius:3px"></div>
     <div id="main-music-progress-fill" style="position:absolute;left:0;height:3px;background:#40d0ff;border-radius:3px;width:0%;pointer-events:none"></div>
     <div id="main-progress-knob" style="position:absolute;left:0%;width:11px;height:11px;background:#40d0ff;border-radius:50%;transform:translateX(-50%);pointer-events:none;box-shadow:0 0 4px rgba(0,0,0,.5)"></div>
@@ -170,6 +224,6 @@
 <script src="/common/dir-tree-widget.js"></script>
 <script src="/common/dir-tree-actions.js"></script> 
 <script src="js/app.js"></script>
-  <button id="sidebar-toggle" onclick="toggleSidebar()" style="position:fixed;left:260px;top:64px;z-index:200;width:18px;height:48px;background:#1e2838;border:1px solid #2a3d55;border-left:none;border-radius:0 6px 6px 0;cursor:pointer;color:#507090;font-size:.7rem;padding:0;display:flex;align-items:center;justify-content:center;transition:left .25s ease" title="折叠/展开">◀</button>
+  <button id="sidebar-toggle" onclick="toggleSidebar()" title="折叠/展开目录（快捷键 [ ）">◀</button>
 </body>
 </html>

@@ -46,11 +46,12 @@ class DirTreeWidget {
   }
   async _fetchChildren(path) {
     if (this.childrenFn) return await this.childrenFn(path);
-    return await apiFetch(`/api/dir-tree?source=${this.source}&path=${encodeURIComponent(path)}`);
+    // 2026-10-01: media=all = 数据库 ∪ 磁盘一层, 全部显示(media-admin 要看到还没入库的目录); viewer/videoer 自己传 childrenFn, 不走这里
+    return await apiFetch(`/api/dir-tree?source=${this.source}&media=all&path=${encodeURIComponent(path)}`);
   }
   async _fetchRoots() {
     if (this.rootsFn) return await this.rootsFn();
-    return await apiFetch(`/api/dir-tree?source=${this.source}`);
+    return await apiFetch(`/api/dir-tree?source=${this.source}&media=all`);
   }
   // forceReal=true: 强制扫盘拿真实数(慢,只在"精确统计"手动触发时用)。
   // 默认走DB快速路径, 不再每个节点都递归扫盘。
@@ -59,8 +60,14 @@ class DirTreeWidget {
     return await apiFetch(`/api/dir-stat?source=${this.source}&path=${encodeURIComponent(path)}${forceReal ? '&real=1' : ''}`);
   }
   // 本地缓存优先: 有LocalCache就用, 没有(旧页面没引入脚本)就直接走网络, 不影响功能
+  // 2026-09-23修复: 原来缓存key只用了this.source('nas'/'pc'), 没用this.instanceId——
+  // 导致viewer(角色过滤后的目录树)和media-admin(不过滤的完整目录树)明明是两棵内容不同的树,
+  // 缓存key却完全一样, 会互相顶掉对方缓存的roots列表(先加载哪个页面, 另一个页面首次进来就
+  // 会先闪一下"借来的"根目录列表, 比如viewer里短暂显示出本不该看到的/share/Person, 或者
+  // 反过来该显示的Person因为被media-admin的无过滤列表顶掉缓存后又被错误late-compare判定
+  // "跟当前一样"而没重新渲染)。改成用instanceId区分, 各个树各用各的缓存, 互不干扰。
   _ck(kind, path) {
-    return window.LocalCache ? LocalCache.key('dtw', this.source, kind, path) : null;
+    return window.LocalCache ? LocalCache.key('dtw', this.instanceId, kind, path) : null;
   }
   async _cacheGet(kind, path) {
     const k = this._ck(kind, path);
@@ -431,14 +438,24 @@ class DirTreeWidget {
     const m = this._loadExpanded();
     const paths = Object.keys(m);
     if (!paths.length) return;
-    // 按路径深度从浅到深展开, 保证父节点先展开、子节点的 toggle 元素才存在
-    paths.sort((a, b) => a.split('/').length - b.split('/').length);
-    for (const p of paths) {
-      const nid = this._nid(p);
-      const tg = this.container.querySelector('.pc-toggle[data-toggle="' + p.replace(/"/g, '\\"') + '"]');
-      if (tg && tg.dataset.loaded === '0') {
-        try { await this._toggle(tg); } catch (e) { /* 目录可能已不存在, 忽略 */ }
-      }
+    // 按路径深度分批: 同一层的目录互相没有依赖, 只有"父节点必须先展开、子节点的
+    // toggle元素才存在"这一条跨层依赖——所以层内并行(Promise.all), 只在跨层之间
+    // 保序。2026-09-20: 原来是整个列表一个个await串行, 展开过的目录越多排队等最后
+    // 一个的时间就越长(线性), 改成按层并行后耗时基本只跟"层数"有关, 通常快很多。
+    const byDepth = new Map();
+    paths.forEach(p => {
+      const d = p.split('/').length;
+      if (!byDepth.has(d)) byDepth.set(d, []);
+      byDepth.get(d).push(p);
+    });
+    const depths = [...byDepth.keys()].sort((a, b) => a - b);
+    for (const d of depths) {
+      await Promise.all(byDepth.get(d).map(async (p) => {
+        const tg = this.container.querySelector('.pc-toggle[data-toggle="' + p.replace(/"/g, '\\"') + '"]');
+        if (tg && tg.dataset.loaded === '0') {
+          try { await this._toggle(tg); } catch (e) { /* 目录可能已不存在, 忽略 */ }
+        }
+      }));
     }
   }
   _select(path, nameEl) {
@@ -503,6 +520,35 @@ class DirTreeWidget {
         const nm = e.target.closest('[data-ctx]');
         if (nm) this._showContextMenu(e, nm.dataset.ctx);
       });
+      // 手机长按呼出菜单(触屏没有contextmenu事件的等价物, 靠自己算长按)
+      let lpTimer = null, lpFired = false, lpX = 0, lpY = 0;
+      const LP_MS = 500, LP_MOVE_TOL = 10;
+      this.container.addEventListener('touchstart', (e) => {
+        const nm = e.target.closest('[data-ctx]');
+        if (!nm || e.touches.length !== 1) return;
+        lpFired = false;
+        const t = e.touches[0];
+        lpX = t.clientX; lpY = t.clientY;
+        clearTimeout(lpTimer);
+        lpTimer = setTimeout(() => {
+          lpFired = true;
+          if (navigator.vibrate) navigator.vibrate(15);
+          this._showContextMenu({ preventDefault(){}, clientX: lpX, clientY: lpY }, nm.dataset.ctx);
+        }, LP_MS);
+      }, { passive: true });
+      this.container.addEventListener('touchmove', (e) => {
+        if (!lpTimer) return;
+        const t = e.touches[0];
+        if (Math.abs(t.clientX - lpX) > LP_MOVE_TOL || Math.abs(t.clientY - lpY) > LP_MOVE_TOL) {
+          clearTimeout(lpTimer); lpTimer = null;
+        }
+      }, { passive: true });
+      const lpCancel = () => { clearTimeout(lpTimer); lpTimer = null; };
+      this.container.addEventListener('touchend', (e) => {
+        if (lpFired) e.preventDefault();  // 长按已经弹出菜单了, 吞掉这次touchend变出来的click, 不要再误选中节点
+        lpCancel();
+      });
+      this.container.addEventListener('touchcancel', lpCancel);
     }
   }
   getChecked() {
@@ -584,6 +630,17 @@ async function dtwBatchSetCategory(widget, family) {
 window.dtwBatchSetCategory = dtwBatchSetCategory;
 
 // ── 管理页专用操作(actions注入用，PC/NAS通吃) ──
+// 2026-09-20: 这些操作报错以前只弹一下toast就没了, 事后完全查不到当时到底是哪个
+// 目录、报了什么错。复用已有的process_logs表(跟"📋错误清单"看的是同一张表, 不用
+// 加新表/新接口), 批量跑的时候某一个失败了, 之后随时能在错误清单里翻出来。
+function _dtwLogError(path, error) {
+  try {
+    fetch('/api/process-logs/add', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ path: path, status: 'error', error: String(error == null ? '未知错误' : error).slice(0, 500) })
+    }).catch(() => {});
+  } catch (e) {}
+}
 async function dtwWriteMd5(path) {
   try {
     const isNas = path.startsWith('/share/');
@@ -591,7 +648,7 @@ async function dtwWriteMd5(path) {
       // NAS路径: 用真正在NAS本地执行、不依赖PC的 /api/md5 接口
       const r = await fetch('/api/md5', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ path }) });
       const d = await r.json();
-      if (d.error) { showToast('打MD5失败: ' + d.error, 'error'); return; }
+      if (d.error) { showToast('打MD5失败: ' + d.error, 'error'); _dtwLogError(path, '打MD5失败: ' + d.error); return; }
       if (d.taskId && typeof ProgressModal !== 'undefined') {
         showToast('NAS打MD5已开始', 'success');
         ProgressModal.open({ title: '🔑 打MD5进度', taskId: d.taskId });
@@ -601,19 +658,27 @@ async function dtwWriteMd5(path) {
     } else {
       const r = await fetch('/api/pc/write-md5', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ path }) });
       const d = await r.json();
-      if (d.error) { showToast('打MD5失败: ' + d.error, 'error'); return; }
+      if (d.error) { showToast('打MD5失败: ' + d.error, 'error'); _dtwLogError(path, '打MD5失败: ' + d.error); return; }
       showToast('已启动打MD5(PC): ' + path, 'success');
       if (typeof openProcessModal === 'function') openProcessModal();
     }
-  } catch(e) { showToast('失败: ' + e.message, 'error'); }
+  } catch(e) { showToast('失败: ' + e.message, 'error'); _dtwLogError(path, '打MD5异常: ' + e.message); }
 }
 async function dtwProcess(path) {
   try {
     const isNasPath = path.startsWith('/share/');
-    const url = isNasPath ? '/api/process/nas' : '/api/process';
+    if (isNasPath) {
+      // 2026-09-30: NAS 目录统一加入"照片入库+处理队列"(后台一个工人按顺序: 扫描入库 → md5标记 → 缩略图), 不再每点一次开一个处理线程。
+      // 进度和明细在 nasmgr ⑬ 里看(可暂停/重置/调速度)。
+      const q = await fetch('/api/ingest/add', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ paths: [path] }) }).then(x => x.json());
+      if (q.error) { showToast('加入队列失败: ' + q.error, 'error'); _dtwLogError(path, '加入处理队列失败: ' + q.error); return; }
+      showToast(q.duplicated ? '该目录已经在处理队列里了，进度见 nasmgr ⑬' : '已加入处理队列（扫描入库+处理），进度请在 nasmgr ⑬ 查看', 'success');
+      return;
+    }
+    const url = '/api/process';
     const r = await fetch(url, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ path }) });
     const d = await r.json();
-    if (d.error) { showToast('处理失败: ' + d.error, 'error'); return; }
+    if (d.error) { showToast('处理失败: ' + d.error, 'error'); _dtwLogError(path, '处理失败: ' + d.error); return; }
     if (d.routed === 'nas' && d.taskId && typeof ProgressModal !== 'undefined') {
       showToast('NAS处理已开始', 'success');
       ProgressModal.open({ title: '⚙ NAS处理进度', taskId: d.taskId });
@@ -621,7 +686,7 @@ async function dtwProcess(path) {
       showToast('已开始处理(PC)', 'success');
       if (typeof openProcessModal === 'function') openProcessModal();
     }
-  } catch(e) { showToast('失败: ' + e.message, 'error'); }
+  } catch(e) { showToast('失败: ' + e.message, 'error'); _dtwLogError(path, '处理异常: ' + e.message); }
 }
 async function dtwCleanOrphan(path) {
   if (!confirm('清理孤立记录？\n' + path + '\n\n检查DB记录对应文件是否存在，删除文件已不存在的记录(连带缩略图)。不删实际文件。')) return;
@@ -630,9 +695,9 @@ async function dtwCleanOrphan(path) {
     const api = isNas ? '/api/nas/clean-orphan' : '/api/pc/clean-orphan';
     const r = await fetch(api, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ path }) });
     const d = await r.json();
-    if (d.error) showToast('清理失败: ' + d.error, 'error');
+    if (d.error) { showToast('清理失败: ' + d.error, 'error'); _dtwLogError(path, '清理孤立失败: ' + d.error); }
     else showToast(`清理完成: 检查${d.total||0} 孤立${d.orphan||0} 删除${d.deleted||0}`, 'success');
-  } catch(e) { showToast('失败: ' + e.message, 'error'); }
+  } catch(e) { showToast('失败: ' + e.message, 'error'); _dtwLogError(path, '清理孤立异常: ' + e.message); }
 }
 function dtwCascadeCheck(cb) {
   var node = cb.closest(".dtw-node");
@@ -651,14 +716,14 @@ async function dtwVideoScan(path) {
       body: JSON.stringify({ path: path })
     });
     const d = await r.json();
-    if (d.error) { showToast('扫描失败: ' + d.error, 'error'); return; }
+    if (d.error) { showToast('扫描失败: ' + d.error, 'error'); _dtwLogError(path, '视频扫描失败: ' + d.error); return; }
     if (!d.scanned) {
       showToast('该目录下没有视频文件', 'error');
       return;
     }
     showToast('扫描 ' + d.scanned + ' 个视频, 新增 ' + d.added + ' 个' +
               (d.skipped ? (', 已存在 ' + d.skipped) : ''), 'success');
-  } catch (e) { showToast('失败: ' + e.message, 'error'); }
+  } catch (e) { showToast('失败: ' + e.message, 'error'); _dtwLogError(path, '视频扫描异常: ' + e.message); }
 }
 
 // 把该目录的视频加入抽帧队列, 并给出 PC 端命令
@@ -688,10 +753,10 @@ async function dtwVideoShots(path) {
       body: JSON.stringify({ path: path })
     });
     const d = await r.json();
-    if (d.error) { showToast('入队失败: ' + d.error, 'error'); return; }
+    if (d.error) { showToast('入队失败: ' + d.error, 'error'); _dtwLogError(path, '视频抽帧入队失败: ' + d.error); return; }
 
     dtwShowVideoCmd(path, d.queued, d.total);
-  } catch (e) { showToast('失败: ' + e.message, 'error'); }
+  } catch (e) { showToast('失败: ' + e.message, 'error'); _dtwLogError(path, '视频抽帧入队异常: ' + e.message); }
 }
 
 // 弹窗: 显示 PC 端命令 + 实时进度
@@ -706,8 +771,10 @@ function dtwShowVideoCmd(dir, queued, total) {
   m.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:99999;" +
                     "display:flex;align-items:center;justify-content:center";
   m.innerHTML =
-    '<div style="background:#161d28;border:1px solid #2a3d55;border-radius:14px;' +
-    'padding:24px 28px;min-width:560px;max-width:720px">' +
+    // 2026-09-20: 原来min-width:560px, 手机上会大幅溢出屏幕——改用width:min(720px,92vw),
+    // 桌面不变, 窄屏自动收到视口的92%
+    '<div style="background:#161d28;border:1px solid #2a3d55;border-radius:14px;box-sizing:border-box;' +
+    'padding:24px 28px;width:min(720px,92vw)">' +
       '<div style="font-size:1rem;font-weight:700;color:#f0f6ff;margin-bottom:6px">🎞 视频抽帧</div>' +
       '<div style="font-size:.78rem;color:#8fa8c4;margin-bottom:16px;word-break:break-all">' +
         dir + '</div>' +
@@ -718,7 +785,7 @@ function dtwShowVideoCmd(dir, queued, total) {
         '抽帧在 PC 上执行。复制下面命令到 PowerShell 运行:</div>' +
       '<div style="display:flex;gap:8px;margin-bottom:16px">' +
         '<input id="dtw-vcmd-txt" readonly value="' + cmd.replace(/"/g, "&quot;") + '" ' +
-          'style="flex:1;background:#0e1620;border:1px solid #2a3d55;border-radius:6px;' +
+          'style="flex:1;min-width:0;background:#0e1620;border:1px solid #2a3d55;border-radius:6px;' +
           'color:#40d0ff;padding:8px 10px;font-family:monospace;font-size:.72rem">' +
         '<button id="dtw-vcmd-copy" style="padding:8px 14px;border-radius:6px;background:#40d0ff;' +
           'color:#000;border:none;cursor:pointer;font-weight:700;font-size:.76rem">复制</button>' +

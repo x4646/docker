@@ -1,0 +1,12 @@
+{
+  "name": "nas-media",
+  "version": "1.0.0",
+  "main": "src/index.js",
+  "dependencies": {
+    "better-sqlite3": "^9.4.3",
+    "compression": "^1.8.1",
+    "express": "^4.18.2",
+    "sharp": "^0.33.5",
+    "piexifjs": "^1.0.6"
+  }
+}
